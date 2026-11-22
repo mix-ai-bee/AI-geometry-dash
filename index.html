@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Geometry AI v1.7</title>
+    <title>Geometry AI v1.7.1</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
@@ -45,7 +45,7 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v1.7</span>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v1.7.1</span>
                 </div>
                 <p class="text-[11px] text-zinc-400 font-mono" data-ru="Смайлики и удобные надписи" data-en="Emoji and easy text">Смайлики и удобные надписи</p>
             </div>
@@ -2131,7 +2131,7 @@ const OFFICIAL_LEVELS = [
             info.className = 'w-full flex flex-wrap items-center gap-2 text-xs text-zinc-300 mt-1';
             info.innerHTML = `<span>${tr('Размер новых смайликов:', 'New emoji size:')}</span>` + [[1, 'Маленький', 'Small'], [2, 'Средний', 'Medium'], [3, 'Большой', 'Large']].map(([v, r2, e2]) =>
                 `<button data-es="${v}" class="px-2.5 py-1 rounded-lg ${emojiSize === v ? 'bg-white text-black' : 'bg-zinc-800'} font-bold">${tr(r2, e2)}</button>`).join('') +
-                `<span class="text-zinc-500">${tr('Смайлики — украшение: сквозь них можно проходить. Можно рисовать ими, зажав мышку.', 'Emoji are decoration: you pass through them. Hold the mouse to paint.')}</span>`;
+                `<span class="text-zinc-500">${tr('Смайлики — украшение: сквозь них можно проходить. Один клик — один смайлик.', 'Emoji are decoration: you pass through them. One click — one emoji.')}</span>`;
             info.querySelectorAll('[data-es]').forEach(b => b.addEventListener('click', () => { emojiSize = +b.dataset.es; renderToolBar(); }));
             c.classList.add('flex-wrap');
             c.appendChild(info);
@@ -2551,6 +2551,11 @@ const OFFICIAL_LEVELS = [
     });
     canvas.addEventListener('pointermove', e => {
         if (G.mode !== 'EDITOR') return;
+        // кнопку мыши отпустили где-то вне поля (за краем окна) — рисование и перетаскивание заканчиваются
+        if (e.pointerType === 'mouse' && e.buttons === 0 && (painting || edDrag)) {
+            painting = false;
+            if (edDrag) { if (edDrag.type === 'box') finishBoxSelect(); edDrag = null; saveEditor(); renderProps(); }
+        }
         const w = screenToWorld(e);
         if (edDrag) {
             if (edDrag.type === 'minimap') minimapJump(w);
@@ -2568,7 +2573,7 @@ const OFFICIAL_LEVELS = [
         const nc = { x: Math.floor(w.x / GRID) * GRID, y: Math.floor(w.y / GRID) * GRID };
         const changed = !hoverCell || nc.x !== hoverCell.x || nc.y !== hoverCell.y;
         hoverCell = nc.x >= 0 && nc.y >= 0 && !inMinimap(w) ? nc : null;
-        if (painting && changed && ['BLOCK', 'SLAB', 'SPIKE', 'SMALL_SPIKE', 'GROUND_SPIKES', 'ERASER', 'DECO_STAR', 'DECO_CHAIN'].includes(activeTool) || (activeTool.startsWith('EMOJI:') && activeTool !== 'EMOJI:custom')) editorPlace(e);
+        if (painting && changed && ['BLOCK', 'SLAB', 'SPIKE', 'SMALL_SPIKE', 'GROUND_SPIKES', 'ERASER', 'DECO_STAR', 'DECO_CHAIN'].includes(activeTool)) editorPlace(e);
     });
     function finishBoxSelect() {
         const d = edDrag;
@@ -2577,7 +2582,7 @@ const OFFICIAL_LEVELS = [
         const inside = editorLevel.objects.filter(o => o.x + 40 > x0 && o.x < x1 && o.y + 40 > y0 && o.y < y1);
         setSelection(d.add ? [...new Set(selSet.concat(inside))] : inside);
     }
-    canvas.addEventListener('pointerleave', () => { hoverCell = null; });
+    canvas.addEventListener('pointerleave', () => { hoverCell = null; painting = false; });
     canvas.addEventListener('contextmenu', e => e.preventDefault());
     canvas.addEventListener('wheel', e => {
         if (G.mode !== 'EDITOR') return;
@@ -3020,7 +3025,7 @@ const OFFICIAL_LEVELS = [
         }
     });
     window.addEventListener('keyup', e => { if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) G.held = false; });
-    window.addEventListener('blur', () => { G.held = false; if (G.screen === 'GAME' && G.mode !== 'EDITOR' && G.running) setPaused(true); });
+    window.addEventListener('blur', () => { G.held = false; painting = false; if (G.screen === 'GAME' && G.mode !== 'EDITOR' && G.running) setPaused(true); });
 
     // ---------- Старт ----------
     applyLang();
