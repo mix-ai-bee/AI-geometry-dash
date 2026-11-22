@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Geometry AI v1.8</title>
+    <title>Geometry AI v1.8.1</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
@@ -45,7 +45,7 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v1.8</span>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v1.8.1</span>
                 </div>
                 <p class="text-[11px] text-zinc-400 font-mono" data-ru="Свободный поворот, точный сдвиг, стили блоков" data-en="Free rotation, fine moves, block styles">Свободный поворот, точный сдвиг, стили блоков</p>
             </div>
@@ -185,6 +185,7 @@
                     <button id="btnScrollUp" class="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white font-bold">▲</button>
                     <button id="btnScrollDown" class="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white font-bold">▼</button>
                     <span id="scrollPosText" class="w-16 text-center font-bold">x:0</span>
+                    <button id="btnSelectMode" title="V" class="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white font-bold">👆 <span data-ru="Выделение" data-en="Select">Выделение</span></button>
                     <button id="btnZoomOut" title="Ctrl + колесо" class="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white font-bold">−</button>
                     <span id="zoomText" class="w-11 text-center font-bold">100%</span>
                     <button id="btnZoomIn" title="Ctrl + колесо" class="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white font-bold">+</button>
@@ -420,7 +421,7 @@ function prepareLevel(data) {
     });
     // Объекты групп, которыми управляют триггеры движения/показа, живут отдельно: их место считается каждый кадр
     const controlled = new Set(all.filter(o => o.type === 'MOVE_TRIGGER' || o.type === 'TOGGLE_TRIGGER').map(o => o.target));
-    const movers = all.filter(o => o.group && controlled.has(o.group) && !NON_GAMEPLAY[o.cat]);
+    const movers = all.filter(o => o.group && controlled.has(o.group) && o.cat !== 'trigger' && o.cat !== 'editor');
     const moverSet = new Set(movers);
     const objs = all.filter(o => !moverSet.has(o)).sort((a, b) => a.rect.x0 - b.rect.x0);
     const triggers = all.filter(o => o.cat === 'trigger').sort((a, b) => a.x - b.x || a.y - b.y);
@@ -2184,7 +2185,7 @@ const OFFICIAL_LEVELS = [
             const b = document.createElement('button');
             b.className = 'tab-btn px-3 py-1.5 rounded-xl bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-white transition shrink-0' + (k === activeTab ? ' tab-active' : '');
             b.innerText = `${tab.icon} ${tr(tab.ru, tab.en)}`;
-            b.addEventListener('click', () => { activeTab = k; activeTool = tab.tools[0][0]; renderTabs(); renderToolBar(); });
+            b.addEventListener('click', () => { activeTab = k; activeTool = tab.tools[0][0]; renderTabs(); renderToolBar(); if (typeof refreshSelectBtn === 'function') refreshSelectBtn(); });
             row.appendChild(b);
         });
     }
@@ -2195,9 +2196,19 @@ const OFFICIAL_LEVELS = [
             b.className = `tool-btn px-3 py-2 rounded-xl border border-zinc-700 bg-zinc-800 text-xs font-bold flex items-center gap-2 transition shrink-0 ${activeTool === id ? 'tool-active' : 'text-zinc-300 hover:bg-zinc-700'}`;
             b.innerHTML = id.startsWith('EMOJI:') && !ru ? `<span class="text-2xl leading-none">${icon}</span>` : `<span class="text-base">${icon}</span><span>${tr(ru, en)}</span>`;
             if (TRIG[id]) b.title = tr(TRIG[id].what[0], TRIG[id].what[1]);
-            b.addEventListener('click', () => { activeTool = id; renderToolBar(); });
+            b.addEventListener('click', () => { activeTool = id; renderToolBar(); if (typeof refreshSelectBtn === 'function') refreshSelectBtn(); });
             c.appendChild(b);
         });
+        if (activeTab === 'SELECT') {
+            const info = document.createElement('div');
+            info.className = 'w-full text-xs text-zinc-300 bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 mt-1 leading-relaxed';
+            info.innerHTML = tr('<b>Как выделять:</b> клик по объекту — выбрать его. <b>Ещё клик по той же клетке</b> — выбрать объект под ним (например, блок под смайликом). ' +
+                '<b>Протяни рамку</b> по пустому месту — выделятся все объекты внутри. <b>Shift + клик</b> — добавить или убрать объект. <b>Shift + рамка</b> работает с любым инструментом. <b>Ctrl + A</b> — выделить всё, <b>V</b> — включить/выключить выделение.',
+                '<b>How to select:</b> click an object. <b>Click the same cell again</b> to pick the object under it. <b>Drag a box</b> on empty space to select everything inside. <b>Shift + click</b> adds or removes. <b>Shift + drag</b> works with any tool. <b>Ctrl + A</b> selects all, <b>V</b> toggles select mode.');
+            c.classList.add('flex-wrap');
+            c.appendChild(info);
+            return;
+        }
         if (activeTab === 'EMOJI') {
             const info = document.createElement('div');
             info.className = 'w-full flex flex-wrap items-center gap-2 text-xs text-zinc-300 mt-1';
@@ -2418,7 +2429,7 @@ const OFFICIAL_LEVELS = [
                     html += n ? `<div class="text-emerald-300">✓ ${tr(`В группе ${o.target}: ${n} объектов — они подсвечены на поле.`, `Group ${o.target}: ${n} objects — highlighted on the field.`)}</div>`
                         : `<div class="text-amber-300">⚠ ${tr(`В группе ${o.target} пока нет объектов. Выдели нужные объекты (👆 Выбор) и впиши им «Группа: ${o.target}».`, `Group ${o.target} is empty. Select objects (👆 Select) and set "Group: ${o.target}".`)}</div>`;
                 }
-            } else if (!NON_GAMEPLAY[OBJ[o.type].cat]) {
+            } else if (OBJ[o.type].cat !== 'trigger' && OBJ[o.type].cat !== 'editor') {
                 html += `<div class="flex flex-wrap items-center gap-2"><label class="flex items-center gap-2"><span class="text-zinc-300">${tr('Группа', 'Group')}</span>
                     <input id="propGroup" type="number" min="0" max="99" step="1" value="${o.group || 0}" class="w-16 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-700 font-mono font-bold"></label>
                     <span class="text-zinc-400">${tr('0 — без группы. Номер группы нужен, чтобы триггеры 🚚 «Движение» и 👁 «Показать / скрыть» управляли этим объектом.', '0 = no group. Triggers 🚚 Move and 👁 Show/hide control objects by group number.')}</span></div>`;
@@ -2610,6 +2621,15 @@ const OFFICIAL_LEVELS = [
         const k = SCALE * G.edZoom;
         return { x: sx / k + G.edCamX, y: (canvas.height - sy) / k + G.edCamY, sx, sy };
     }
+    // все объекты под мышкой, сверху вниз (последний поставленный — первый)
+    function objectsAtPoint(w) {
+        const out = [];
+        for (let i = editorLevel.objects.length - 1; i >= 0; i--) {
+            const o = editorLevel.objects[i];
+            if (w.x >= o.x && w.x < o.x + 40 && w.y >= o.y && w.y < o.y + 40) out.push(o);
+        }
+        return out;
+    }
     function objAtPoint(w) {
         for (let i = editorLevel.objects.length - 1; i >= 0; i--) {
             const o = editorLevel.objects[i];
@@ -2658,8 +2678,16 @@ const OFFICIAL_LEVELS = [
             if (e.button !== 0) return;
             const hit = activeTool !== 'ERASER' ? hitPortalLine(selObj, w) : null;
             if (hit) { pushUndo(); edDrag = Object.assign({ type: 'line', o: selObj }, hit); return; }
-            if (activeTool === 'SELECT') {
-                const i = objAtPoint(w), o = i >= 0 ? editorLevel.objects[i] : null;
+            if (activeTool === 'SELECT' || e.shiftKey) {
+                const stack = objectsAtPoint(w);
+                let o = stack[0] || null;
+                // повторный клик по той же клетке — следующий объект под выбранным
+                if (o && !e.shiftKey && selSet.length === 1 && stack.includes(selSet[0]) && stack.length > 1) {
+                    o = stack[(stack.indexOf(selSet[0]) + 1) % stack.length];
+                    setSelection([o]);
+                    toast(tr(`В этой клетке ${stack.length} объекта — выбран следующий`, `${stack.length} objects here — picked the next one`));
+                    return;
+                }
                 if (o) {
                     if (e.shiftKey) { setSelection(selSet.includes(o) ? selSet.filter(x => x !== o) : selSet.concat(o)); return; }
                     if (!selSet.includes(o)) setSelection([o]);
@@ -2725,6 +2753,16 @@ const OFFICIAL_LEVELS = [
         moveEditorCam(0, 0);
     }
     $('btnZoomIn').addEventListener('click', () => setZoom(G.edZoom * 1.25));
+    // Быстрое переключение на выделение и обратно к прошлому инструменту
+    let toolBeforeSelect = null;
+    function toggleSelectMode() {
+        if (activeTool === 'SELECT') {
+            if (toolBeforeSelect) { activeTool = toolBeforeSelect.tool; activeTab = toolBeforeSelect.tab; }
+        } else { toolBeforeSelect = { tool: activeTool, tab: activeTab }; activeTool = 'SELECT'; activeTab = 'SELECT'; }
+        renderTabs(); renderToolBar(); refreshSelectBtn();
+    }
+    function refreshSelectBtn() { $('btnSelectMode').classList.toggle('tool-active', activeTool === 'SELECT'); }
+    $('btnSelectMode').addEventListener('click', toggleSelectMode);
     $('btnZoomOut').addEventListener('click', () => setZoom(G.edZoom / 1.25));
     function moveEditorCam(dx, dy) {
         G.edCamX = Math.max(-200, G.edCamX + dx);
@@ -2822,7 +2860,8 @@ const OFFICIAL_LEVELS = [
         ['ЛКМ', 'поставить объект', 'place an object'], ['ПКМ', 'удалить объект', 'delete an object'],
         ['Колесо', 'прокрутка влево-вправо', 'scroll'], ['Ctrl + колесо, + / −', 'масштаб', 'zoom'],
         ['Стрелки', 'двигать камеру', 'move the camera'], ['👆 Выбор + рамка', 'выделить много объектов', 'select many objects'],
-        ['Shift + клик', 'добавить к выделению', 'add to selection'], ['Shift + стрелки', 'сдвинуть выделенное на выбранный шаг (1/8, 1/4, 1/2 или блок)', 'move selection by the chosen step'],
+        ['Shift + клик', 'добавить к выделению', 'add to selection'], ['V или «👆 Выделение»', 'включить / выключить выделение', 'toggle select mode'],
+        ['Повторный клик', 'выбрать объект под выбранным в той же клетке', 'pick the object below in the same cell'], ['Shift + рамка', 'выделение с любым инструментом', 'box select with any tool'], ['Shift + стрелки', 'сдвинуть выделенное на выбранный шаг (1/8, 1/4, 1/2 или блок)', 'move selection by the chosen step'],
         ['Q / E', 'повернуть выделенное на 15° влево / вправо', 'rotate selection 15° left / right'],
         ['Ctrl + C / Ctrl + V', 'копировать / вставить туда, где мышка', 'copy / paste at the mouse'], ['Ctrl + D', 'дублировать выделенное', 'duplicate selection'],
         ['Ctrl + A', 'выделить всё', 'select all'], ['R', 'повернуть', 'rotate'], ['Delete', 'удалить выделенное', 'delete selection'],
@@ -3140,6 +3179,7 @@ const OFFICIAL_LEVELS = [
             }
             if (e.code === 'KeyR' && !ctrl) { if (selSet.length) rotateSelection(); else $('btnRotateObject').click(); }
             if (e.code === 'KeyH' && !ctrl) $('btnHitboxes').click();
+            if (e.code === 'KeyV' && !ctrl) toggleSelectMode();
             if (e.code === 'KeyQ' && !ctrl && selSet.length) rotateSelectionBy(-rotStep);
             if (e.code === 'KeyE' && !ctrl && selSet.length) rotateSelectionBy(rotStep);
             if (ctrl && e.code === 'KeyZ') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
@@ -3147,7 +3187,7 @@ const OFFICIAL_LEVELS = [
             if (ctrl && e.code === 'KeyC') { e.preventDefault(); if (copySelection()) toast(tr(`Скопировано: ${selSet.length}`, `Copied: ${selSet.length}`)); }
             if (ctrl && e.code === 'KeyV') { e.preventDefault(); const c = hoverCell || { x: Math.max(0, Math.round((G.edCamX + VIEW_W / G.edZoom / 2) / GRID) * GRID), y: 0 }; pasteAt(c.x, c.y); }
             if (ctrl && e.code === 'KeyD') { e.preventDefault(); duplicateSelection(); }
-            if (ctrl && e.code === 'KeyA') { e.preventDefault(); activeTool = 'SELECT'; activeTab = 'SELECT'; renderTabs(); renderToolBar(); setSelection(editorLevel.objects.slice()); }
+            if (ctrl && e.code === 'KeyA') { e.preventDefault(); activeTool = 'SELECT'; activeTab = 'SELECT'; renderTabs(); renderToolBar(); refreshSelectBtn(); setSelection(editorLevel.objects.slice()); }
             if (e.code === 'Escape') { setSelection([]); ['libModal', 'helpModal'].forEach(id => $(id).classList.add('hidden')); }
             if ((e.code === 'Equal' || e.code === 'NumpadAdd') && !ctrl) setZoom(G.edZoom * 1.25);
             if ((e.code === 'Minus' || e.code === 'NumpadSubtract') && !ctrl) setZoom(G.edZoom / 1.25);
