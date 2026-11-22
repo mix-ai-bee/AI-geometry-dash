@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Geometry AI v1.9</title>
+    <title>Geometry AI v1.9.1</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
@@ -45,9 +45,9 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v1.9</span>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v1.9.1</span>
                 </div>
-                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Триггер исчезновения" data-en="Fade trigger">Триггер исчезновения</p>
+                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Триггеры исчезновения и смены смайлика" data-en="Fade and emoji-change triggers">Триггеры исчезновения и смены смайлика</p>
             </div>
         </button>
         <div class="flex items-center gap-2 flex-wrap">
@@ -325,6 +325,7 @@ const OBJ = {
     MOVE_TRIGGER: { cat: 'trigger', rect: [0, 0, 40, 40], fixed: 1 },
     TOGGLE_TRIGGER: { cat: 'trigger', rect: [0, 0, 40, 40], fixed: 1 },
     FADE_TRIGGER: { cat: 'trigger', rect: [0, 0, 40, 40], fixed: 1 },
+    EMOJI_TRIGGER: { cat: 'trigger', rect: [0, 0, 40, 40], fixed: 1 },
     MUSIC_TRIGGER: { cat: 'trigger', rect: [0, 0, 40, 40], fixed: 1 },
     MESSAGE_TRIGGER: { cat: 'trigger', rect: [0, 0, 40, 40], fixed: 1 },
     TEXT: { cat: 'deco', rect: [0, 0, 40, 40], fixed: 1 },
@@ -396,6 +397,7 @@ function normalizeLevel(data) {
             if (o.type === 'ZOOM_TRIGGER') { r.zoom = num(o.zoom, 1.3, 0.5, 2); r.dur = num(o.dur, 1, 0, 5); }
             if (o.type === 'MOVE_TRIGGER') { r.target = Math.round(num(o.target, 1, 1, 99)); r.dx = num(o.dx, 0, -40, 40); r.dy = num(o.dy, 2, -20, 20); r.dur = num(o.dur, 1, 0, 10); }
             if (o.type === 'TOGGLE_TRIGGER') { r.target = Math.round(num(o.target, 1, 1, 99)); r.show = !!o.show; }
+            if (o.type === 'EMOJI_TRIGGER') { r.target = Math.round(num(o.target, 1, 1, 99)); r.emoji = [...String(o.emoji || '😡')].slice(0, 3).join('') || '😡'; }
             if (o.type === 'FADE_TRIGGER') { r.target = Math.round(num(o.target, 1, 1, 99)); r.opacity = Math.round(num(o.opacity, 0, 0, 100)); r.dur = num(o.dur, 1, 0, 10); r.keepHit = !!o.keepHit; }
             if (o.type === 'MUSIC_TRIGGER') r.song = Math.round(num(o.song, 1, 0, 4));
             if (o.type === 'MESSAGE_TRIGGER') { r.text = String(o.text == null ? 'Вперёд!' : o.text).slice(0, 60); r.dur = num(o.dur, 2, 0.5, 10); }
@@ -1550,6 +1552,10 @@ const OFFICIAL_LEVELS = [
         else if (tg.type === 'SHAKE_TRIGGER') G.shake = { power: tg.power, dur: tg.dur, until: G.frameT + tg.dur };
         else if (tg.type === 'FLASH_TRIGGER') G.flash = { color: tg.color, t0: G.frameT, dur: tg.dur };
         else if (tg.type === 'MESSAGE_TRIGGER') G.msg = { text: tg.text, t0: G.frameT, until: G.frameT + tg.dur };
+        else if (tg.type === 'EMOJI_TRIGGER') {
+            const offs = groupState(G.L, S).off[tg.target] || [0, 0];
+            [...G.L.objs, ...(G.L.movers || [])].forEach(o => { if (o.type === 'EMOJI' && o.group === tg.target) { burst(o.x + 20 + offs[0], o.y + 20 + offs[1], '#ffffff', 10, 3); ring(o.x + 20 + offs[0], o.y + 20 + offs[1], '#ffe600'); } });
+        }
     }
     function drawStar(g, r) {
         g.beginPath();
@@ -1725,7 +1731,7 @@ const OFFICIAL_LEVELS = [
                 const fs = [24, 36, 60][(o.size || 2) - 1];
                 ctx.font = `${fs}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(o.emoji || '😀', 0, 2);
+                ctx.fillText((o.group && G.emojiMap && G.emojiMap[o.group]) || o.emoji || '😀', 0, 2);
                 break;
             }
             case 'ARROW': {
@@ -1881,6 +1887,13 @@ const OFFICIAL_LEVELS = [
         }
         return c;
     }
+    // триггеры смены смайлика: последний сработавший для группы задаёт её смайлик
+    function emojiMapFor(L, S) {
+        const map = {};
+        if (!S || !S.acts) return map;
+        for (const [ti] of S.acts) { const t = L.triggers[ti]; if (t.type === 'EMOJI_TRIGGER') map[t.target] = t.emoji; }
+        return map;
+    }
     function renderScene() {
         const W = canvas.width, H = canvas.height;
         let cam = camera();
@@ -1888,6 +1901,7 @@ const OFFICIAL_LEVELS = [
         const lc = (G.mode === 'EDITOR' ? editorLevel.color : G.L && levelColorAt(G.L, G.S ? G.S.x : 0)) || '#2563eb';
         const groundC = G.mode !== 'EDITOR' && G.L && G.L.groundTriggers && G.L.groundTriggers.length && G.S ? levelColorAt(G.L, G.S.x, 'ground') : null;
         G.curColor = lc;
+        G.emojiMap = G.mode !== 'EDITOR' && G.L ? emojiMapFor(G.L, G.S) : {};
         // тряска экрана от триггера
         if (G.mode !== 'EDITOR' && G.shake && G.frameT < G.shake.until) {
             const k = (G.shake.until - G.frameT) / G.shake.dur, amp = G.shake.power * 2.2 * k;
@@ -2066,13 +2080,19 @@ const OFFICIAL_LEVELS = [
     // Редактор: номера групп на объектах и «призрак» того, куда уедет группа выбранного триггера
     function drawGroupsInEditor(cam, t) {
         const vx0 = cam.x - 80, vx1 = cam.x + VIEW_W + 80;
-        const sel = selObj && ['MOVE_TRIGGER', 'TOGGLE_TRIGGER', 'FADE_TRIGGER'].includes(selObj.type) ? selObj : null;
+        const sel = selObj && ['MOVE_TRIGGER', 'TOGGLE_TRIGGER', 'FADE_TRIGGER', 'EMOJI_TRIGGER'].includes(selObj.type) ? selObj : null;
         for (const o of editorLevel.objects) {
             if (!o.group || o.x < vx0 || o.x > vx1) continue;
             const hl = sel && sel.target === o.group;
             if (hl) {
                 at(cam, o.x, o.y + 40);
-                ctx.strokeStyle = sel.type === 'TOGGLE_TRIGGER' ? (sel.show ? '#3dff6e' : '#ff3b3b') : sel.type === 'FADE_TRIGGER' ? '#a78bfa' : '#fb923c'; ctx.lineWidth = 3; ctx.strokeRect(-2, -2, 44, 44);
+                ctx.strokeStyle = sel.type === 'TOGGLE_TRIGGER' ? (sel.show ? '#3dff6e' : '#ff3b3b') : sel.type === 'FADE_TRIGGER' ? '#a78bfa' : sel.type === 'EMOJI_TRIGGER' ? '#facc15' : '#fb923c'; ctx.lineWidth = 3; ctx.strokeRect(-2, -2, 44, 44);
+                if (sel.type === 'EMOJI_TRIGGER' && o.type === 'EMOJI') {
+                    // показать, на что сменится смайлик
+                    at(cam, o.x + 36, o.y + 44); ctx.font = '16px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill(); ctx.fillText(sel.emoji, 0, 1);
+                    at(cam, o.x, o.y + 40);
+                }
                 if (sel.type === 'MOVE_TRIGGER' && (sel.dx || sel.dy)) {
                     ctx.globalAlpha = 0.35; drawObject(Object.assign({}, o, { x: o.x + sel.dx * GRID, y: o.y + sel.dy * GRID }), t, cam); ctx.globalAlpha = 1;
                 }
@@ -2155,6 +2175,9 @@ const OFFICIAL_LEVELS = [
         FADE_TRIGGER: { icon: '🌫', bg: '#7c3aed', ru: 'Исчезновение', en: 'Fade',
             what: ['Плавно растворяет группу объектов (блоки, смайлики, шипы — что угодно) или снова проявляет её. Видимость 0% — исчезнуть, 100% — появиться. Исчезнувшее не мешает, если не выбрать «невидимый, но твёрдый».', 'Smoothly fades a group (blocks, emoji, spikes — anything) out or back in. 0% = vanish, 100% = appear. Vanished objects do nothing unless you pick "invisible but solid".'],
             label: o => `${tr('Г', 'G')}${o.target} ${o.opacity}%` },
+        EMOJI_TRIGGER: { icon: '🔁', bg: '#ca8a04', ru: 'Смена смайлика', en: 'Change emoji',
+            what: ['Меняет все смайлики с нужным номером группы на другой смайлик. Например, босс 😈 становится злым 😡, а в конце — 💀. Сначала дай смайлику номер группы.', 'Changes every emoji with the group number to another emoji. For example the boss 😈 turns 😡 and then 💀. Give the emoji a group number first.'],
+            label: o => `${tr('Г', 'G')}${o.target} → ${o.emoji}` },
         MUSIC_TRIGGER: { icon: '🎵', bg: '#db2777', ru: 'Смена музыки', en: 'Change music',
             what: ['С этого места играет другая песня.', 'Another song starts playing from here.'], label: o => (SONGS[o.song] || SONGS[0]).name },
         MESSAGE_TRIGGER: { icon: '💬', bg: '#64748b', ru: 'Сообщение', en: 'Message',
@@ -2172,9 +2195,11 @@ const OFFICIAL_LEVELS = [
         FADE_TRIGGER: [['target', 'num', 'Какая группа', 'Which group', 1, 99, 1], ['opacity', 'num', 'Видимость, % (0 — исчезнуть, 100 — появиться)', 'Visibility, % (0 vanish — 100 appear)', 0, 100, 10],
             ['dur', 'num', 'За сколько секунд (0 — сразу)', 'Over how many seconds (0 = instant)', 0, 10, 0.1],
             ['keepHit', 'sel', 'Когда исчезнет', 'When vanished', [[false, 'пропадает совсем — можно пролететь', 'gone — you can pass'], [true, 'невидимый, но твёрдый — ловушка!', 'invisible but solid — a trap!']]]],
+        EMOJI_TRIGGER: [['target', 'num', 'Какая группа', 'Which group', 1, 99, 1], ['emoji', 'emoji', 'На какой смайлик сменить', 'New emoji']],
         MUSIC_TRIGGER: [['song', 'sel', 'Песня', 'Song', SONGS.map((sg, i) => [i, sg.name, sg.name])]],
         MESSAGE_TRIGGER: [['text', 'text', 'Текст сообщения', 'Message text'], ['dur', 'num', 'Сколько секунд показывать', 'Seconds on screen', 0.5, 10, 0.5]]
     };
+    const EMOJI_PICKS = ['💀', '😀', '🙂', '😐', '😢', '😭', '😡', '😎', '😱', '😈', '👻', '🤖', '🤡', '😴', '🥳', '🔥', '⭐', '❤️', '💔', '💥'];
     function groupCount(g) { return editorLevel.objects.filter(o => o.group === g && !OBJ[o.type].cat.includes('trigger')).length; }
 
     // ---------- Редактор ----------
@@ -2447,12 +2472,18 @@ const OFFICIAL_LEVELS = [
                     const id = 'tf_' + key, label = `<span class="text-zinc-300">${tr(ru, en)}</span>`;
                     if (kind === 'color') return `<label class="flex items-center gap-2">${label}<input id="${id}" type="color" value="${o[key]}" class="w-10 h-8 bg-transparent"></label>`;
                     if (kind === 'num') return `<label class="flex items-center gap-2">${label}<input id="${id}" type="number" min="${a1}" max="${b1}" step="${c1}" value="${o[key]}" class="w-20 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-700 font-mono font-bold"></label>`;
+                    if (kind === 'emoji') return `<div class="flex flex-wrap items-center gap-1 w-full">${label}
+                        <input id="${id}" maxlength="8" value="${escAttr(o[key])}" class="w-16 px-2 py-1 rounded-lg bg-zinc-950 border-2 border-sky-500 text-xl text-center">
+                        ${EMOJI_PICKS.map(e => `<button data-pick="${e}" class="w-8 h-8 rounded-lg text-lg ${o[key] === e ? 'bg-white' : 'bg-zinc-800 hover:bg-zinc-700'}">${e}</button>`).join('')}</div>`;
                     if (kind === 'sel') return `<label class="flex items-center gap-2">${label}<select id="${id}" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1">${a1.map(([v, r2, e2]) => `<option value="${v}" ${String(v) === String(o[key]) ? 'selected' : ''}>${tr(r2, e2)}</option>`).join('')}</select></label>`;
                     return `<label class="flex items-center gap-2 flex-1 min-w-[220px]">${label}<input id="${id}" maxlength="60" value="${escAttr(o[key])}" class="flex-1 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-700 font-bold"></label>`;
                 }).join('') + '</div>';
+                if (o.type === 'EMOJI_TRIGGER' && groupCount(o.target) && !editorLevel.objects.some(x => x.type === 'EMOJI' && x.group === o.target)) {
+                    html += `<div class="text-amber-300">⚠ ${tr(`В группе ${o.target} есть объекты, но нет смайликов — менять нечего. Дай номер группы именно смайлику.`, `Group ${o.target} has no emoji to change. Give the group number to an emoji.`)}</div>`;
+                }
                 if (o.target != null) {
                     const n = groupCount(o.target);
-                    html += n ? `<div class="text-emerald-300">✓ ${tr(`В группе ${o.target}: ${n} объектов — они подсвечены на поле.`, `Group ${o.target}: ${n} objects — highlighted on the field.`)}</div>`
+                    html += n ? `<div class="text-emerald-300">✓ ${tr(`Группа ${o.target}, объектов в ней: ${n} — они подсвечены на поле.`, `Group ${o.target}: ${n} objects — highlighted on the field.`)}</div>`
                         : `<div class="text-amber-300">⚠ ${tr(`В группе ${o.target} пока нет объектов. Выдели нужные объекты (👆 Выбор) и впиши им «Группа: ${o.target}».`, `Group ${o.target} is empty. Select objects (👆 Select) and set "Group: ${o.target}".`)}</div>`;
                 }
             } else if (OBJ[o.type].cat !== 'trigger' && OBJ[o.type].cat !== 'editor') {
@@ -2492,7 +2523,7 @@ const OFFICIAL_LEVELS = [
             bindInput('propText', el => { o.text = el.value; freshTextObj = null; });
             bindInput('propTColor', el => { o.tcolor = el.value; });
             bindInput('propEmoji', el => { const v = [...el.value.trim()].slice(0, 3).join(''); if (v) { o.emoji = v; lastCustomEmoji = v; } });
-            box.querySelectorAll('[data-emo]').forEach(b => b.addEventListener('click', () => { pushUndo(); o.emoji = b.dataset.emo; saveEditor(); renderProps(); }));
+            box.querySelectorAll('[data-emo], [data-pick]').forEach(b => b.addEventListener('click', () => { pushUndo(); o.emoji = b.dataset.emo || b.dataset.pick; saveEditor(); renderProps(); }));
             const textInp = $('propText');
             if (textInp) textInp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { textInp.blur(); setSelection([]); } });
             bindInput('propGroup', el => { const v = Math.round(+el.value); if (v >= 1 && v <= 99) o.group = v; else delete o.group; }, 'change');
@@ -2500,6 +2531,7 @@ const OFFICIAL_LEVELS = [
                 const el = $('tf_' + key); if (!el) return;
                 const apply = () => {
                     if (kind === 'num') { let v = Number(el.value.replace(',', '.')); if (!Number.isFinite(v)) return; o[key] = Math.max(lo, Math.min(hi, v)); }
+                    else if (kind === 'emoji') { const v = [...el.value.trim()].slice(0, 3).join(''); if (!v) return; o[key] = v; }
                     else if (kind === 'sel') o[key] = el.value === 'true' ? true : el.value === 'false' ? false : Number(el.value);
                     else o[key] = el.value;
                     saveEditor();
@@ -2899,7 +2931,7 @@ const OFFICIAL_LEVELS = [
             `<div class="col-span-full mt-3 text-lg font-black">⚙️ ${tr('Триггеры', 'Triggers')}</div>
              <div class="col-span-full text-zinc-300">${tr('Триггер — невидимая в игре штука, которая что-то делает, когда игрок пролетает его пунктирную линию. Поставь триггер на поле, а настройки поменяй в панели над вкладками.', 'A trigger is invisible in the game. It does something when the player crosses its dashed line. Place it, then change its settings in the panel above the tabs.')}</div>` +
             Object.values(TRIG).map(t => `<div class="flex gap-3"><span class="shrink-0 w-6 text-center">${t.icon}</span><span><b>${tr(t.ru, t.en)}</b> — <span class="text-zinc-300">${tr(t.what[0], t.what[1])}</span></span></div>`).join('') +
-            `<div class="col-span-full mt-2 text-zinc-300"><b>${tr('Группы', 'Groups')}:</b> ${tr('выдели объекты, впиши им номер группы и нажми «Назначить». Триггеры 🚚, 👁 и 🌫 управляют всеми объектами с этим номером. Когда выбираешь такой триггер, его группа подсвечивается, а у 🚚 видно, куда объекты уедут.', 'select objects, set a group number and press Apply. Triggers 🚚 and 👁 control every object with that number. When such a trigger is selected, its group is highlighted and 🚚 shows where the objects will go.')}</div>`;
+            `<div class="col-span-full mt-2 text-zinc-300"><b>${tr('Группы', 'Groups')}:</b> ${tr('выдели объекты, впиши им номер группы и нажми «Назначить». Триггеры 🚚, 👁, 🌫 и 🔁 управляют всеми объектами с этим номером. Когда выбираешь такой триггер, его группа подсвечивается, а у 🚚 видно, куда объекты уедут.', 'select objects, set a group number and press Apply. Triggers 🚚 and 👁 control every object with that number. When such a trigger is selected, its group is highlighted and 🚚 shows where the objects will go.')}</div>`;
         $('helpModal').classList.remove('hidden');
     });
     function refreshToggles() {
