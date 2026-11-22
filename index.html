@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Geometry AI v1.4</title>
+    <title>Geometry AI v1.5</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
@@ -45,9 +45,9 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v1.4</span>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v1.5</span>
                 </div>
-                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Гараж • Онлайн уровни • Настройка порталов" data-en="Garage • Online levels • Portal settings">Гараж • Онлайн уровни • Настройка порталов</p>
+                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Большое обновление редактора" data-en="Big editor update">Большое обновление редактора</p>
             </div>
         </button>
         <div class="flex items-center gap-2 flex-wrap">
@@ -63,7 +63,7 @@
         <div id="menuBgSquares" class="absolute inset-0 pointer-events-none"></div>
         <div class="relative text-center">
             <div class="text-5xl md:text-7xl font-black italic tracking-wider text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.45)]" data-ru="ГЕОМЕТРИЯ ИИ" data-en="GEOMETRY AI">ГЕОМЕТРИЯ ИИ</div>
-            <div class="mt-2 font-mono text-zinc-400 text-sm" data-ru="Обновление 1.4 — гараж, достижения и онлайн уровни!" data-en="Update 1.4 — garage, achievements and online levels!">Обновление 1.4 — гараж, достижения и онлайн уровни!</div>
+            <div class="mt-2 font-mono text-zinc-400 text-sm" data-ru="Обновление 1.5 — большой редактор!" data-en="Update 1.5 — the big editor update!">Обновление 1.5 — большой редактор!</div>
         </div>
         <div class="relative flex flex-col md:flex-row gap-4 w-full max-w-3xl">
             <button id="btnOfficial" class="menu-btn flex-1 rounded-3xl bg-white text-black p-6 flex flex-col items-center gap-2 shadow-2xl">
@@ -185,6 +185,9 @@
                     <button id="btnScrollUp" class="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white font-bold">▲</button>
                     <button id="btnScrollDown" class="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white font-bold">▼</button>
                     <span id="scrollPosText" class="w-16 text-center font-bold">x:0</span>
+                    <button id="btnZoomOut" title="Ctrl + колесо" class="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white font-bold">−</button>
+                    <span id="zoomText" class="w-11 text-center font-bold">100%</span>
+                    <button id="btnZoomIn" title="Ctrl + колесо" class="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white font-bold">+</button>
                 </div>
                 <div class="hidden md:block bg-zinc-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zinc-700 text-xs font-mono text-zinc-300 shadow-lg" data-ru="💡 ЛКМ — поставить, ПКМ — удалить, колесо — прокрутка" data-en="💡 LMB — place, RMB — remove, wheel — scroll">💡 ЛКМ — поставить, ПКМ — удалить, колесо — прокрутка</div>
             </div>
@@ -201,6 +204,22 @@
                     <button id="btnPracticeToggle" class="px-5 py-2.5 bg-emerald-500 text-black font-black rounded-xl text-sm">💎 <span id="practiceBtnText">Тренировка</span></button>
                     <button id="btnPauseExit" class="px-5 py-2.5 bg-zinc-800 border border-zinc-600 font-black rounded-xl text-sm">🚪 <span data-ru="Выйти" data-en="Exit">Выйти</span></button>
                 </div>
+            </div>
+
+            <div id="libModal" class="hidden absolute inset-0 bg-black/85 backdrop-blur-md z-30 p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="text-xl font-black">📁 <span data-ru="Мои уровни" data-en="My levels">Мои уровни</span></div>
+                    <div class="flex gap-2">
+                        <button id="btnLibNew" class="px-3 py-2 rounded-xl bg-white text-black font-black text-xs">➕ <span data-ru="Новый уровень" data-en="New level">Новый уровень</span></button>
+                        <button data-close class="px-3 py-2 rounded-xl bg-zinc-800 border border-zinc-600 font-black text-xs">✕</button>
+                    </div>
+                </div>
+                <div id="libList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2"></div>
+            </div>
+            <div id="helpModal" class="hidden absolute inset-0 bg-black/85 backdrop-blur-md z-30 p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
+                <div class="flex items-center justify-between"><div class="text-xl font-black">❓ <span data-ru="Клавиши редактора" data-en="Editor keys">Клавиши редактора</span></div>
+                    <button data-close class="px-3 py-2 rounded-xl bg-zinc-800 border border-zinc-600 font-black text-xs">✕</button></div>
+                <div id="helpList" class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm"></div>
             </div>
 
             <div id="winModal" class="hidden absolute inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center gap-3 z-30">
@@ -230,6 +249,8 @@
                     <select id="edLevelSong" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1"></select></label>
                 <div class="flex-1"></div>
                 <button id="btnEdTest" class="px-3.5 py-2 bg-white text-black rounded-xl text-xs font-black">▶ <span data-ru="Тест" data-en="Test">Тест</span></button>
+                <label class="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-zinc-800 border border-zinc-700 text-xs font-bold cursor-pointer" title="Начать тест со стартовой позиции 🚩">
+                    <input id="edUseStartPos" type="checkbox" class="accent-emerald-400"> 🚩 <span data-ru="С позиции" data-en="From start pos">С позиции</span></label>
                 <button id="btnEdTestAI" class="px-3.5 py-2 bg-zinc-800 border border-zinc-600 rounded-xl text-xs font-black">🤖 <span data-ru="Тест ИИ" data-en="AI Test">Тест ИИ</span></button>
                 <button id="btnEdShare" class="px-3 py-2 rounded-xl bg-sky-500 text-black text-xs font-black">📤 <span data-ru="Поделиться" data-en="Share">Поделиться</span></button>
                 <button id="btnExportLevel" class="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold">💾 <span data-ru="Сохранить JSON" data-en="Save JSON">Сохранить JSON</span></button>
@@ -240,6 +261,10 @@
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div id="tabContentContainer" class="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1 w-full md:w-auto"></div>
                 <div class="flex items-center gap-2">
+                    <button id="btnLibrary" class="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold shrink-0">📁 <span data-ru="Мои уровни" data-en="My levels">Мои уровни</span></button>
+                    <button id="btnPathToggle" class="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold shrink-0">👣 <span data-ru="След теста" data-en="Test path">След теста</span></button>
+                    <button id="btnHitboxes" title="H" class="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold shrink-0">🔲 <span data-ru="Хитбоксы" data-en="Hitboxes">Хитбоксы</span></button>
+                    <button id="btnHelp" class="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold shrink-0">❓</button>
                     <button id="btnUndo" title="Ctrl+Z" class="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold shrink-0">↶ <span data-ru="Отмена" data-en="Undo">Отмена</span></button>
                     <button id="btnRedo" title="Ctrl+Y" class="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold shrink-0">↷</button>
                     <button id="btnRotateObject" class="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 rounded-xl text-xs font-bold shrink-0">🔄 <span data-ru="Поворот" data-en="Rotate">Поворот</span>: <span id="rotValText">0°</span></button>
@@ -286,8 +311,17 @@ const OBJ = {
     RED_PAD: { cat: 'pad', kind: 'red', rect: PAD_R },
     BLUE_PAD: { cat: 'pad', kind: 'blue', rect: PAD_R },
     COIN: { cat: 'coin', rect: [6, 6, 34, 34], fixed: 1 },
-    GOAL: { cat: 'goal', rect: [0, 0, 40, 40], fixed: 1 }
+    GOAL: { cat: 'goal', rect: [0, 0, 40, 40], fixed: 1 },
+    // 1.5: объекты редактора, триггеры и декорации (сквозь них можно проходить)
+    START_POS: { cat: 'editor', rect: [0, 0, 40, 40], fixed: 1 },
+    COLOR_TRIGGER: { cat: 'trigger', rect: [0, 0, 40, 40], fixed: 1 },
+    TEXT: { cat: 'deco', rect: [0, 0, 40, 40], fixed: 1 },
+    ARROW: { cat: 'deco', rect: [0, 0, 40, 40] },
+    DECO_STAR: { cat: 'deco', rect: [0, 0, 40, 40], fixed: 1 },
+    DECO_LIGHT: { cat: 'deco', rect: [0, 0, 40, 40], fixed: 1 },
+    DECO_CHAIN: { cat: 'deco', rect: [0, 0, 40, 40] }
 };
+const NON_GAMEPLAY = { editor: 1, trigger: 1, deco: 1 };
 ['CUBE_PORTAL','SHIP_PORTAL','BALL_PORTAL','UFO_PORTAL','WAVE_PORTAL','ROBOT_PORTAL','SPIDER_PORTAL','SWING_PORTAL','AIRPLANE_PORTAL',
  'GRAV_DOWN_PORTAL','GRAV_UP_PORTAL','MINI_PORTAL','BIG_PORTAL','SPEED_05','SPEED_1','SPEED_2','SPEED_3','SPEED_4']
     .forEach(t => OBJ[t] = { cat: 'portal', rect: PORTAL_R, fixed: 1 });
@@ -308,6 +342,7 @@ function objRect(o) {
     };
 }
 
+const MODE_NAMES_CORE = ['cube', 'ship', 'ball', 'ufo', 'wave', 'robot', 'spider', 'swing', 'airplane'];
 // Превращает JSON уровня в готовую к игре структуру
 function normalizeLevel(data) {
     if (Array.isArray(data)) data = { objects: data };
@@ -318,6 +353,14 @@ function normalizeLevel(data) {
         song: data.song || 0,
         objects: (data.objects || []).filter(o => o && OBJ[o.type]).map(o => {
             const r = { type: o.type, x: Math.round(o.x / GRID) * GRID, y: Math.round(o.y / GRID) * GRID, rotation: o.rotation || 0 };
+            if (o.type === 'TEXT') r.text = String(o.text == null ? 'Текст' : o.text).slice(0, 40);
+            if (o.type === 'COLOR_TRIGGER') r.color = /^#[0-9a-f]{6}$/i.test(o.color) ? o.color : '#9333ea';
+            if (o.type === 'START_POS') {
+                r.sMode = MODE_NAMES_CORE.includes(o.sMode) ? o.sMode : 'cube';
+                r.sG = o.sG === -1 ? -1 : 1;
+                r.sSpeed = SPEEDS[o.sSpeed] ? o.sSpeed : 'SPEED_1';
+                r.sMini = !!o.sMini;
+            }
             if (MODE_PORTALS[o.type]) {
                 if (typeof o.floor === 'number') r.floor = o.floor;
                 if (typeof o.ceil === 'number') r.ceil = o.ceil;
@@ -331,16 +374,17 @@ function prepareLevel(data) {
     const lv = normalizeLevel(data);
     const objs = lv.objects.map((o, i) => {
         const d = OBJ[o.type];
-        return { id: i, type: o.type, x: o.x, y: o.y, rotation: o.rotation, cat: d.cat, kind: d.kind, circle: d.circle, rect: objRect(o), floor: o.floor, ceil: o.ceil, lanes: o.lanes };
+        return { id: i, type: o.type, x: o.x, y: o.y, rotation: o.rotation, cat: d.cat, kind: d.kind, circle: d.circle, rect: objRect(o), floor: o.floor, ceil: o.ceil, lanes: o.lanes, text: o.text, color: o.color };
     }).sort((a, b) => a.rect.x0 - b.rect.x0);
     const goal = objs.find(o => o.type === 'GOAL');
-    const maxX = objs.reduce((m, o) => Math.max(m, o.rect.x1), 600);
+    const maxX = objs.reduce((m, o) => NON_GAMEPLAY[o.cat] ? m : Math.max(m, o.rect.x1), 600);
     let startY = 0;
     objs.forEach(o => { if (o.cat === 'solid' && o.rect.x0 <= 3 && o.rect.x1 >= 20) startY = Math.max(startY, o.rect.y1); });
     return {
         name: lv.name, color: lv.color, song: lv.song, objs,
         goalX: goal ? goal.x : maxX + 320,
         coinTotal: objs.filter(o => o.cat === 'coin').length,
+        colorTriggers: objs.filter(o => o.type === 'COLOR_TRIGGER').map(o => ({ x: o.x + 20, color: o.color })).sort((a, b) => a.x - b.x),
         topY: Math.max(800, objs.reduce((m, o) => Math.max(m, o.rect.y1), 0) + 400),
         startY
     };
@@ -380,6 +424,19 @@ function initState(L) {
         grounded: true, prevHeld: false, buf: 0, robotT: 0, lane: 0, lanes: DEFAULT_LANES,
         floor: 0, ceil: null, used: [], coins: [], dead: false, won: false, rot: 0, frame: 0, fx: null
     };
+}
+// Старт с позиции, которую поставили в редакторе (режим, гравитация, скорость, размер)
+function initStateAt(L, sp) {
+    const s = initState(L);
+    s.x = sp.x + 3; s.y = sp.y;
+    s.mode = sp.sMode || 'cube'; s.g = sp.sG === -1 ? -1 : 1; s.speed = SPEEDS[sp.sSpeed] || 1; s.mini = !!sp.sMini;
+    const portalType = Object.keys(MODE_PORTALS).find(k => MODE_PORTALS[k] === s.mode);
+    const b = portalBounds({ type: portalType, y: sp.y });
+    s.floor = b.floor; s.ceil = b.ceil; if (b.lanes) s.lanes = b.lanes;
+    if (s.y < s.floor) s.y = s.floor;
+    if (s.ceil != null && s.y + pSize(s) > s.ceil) s.y = s.ceil - pSize(s);
+    s.grounded = false;
+    return s;
 }
 function overlaps(a, x0, y0, x1, y1) { return x1 > a.x0 && x0 < a.x1 && y1 > a.y0 && y0 < a.y1; }
 
@@ -997,10 +1054,29 @@ const OFFICIAL_LEVELS = [
         screen: 'MENU', mode: 'EDITOR', source: null, L: null, S: null, held: false,
         running: false, paused: false, deathTimer: 0, attempts: 1, practice: false, checkpoints: [],
         particles: [], waveTrail: [], trail: [], aiPlan: [], aiTimer: 0, aiAction: false, lastAiMode: null,
-        camX: 0, camY: -80, edCamX: -120, edCamY: -80, frameT: 0, bestThisRun: 0, fromEditor: false
+        camX: 0, camY: -80, edCamX: -120, edCamY: -80, frameT: 0, bestThisRun: 0, fromEditor: false,
+        edZoom: 1, startPos: null, curPath: [], lastPath: [], testDeaths: [], showPath: true, showHitboxes: store.get('hitboxes', false), mm: null, curColor: null
     };
-    let editorLevel = normalizeLevel(store.get('editorLevel', { name: '', color: '#2563eb', song: 0, objects: [] }));
-    function saveEditor() { store.set('editorLevel', editorLevel); }
+    const storedEditor = store.get('editorLevel', { name: '', color: '#2563eb', song: 0, objects: [] });
+    let editorLevel = normalizeLevel(storedEditor);
+    editorLevel.id = storedEditor.id || newLevelId();
+    function newLevelId() { return 'lv' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+    let libTimer = 0;
+    function saveEditor() {
+        if (!editorLevel.id) editorLevel.id = newLevelId();
+        store.set('editorLevel', editorLevel);
+        clearTimeout(libTimer); libTimer = setTimeout(saveToLibrary, 500);
+    }
+    // «Мои уровни»: все уровни из редактора хранятся в браузере
+    function saveToLibrary() {
+        if (!editorLevel.id) editorLevel.id = newLevelId();
+        if (!editorLevel.objects.length && !editorLevel.name) return;
+        const lib = store.get('myLevels', []);
+        const entry = { id: editorLevel.id, name: editorLevel.name, color: editorLevel.color, song: editorLevel.song, objects: editorLevel.objects, t: Date.now() };
+        const i = lib.findIndex(x => x.id === entry.id);
+        if (i >= 0) lib[i] = entry; else lib.unshift(entry);
+        store.set('myLevels', lib);
+    }
 
     function showScreen(name) {
         G.screen = name;
@@ -1075,7 +1151,7 @@ const OFFICIAL_LEVELS = [
     // ---------- Холст ----------
     const canvas = $('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const VIEW_H = 520;
+    let VIEW_H = 520;
     let SCALE = 1, VIEW_W = 1200;
     function resizeCanvas() {
         const rect = canvas.getBoundingClientRect();
@@ -1106,6 +1182,13 @@ const OFFICIAL_LEVELS = [
     function startLevel(src, mode) {
         G.source = src; G.mode = mode;
         G.fromEditor = src.kind === 'editor';
+        G.startPos = null;
+        if (G.fromEditor && $('edUseStartPos').checked) {
+            const sp = editorLevel.objects.find(o => o.type === 'START_POS');
+            if (sp) G.startPos = Object.assign({}, sp);
+            else toast(tr('Сначала поставь 🚩 стартовую позицию (вкладка «Старт, монеты, финиш»)', 'Place a 🚩 start position first'));
+        }
+        if (G.fromEditor) { G.testDeaths = []; G.curPath = []; }
         G.L = prepareLevel(levelData(src));
         G.attempts = 1; G.practice = false; G.checkpoints = []; G.bestThisRun = 0;
         showScreen('GAME');
@@ -1120,7 +1203,8 @@ const OFFICIAL_LEVELS = [
     }
     function resetRun(full) {
         const cp = G.practice && !full ? G.checkpoints[G.checkpoints.length - 1] : null;
-        G.S = cp ? Object.assign({}, cp) : initState(G.L);
+        G.S = cp ? Object.assign({}, cp) : (G.startPos ? initStateAt(G.L, G.startPos) : initState(G.L));
+        if (G.fromEditor) { if (G.curPath.length > 1) G.lastPath = G.curPath; G.curPath = []; }
         G.running = true; G.paused = false; G.deathTimer = 0;
         G.held = G.mode === 'PLAY' ? G.held : false;
         if (G.S.prevHeld !== undefined) G.S.prevHeld = true; // не прыгать сразу после рестарта от старого нажатия
@@ -1269,7 +1353,12 @@ const OFFICIAL_LEVELS = [
             if (statsDirty && S.frame % 60 === 0) checkAchievements();
         }
         if (S.mode !== prev.mode && G.mode === 'AI') aiLog(tr(`Новый режим: ${MODE_NAMES[S.mode][0]}. Перестраиваю модель физики.`, `New mode: ${MODE_NAMES[S.mode][1]}. Rebuilding physics model.`));
-        if (S.dead) { onDeath(); return; }
+        if (G.fromEditor && S.frame % 3 === 0) G.curPath.push([S.x + pSize(S) / 2, S.y + pSize(S) / 2]);
+        if (S.dead) {
+            if (G.fromEditor) { G.testDeaths.push([S.x + pSize(S) / 2, S.y + pSize(S) / 2]); if (G.testDeaths.length > 40) G.testDeaths.shift(); G.lastPath = G.curPath.slice(); }
+            onDeath(); return;
+        }
+        if (S.won && G.fromEditor) G.lastPath = G.curPath.slice();
         if (S.won) { onWin(); return; }
         if (G.practice && S.frame % 75 === 0 && (S.grounded || S.mode !== 'cube')) {
             G.checkpoints.push(Object.assign({}, S));
@@ -1327,7 +1416,7 @@ const OFFICIAL_LEVELS = [
         if (!G.L) return;
         const S = G.S;
         const pct = G.mode === 'EDITOR' ? 0 : progressPct();
-        const name = G.mode === 'EDITOR' ? tr('🛠 Редактор', '🛠 Editor') + (editorLevel.name ? ': ' + editorLevel.name : '') : (G.source.kind === 'official' ? (currentLang === 'ru' ? OFFICIAL_LEVELS[G.source.index].name : OFFICIAL_LEVELS[G.source.index].nameEn) : G.source.kind === 'online' ? '🌐 ' + G.L.name : (editorLevel.name || tr('Мой уровень', 'My level')));
+        const name = G.mode === 'EDITOR' ? tr('🛠 Редактор', '🛠 Editor') + (editorLevel.name ? ': ' + editorLevel.name : '') + ' • ' + editorStatsText() : (G.source.kind === 'official' ? (currentLang === 'ru' ? OFFICIAL_LEVELS[G.source.index].name : OFFICIAL_LEVELS[G.source.index].nameEn) : G.source.kind === 'online' ? '🌐 ' + G.L.name : (editorLevel.name || tr('Мой уровень', 'My level')));
         const mode = S ? MODE_NAMES[S.mode][currentLang === 'ru' ? 0 : 1] + (S.mini ? tr(' (мини)', ' (mini)') : '') + (S.speed !== 1 ? ' ×' + S.speed : '') : '—';
         const coins = S && G.L.coinTotal ? `★ ${S.coins.length}/${G.L.coinTotal}` : '';
         const key = [pct, name, mode, coins, G.attempts, G.mode].join('|');
@@ -1363,7 +1452,7 @@ const OFFICIAL_LEVELS = [
         const fixed = OBJ[o.type].fixed;
         if (!fixed) ctx.rotate((o.rotation || 0) * Math.PI / 180);
         const used = G.S && G.mode !== 'EDITOR' && G.S.used.includes(o.id);
-        const lc = (G.mode === 'EDITOR' ? editorLevel.color : G.L && G.L.color) || '#2563eb';
+        const lc = G.curColor || (G.mode === 'EDITOR' ? editorLevel.color : G.L && G.L.color) || '#2563eb';
         switch (o.type) {
             case 'BLOCK': drawWall(ctx, cos.wall, lc); break;
             case 'SLAB': {
@@ -1416,6 +1505,60 @@ const OFFICIAL_LEVELS = [
                 ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fillStyle = '#ffd700'; ctx.fill();
                 ctx.strokeStyle = '#7a5a00'; ctx.lineWidth = 3; ctx.stroke();
                 ctx.fillStyle = '#7a5a00'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('★', 0, 1);
+                break;
+            }
+            case 'START_POS': {
+                if (G.mode !== 'EDITOR') break;
+                ctx.fillStyle = 'rgba(61,255,110,.18)'; ctx.fillRect(-20, -20, 40, 40);
+                ctx.strokeStyle = '#3dff6e'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]); ctx.strokeRect(-19, -19, 38, 38); ctx.setLineDash([]);
+                ctx.fillStyle = '#3dff6e'; ctx.fillRect(-12, -16, 3, 32);
+                ctx.beginPath(); ctx.moveTo(-9, -16); ctx.lineTo(12, -9); ctx.lineTo(-9, -2); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = '#fff'; ctx.font = 'bold 8px JetBrains Mono, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText((MODE_NAMES[o.sMode] || MODE_NAMES.cube)[currentLang === 'ru' ? 0 : 1].slice(0, 6), 2, 11);
+                break;
+            }
+            case 'COLOR_TRIGGER': {
+                if (G.mode !== 'EDITOR') break;
+                ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fillStyle = o.color || '#9333ea'; ctx.fill();
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
+                ctx.fillStyle = '#fff'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('🎨', 0, 1);
+                ctx.globalAlpha *= 0.35; ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(0, 20); ctx.lineTo(0, 2000); ctx.moveTo(0, -20); ctx.lineTo(0, -2000); ctx.stroke(); ctx.setLineDash([]);
+                ctx.globalAlpha /= 0.35;
+                break;
+            }
+            case 'TEXT': {
+                const txt = o.text == null ? tr('Текст', 'Text') : o.text;
+                ctx.font = 'italic 900 22px Outfit, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,.75)'; ctx.strokeText(txt, 0, 0);
+                ctx.fillStyle = '#fff'; ctx.fillText(txt, 0, 0);
+                if (G.mode === 'EDITOR' && !txt) { ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1; ctx.strokeRect(-18, -18, 36, 36); }
+                break;
+            }
+            case 'ARROW': {
+                ctx.globalAlpha *= 0.85;
+                ctx.beginPath(); ctx.moveTo(-14, -6); ctx.lineTo(2, -6); ctx.lineTo(2, -14); ctx.lineTo(16, 0); ctx.lineTo(2, 14); ctx.lineTo(2, 6); ctx.lineTo(-14, 6); ctx.closePath();
+                ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.globalAlpha /= 0.85;
+                break;
+            }
+            case 'DECO_STAR': {
+                const k = 1 + Math.sin(t * 4 + o.x) * 0.15;
+                ctx.scale(k, k); ctx.shadowColor = '#fff'; ctx.shadowBlur = 12;
+                ctx.beginPath();
+                for (let i = 0; i < 10; i++) { const r = i % 2 ? 6 : 15, a = -Math.PI / 2 + i * Math.PI / 5; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+                ctx.closePath(); ctx.fillStyle = '#fff8c4'; ctx.fill(); ctx.shadowBlur = 0;
+                break;
+            }
+            case 'DECO_LIGHT': {
+                const r = 30 + Math.sin(t * 3 + o.x) * 6;
+                const gr = ctx.createRadialGradient(0, 0, 2, 0, 0, r);
+                gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(0.35, shade(lc, 0.5).replace('rgb', 'rgba').replace(')', ',.5)')); gr.addColorStop(1, 'rgba(255,255,255,0)');
+                ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+                break;
+            }
+            case 'DECO_CHAIN': {
+                ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 3;
+                for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.ellipse(0, -14 + i * 14, 5, 8, 0, 0, Math.PI * 2); ctx.stroke(); }
                 break;
             }
             case 'GOAL': {
@@ -1516,11 +1659,34 @@ const OFFICIAL_LEVELS = [
         }
     }
 
+    // Масштаб редактора: на время рисования временно меняем SCALE и размеры видимой области
     function render() {
+        const z = G.mode === 'EDITOR' ? G.edZoom : 1;
+        const S0 = SCALE, W0 = VIEW_W, H0 = VIEW_H;
+        SCALE = S0 * z; VIEW_W = W0 / z; VIEW_H = H0 / z;
+        try { renderScene(); } finally { SCALE = S0; VIEW_W = W0; VIEW_H = H0; }
+    }
+    function mixHex(a, b, k) {
+        const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+        const ch = sh => Math.round(((pa >> sh) & 255) * (1 - k) + ((pb >> sh) & 255) * k);
+        return '#' + [16, 8, 0].map(sh => ch(sh).toString(16).padStart(2, '0')).join('');
+    }
+    // Цвет фона с учётом триггеров цвета, которые игрок уже пролетел
+    function levelColorAt(L, x) {
+        let c = L.color;
+        for (const tg of L.colorTriggers || []) {
+            if (tg.x > x) break;
+            const k = Math.min(1, (x - tg.x) / 160);
+            c = k >= 1 ? tg.color : mixHex(c, tg.color, k);
+        }
+        return c;
+    }
+    function renderScene() {
         const W = canvas.width, H = canvas.height;
         const cam = camera();
         const t = G.frameT;
-        const lc = (G.mode === 'EDITOR' ? editorLevel.color : G.L && G.L.color) || '#2563eb';
+        const lc = (G.mode === 'EDITOR' ? editorLevel.color : G.L && levelColorAt(G.L, G.S ? G.S.x : 0)) || '#2563eb';
+        G.curColor = lc;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         const bg = ctx.createLinearGradient(0, 0, 0, H);
         bg.addColorStop(0, shade(lc, -0.35)); bg.addColorStop(1, shade(lc, -0.82));
@@ -1554,10 +1720,29 @@ const OFFICIAL_LEVELS = [
         const objs = G.mode === 'EDITOR' ? editorLevel.objects : G.L.objs;
         const vx0 = cam.x - 80, vx1 = cam.x + VIEW_W + 80;
         for (const o of objs) if (o.x > vx0 && o.x < vx1) drawObject(o, t, cam);
-        if (G.mode === 'EDITOR' && selObj && editorLevel.objects.includes(selObj)) {
-            at(cam, selObj.x, selObj.y + 40);
-            ctx.setLineDash([5, 4]); ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5; ctx.strokeRect(-3, -3, 46, 46); ctx.setLineDash([]);
+        if (G.mode === 'EDITOR') {
+            ctx.setLineDash([5, 4]); ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5;
+            selSet.forEach(o => { if (o.x > vx0 && o.x < vx1) { at(cam, o.x, o.y + 40); ctx.strokeRect(-3, -3, 46, 46); } });
+            ctx.setLineDash([]);
+            if (edDrag && edDrag.type === 'box') {
+                at(cam, 0, 0);
+                const x0 = Math.min(edDrag.x0, edDrag.x1), x1 = Math.max(edDrag.x0, edDrag.x1), y0 = Math.min(edDrag.y0, edDrag.y1), y1 = Math.max(edDrag.y0, edDrag.y1);
+                ctx.fillStyle = 'rgba(56,189,248,.15)'; ctx.fillRect(x0, -y1, x1 - x0, y1 - y0);
+                ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1.5; ctx.strokeRect(x0, -y1, x1 - x0, y1 - y0);
+            }
+            // след последнего теста и места смертей
+            if (G.showPath && G.lastPath.length > 1) {
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.beginPath();
+                G.lastPath.forEach(([x, y], i) => { const sx = (x - cam.x) * SCALE, sy = H - (y - cam.y) * SCALE; i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy); });
+                ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 2.5 * SCALE; ctx.setLineDash([6 * SCALE, 5 * SCALE]); ctx.stroke(); ctx.setLineDash([]);
+            }
+            if (G.showPath) G.testDeaths.forEach(([x, y]) => {
+                at(cam, x, y); ctx.strokeStyle = '#ff3b3b'; ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.moveTo(-8, -8); ctx.lineTo(8, 8); ctx.moveTo(8, -8); ctx.lineTo(-8, 8); ctx.stroke();
+            });
         }
+        if (G.showHitboxes) drawHitboxes(cam, objs, vx0, vx1);
 
         if (G.mode !== 'EDITOR' && G.S) {
             const S = G.S;
@@ -1580,7 +1765,7 @@ const OFFICIAL_LEVELS = [
             for (let i = 0; i < 14; i++) for (let j = 0; j < 2; j++) { ctx.fillStyle = (i + j) % 2 ? '#fff' : '#000'; ctx.fillRect(j * 10, -i * 40 - 40, 10, 40); }
             ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(20, -600, 2000, 600);
             // надпись попытки
-            at(cam, 160, 230);
+            at(cam, (G.startPos ? G.startPos.x : 0) + 160, 230);
             ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.font = 'italic 900 34px Outfit, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
             ctx.fillText(tr('Попытка ', 'Attempt ') + G.attempts, 0, 0);
             // чекпоинты
@@ -1644,10 +1829,48 @@ const OFFICIAL_LEVELS = [
         // предпросмотр в редакторе
         if (G.mode === 'EDITOR' && hoverCell && activeTool !== 'ERASER' && activeTool !== 'SELECT' && !edDrag) {
             ctx.globalAlpha = 0.45;
-            drawObject({ type: activeTool, x: hoverCell.x, y: hoverCell.y, rotation: currentRotation }, t, cam);
+            drawObject({ type: activeTool, x: hoverCell.x, y: hoverCell.y, rotation: currentRotation, text: tr('Текст', 'Text'), color: '#9333ea', sMode: 'cube' }, t, cam);
             ctx.globalAlpha = 1;
         }
+        if (G.mode === 'EDITOR') drawMinimap(cam, W, H);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    function drawHitboxes(cam, objs, vx0, vx1) {
+        ctx.lineWidth = 1.5;
+        for (const o of objs) {
+            if (o.x < vx0 || o.x > vx1) continue;
+            const d = OBJ[o.type]; if (!d || NON_GAMEPLAY[d.cat]) continue;
+            const r = o.rect || objRect(o);
+            ctx.strokeStyle = d.cat === 'hazard' ? '#ff3b3b' : d.cat === 'solid' ? '#38bdf8' : '#3dff6e';
+            if (d.circle) { at(cam, o.x + 20, o.y + 20); ctx.beginPath(); ctx.arc(0, 0, d.circle, 0, Math.PI * 2); ctx.stroke(); }
+            else { at(cam, r.x0, r.y1); ctx.strokeRect(0, 0, r.x1 - r.x0, r.y1 - r.y0); }
+        }
+        if (G.mode !== 'EDITOR' && G.S && !G.S.dead) {
+            const S = G.S, sz = pSize(S), ins = S.mode === 'wave' ? 0 : sz * 0.16;
+            at(cam, S.x, S.y + sz); ctx.strokeStyle = '#fff'; ctx.strokeRect(0, 0, sz, sz);
+            ctx.strokeStyle = '#ff3b3b'; ctx.strokeRect(ins, ins, sz - ins * 2, sz - ins * 2);
+        }
+    }
+    // Мини-карта всего уровня внизу поля; клик по ней переносит камеру
+    function drawMinimap(cam, W, H) {
+        const objs = editorLevel.objects;
+        const maxX = Math.max(1200, ...objs.map(o => o.x + 40)) + 400;
+        const h = H * 0.07, y = H - h - 8, x = W * 0.02, w = W * 0.96;
+        G.mm = { x, y, w, h, maxX };
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1; ctx.strokeRect(x, y, w, h);
+        const kx = w / maxX, ky = h / 600;
+        for (const o of objs) {
+            const d = OBJ[o.type]; if (!d) continue;
+            ctx.fillStyle = d.cat === 'hazard' ? '#ff6b6b' : d.cat === 'solid' ? '#e4e4e7' : d.cat === 'portal' ? portalColor(o.type) : d.cat === 'deco' ? 'rgba(255,255,255,.3)' : '#3dff6e';
+            ctx.fillRect(x + o.x * kx, y + h - Math.min(600, o.y + 40) * ky, Math.max(1.5, 40 * kx), Math.max(1.5, 40 * ky));
+        }
+        if (G.showPath && G.lastPath.length) { ctx.fillStyle = 'rgba(255,255,255,.6)'; G.lastPath.forEach(([px, py], i) => { if (i % 4 === 0) ctx.fillRect(x + px * kx, y + h - Math.min(600, py) * ky, 1.5, 1.5); }); }
+        ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2;
+        const rx = x + Math.max(0, cam.x) * kx;
+        ctx.strokeRect(rx, y + 1, Math.max(4, Math.min(VIEW_W * kx, x + w - rx)), h - 2);
     }
 
     // ---------- Редактор ----------
@@ -1670,7 +1893,9 @@ const OFFICIAL_LEVELS = [
         SPIKES: { icon: '🔺', ru: 'Шипы и пилы', en: 'Hazards', tools: [
             ['SPIKE', '🔺', 'Шип', 'Spike'], ['SMALL_SPIKE', '▴', 'Маленький шип', 'Small spike'], ['GROUND_SPIKES', '〰️', 'Колючки', 'Ground spikes'], ['SAW', '⚙️', 'Пила', 'Saw']] },
         BLOCKS: { icon: '⬛', ru: 'Блоки', en: 'Blocks', tools: [['BLOCK', '⬛', 'Блок', 'Block'], ['SLAB', '▬', 'Полублок', 'Slab']] },
-        OTHER: { icon: '🏁', ru: 'Монеты и финиш', en: 'Coins & Goal', tools: [['COIN', '🪙', 'Монета', 'Coin'], ['GOAL', '🏁', 'Финиш', 'Goal']] },
+        OTHER: { icon: '🏁', ru: 'Старт, монеты, финиш', en: 'Start, coins, goal', tools: [['START_POS', '🚩', 'Стартовая позиция', 'Start position'], ['COIN', '🪙', 'Монета', 'Coin'], ['GOAL', '🏁', 'Финиш', 'Goal']] },
+        TRIGGERS: { icon: '🎨', ru: 'Триггеры', en: 'Triggers', tools: [['COLOR_TRIGGER', '🎨', 'Смена цвета фона', 'Background color']] },
+        DECO: { icon: '✨', ru: 'Декор', en: 'Decor', tools: [['TEXT', '🔤', 'Надпись', 'Text'], ['ARROW', '➡️', 'Стрелка', 'Arrow'], ['DECO_STAR', '⭐', 'Звёздочка', 'Star'], ['DECO_LIGHT', '💡', 'Огонёк', 'Light'], ['DECO_CHAIN', '⛓️', 'Цепь', 'Chain']] },
         DELETE: { icon: '❌', ru: 'Удалитель', en: 'Eraser', tools: [['ERASER', '❌', 'Удалитель', 'Eraser']] }
     };
     let activeTab = 'MODES', activeTool = 'CUBE_PORTAL', currentRotation = 0, hoverCell = null;
@@ -1709,6 +1934,7 @@ const OFFICIAL_LEVELS = [
         $('edLevelName').value = editorLevel.name;
         $('edLevelColor').value = editorLevel.color;
         $('edLevelSong').value = editorLevel.song;
+        $('zoomText').innerText = Math.round(G.edZoom * 100) + '%';
         renderProps();
         music.restart(editorLevel.song);
         updateHud(true);
@@ -1721,7 +1947,7 @@ const OFFICIAL_LEVELS = [
 
 
     // ---------- Редактор 1.4: выбор, отмена, настройка порталов ----------
-    let selObj = null, edDrag = null, undoStack = [], redoStack = [];
+    let selObj = null, selSet = [], edDrag = null, undoStack = [], redoStack = [];
     function pushUndo() {
         undoStack.push(JSON.stringify(editorLevel.objects));
         if (undoStack.length > 150) undoStack.shift();
@@ -1731,13 +1957,13 @@ const OFFICIAL_LEVELS = [
         if (!undoStack.length) { toast(tr('Нечего отменять', 'Nothing to undo')); return; }
         redoStack.push(JSON.stringify(editorLevel.objects));
         editorLevel.objects = JSON.parse(undoStack.pop());
-        selObj = null; saveEditor(); renderProps();
+        saveEditor(); setSelection([]);
     }
     function redo() {
         if (!redoStack.length) return;
         undoStack.push(JSON.stringify(editorLevel.objects));
         editorLevel.objects = JSON.parse(redoStack.pop());
-        selObj = null; saveEditor(); renderProps();
+        saveEditor(); setSelection([]);
     }
     $('btnUndo').addEventListener('click', undo);
     $('btnRedo').addEventListener('click', redo);
@@ -1805,46 +2031,155 @@ const OFFICIAL_LEVELS = [
         }
     }
     const blk = v => (Math.round(v / 40 * 4) / 4).toString().replace('.', ',');
+    function setSelection(arr) { selSet = arr; selObj = arr.length === 1 ? arr[0] : null; renderProps(); }
+    function cleanSelection() { selSet = selSet.filter(o => editorLevel.objects.includes(o)); selObj = selSet.length === 1 ? selSet[0] : null; }
+    function editorStatsText() {
+        const objs = editorLevel.objects.filter(o => !NON_GAMEPLAY[(OBJ[o.type] || {}).cat]);
+        const maxX = objs.reduce((m, o) => Math.max(m, o.x + 40), 0);
+        const goal = editorLevel.objects.find(o => o.type === 'GOAL');
+        const len = goal ? goal.x : maxX + 320;
+        return tr(`${editorLevel.objects.length} объектов • ~${Math.round(len / (BASE_SPEED * 60))} сек`, `${editorLevel.objects.length} objects • ~${Math.round(len / (BASE_SPEED * 60))} s`);
+    }
+    function escAttr(v) { return String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
     function renderProps() {
         const box = $('propsPanel');
-        if (!selObj || !editorLevel.objects.includes(selObj)) { box.classList.add('hidden'); box.innerHTML = ''; return; }
-        const o = selObj;
-        const toolInfo = Object.values(TABS).flatMap(t => t.tools).find(t => t[0] === o.type);
-        const title = toolInfo ? `${toolInfo[1]} ${tr(toolInfo[2], toolInfo[3])}` : o.type;
-        let html = `<div class="flex flex-wrap items-center gap-2"><span class="font-black text-sm">${title}</span>
-            <span class="font-mono text-zinc-400">x:${o.x / 40} y:${o.y / 40}</span><span class="flex-1"></span>
-            <button data-a="del" class="px-2.5 py-1 rounded-lg bg-red-500/80 font-bold">🗑 ${tr('Удалить', 'Delete')}</button>
-            <button data-a="close" class="px-2.5 py-1 rounded-lg bg-zinc-800 font-bold">✕</button></div>`;
-        const b = portalBounds(o);
-        if (b) {
-            const stepper = (label, a, val) => `<div class="flex items-center gap-1.5"><span class="text-zinc-300 w-24">${label}</span>
-                <button data-a="${a}-" class="w-7 h-7 rounded-lg bg-zinc-800 font-black">−</button>
-                <span class="w-14 text-center font-mono font-bold">${val}</span>
-                <button data-a="${a}+" class="w-7 h-7 rounded-lg bg-zinc-800 font-black">+</button></div>`;
-            html += `<div class="text-zinc-400">${tr('Перетаскивай линии на поле мышкой или меняй кнопками. Высота — в блоках.', 'Drag the lines on the field or use the buttons. Heights are in blocks.')}</div><div class="flex flex-wrap gap-x-5 gap-y-1.5">`;
-            if (b.ceil != null) {
-                html += stepper(tr('Пол', 'Floor'), 'floor', blk(b.floor)) + stepper(tr('Потолок', 'Ceiling'), 'ceil', blk(b.ceil));
-                if (!CORRIDOR_MODES[b.mode]) html += `<button data-a="noceil" class="px-2.5 py-1 rounded-lg bg-zinc-800 font-bold">${tr('Убрать потолок', 'Remove ceiling')}</button>`;
-            } else {
-                html += `<button data-a="addceil" class="px-2.5 py-1 rounded-lg bg-zinc-800 font-bold">➕ ${tr('Добавить пол и потолок', 'Add floor & ceiling')}</button>`;
+        cleanSelection();
+        if (!selSet.length) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+        const btn = (a, label, cls = 'bg-zinc-800') => `<button data-a="${a}" class="px-2.5 py-1 rounded-lg ${cls} font-bold">${label}</button>`;
+        const common = btn('dup', '⧉ ' + tr('Дублировать', 'Duplicate')) + btn('copy', '📋 ' + tr('Копировать', 'Copy')) + btn('rot', '🔄 ' + tr('Повернуть', 'Rotate')) +
+            (selSet.length > 1 ? btn('flip', '↔ ' + tr('Отразить', 'Flip')) : '') + btn('del', '🗑 ' + tr('Удалить', 'Delete'), 'bg-red-500/80') + btn('close', '✕');
+        if (selSet.length > 1) {
+            box.innerHTML = `<div class="flex flex-wrap items-center gap-2"><span class="font-black text-sm">👆 ${tr('Выбрано объектов', 'Selected objects')}: ${selSet.length}</span>
+                <span class="text-zinc-400">${tr('Тащи мышкой, чтобы двигать все сразу. Shift + стрелки — сдвиг на 1 блок.', 'Drag to move them all. Shift + arrows move by 1 block.')}</span><span class="flex-1"></span>${common}</div>`;
+        } else {
+            const o = selObj;
+            const toolInfo = Object.values(TABS).flatMap(t => t.tools).find(t => t[0] === o.type);
+            const title = toolInfo ? `${toolInfo[1]} ${tr(toolInfo[2], toolInfo[3])}` : o.type;
+            let html = `<div class="flex flex-wrap items-center gap-2"><span class="font-black text-sm">${title}</span>
+                <span class="font-mono text-zinc-400">x:${o.x / 40} y:${o.y / 40}</span><span class="flex-1"></span>${common}</div>`;
+            if (o.type === 'TEXT') {
+                html += `<div class="flex items-center gap-2"><span class="text-zinc-300">${tr('Текст надписи', 'Text')}</span>
+                    <input id="propText" maxlength="40" value="${escAttr(o.text == null ? tr('Текст', 'Text') : o.text)}" class="flex-1 max-w-sm px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-700 font-bold"></div>`;
             }
-            html += `<button data-a="reset" class="px-2.5 py-1 rounded-lg bg-zinc-800 font-bold">↺ ${tr('Как было', 'Reset')}</button></div>`;
-            if (b.lanes) {
-                html += `<div class="flex flex-wrap gap-x-5 gap-y-1.5">` + b.lanes.map((l, i) => `<div class="flex items-center gap-1.5">${stepper('✈ ' + tr('Дорожка ', 'Lane ') + (i + 1), 'lane' + i, blk(l))}
-                    ${b.lanes.length > 1 ? `<button data-a="rmlane${i}" class="w-7 h-7 rounded-lg bg-zinc-800">×</button>` : ''}</div>`).join('') +
-                    (b.lanes.length < 6 ? `<button data-a="addlane" class="px-2.5 py-1 rounded-lg bg-orange-500 text-black font-bold">➕ ${tr('Дорожка', 'Lane')}</button>` : '') + `</div>`;
+            if (o.type === 'COLOR_TRIGGER') {
+                html += `<div class="flex items-center gap-2"><span class="text-zinc-300">${tr('Новый цвет фона после этой линии', 'New background color after this line')}</span>
+                    <input id="propColor" type="color" value="${o.color || '#9333ea'}" class="w-10 h-8 bg-transparent"></div>`;
             }
+            if (o.type === 'START_POS') {
+                const opt = (v, label, cur) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${label}</option>`;
+                html += `<div class="flex flex-wrap items-center gap-3">
+                    <label class="flex items-center gap-1.5">${tr('Режим', 'Mode')} <select id="propSMode" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1">${MODE_NAMES_CORE.map(m => opt(m, MODE_NAMES[m][currentLang === 'ru' ? 0 : 1], o.sMode || 'cube')).join('')}</select></label>
+                    <label class="flex items-center gap-1.5">${tr('Гравитация', 'Gravity')} <select id="propSG" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1">${opt('1', tr('вниз', 'down'), String(o.sG || 1))}${opt('-1', tr('вверх', 'up'), String(o.sG || 1))}</select></label>
+                    <label class="flex items-center gap-1.5">${tr('Скорость', 'Speed')} <select id="propSSpeed" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1">${[['SPEED_05', '0.5x'], ['SPEED_1', '1x'], ['SPEED_2', '2x'], ['SPEED_3', '3x'], ['SPEED_4', '4x']].map(([v, l]) => opt(v, l, o.sSpeed || 'SPEED_1')).join('')}</select></label>
+                    <label class="flex items-center gap-1.5"><input id="propSMini" type="checkbox" ${o.sMini ? 'checked' : ''}> ${tr('Мини', 'Mini')}</label>
+                    <span class="text-zinc-400">${tr('Включи «🚩 С позиции» рядом с кнопкой «Тест».', 'Turn on "🚩 From start pos" next to Test.')}</span></div>`;
+            }
+            const b = portalBounds(o);
+            if (b) {
+                const stepper = (label, a, val) => `<div class="flex items-center gap-1.5"><span class="text-zinc-300 w-24">${label}</span>
+                    <button data-a="${a}-" class="w-7 h-7 rounded-lg bg-zinc-800 font-black">−</button>
+                    <span class="w-14 text-center font-mono font-bold">${val}</span>
+                    <button data-a="${a}+" class="w-7 h-7 rounded-lg bg-zinc-800 font-black">+</button></div>`;
+                html += `<div class="text-zinc-400">${tr('Перетаскивай линии на поле мышкой или меняй кнопками. Высота — в блоках.', 'Drag the lines on the field or use the buttons. Heights are in blocks.')}</div><div class="flex flex-wrap gap-x-5 gap-y-1.5">`;
+                if (b.ceil != null) {
+                    html += stepper(tr('Пол', 'Floor'), 'floor', blk(b.floor)) + stepper(tr('Потолок', 'Ceiling'), 'ceil', blk(b.ceil));
+                    if (!CORRIDOR_MODES[b.mode]) html += btn('noceil', tr('Убрать потолок', 'Remove ceiling'));
+                } else html += btn('addceil', '➕ ' + tr('Добавить пол и потолок', 'Add floor & ceiling'));
+                html += btn('reset', '↺ ' + tr('Как было', 'Reset')) + `</div>`;
+                if (b.lanes) {
+                    html += `<div class="flex flex-wrap gap-x-5 gap-y-1.5">` + b.lanes.map((l, i) => `<div class="flex items-center gap-1.5">${stepper('✈ ' + tr('Дорожка ', 'Lane ') + (i + 1), 'lane' + i, blk(l))}
+                        ${b.lanes.length > 1 ? `<button data-a="rmlane${i}" class="w-7 h-7 rounded-lg bg-zinc-800">×</button>` : ''}</div>`).join('') +
+                        (b.lanes.length < 6 ? btn('addlane', '➕ ' + tr('Дорожка', 'Lane'), 'bg-orange-500 text-black') : '') + `</div>`;
+                }
+            }
+            box.innerHTML = html;
+            const bindInput = (id, fn, ev = 'input') => { const el = $(id); if (el) { el.addEventListener('focus', () => pushUndo(), { once: true }); el.addEventListener(ev, () => { fn(el); saveEditor(); }); } };
+            bindInput('propText', el => { o.text = el.value; });
+            bindInput('propColor', el => { o.color = el.value; });
+            bindInput('propSMode', el => { o.sMode = el.value; }, 'change');
+            bindInput('propSG', el => { o.sG = +el.value; }, 'change');
+            bindInput('propSSpeed', el => { o.sSpeed = el.value; }, 'change');
+            bindInput('propSMini', el => { o.sMini = el.checked; }, 'change');
         }
-        box.innerHTML = html;
         box.classList.remove('hidden');
-        box.querySelectorAll('[data-a]').forEach(btn => btn.addEventListener('click', () => propAction(btn.dataset.a)));
+        box.querySelectorAll('[data-a]').forEach(btnEl => btnEl.addEventListener('click', () => propAction(btnEl.dataset.a)));
+    }
+    // Буфер обмена редактора: объекты запоминаются относительно левого нижнего угла выделения
+    let edClipboard = null;
+    function selBounds(arr) {
+        const xs = arr.map(o => o.x), ys = arr.map(o => o.y);
+        return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs) + 40, y1: Math.max(...ys) + 40 };
+    }
+    function copySelection() {
+        if (!selSet.length) return false;
+        const b = selBounds(selSet);
+        edClipboard = selSet.map(o => Object.assign(JSON.parse(JSON.stringify(o)), { x: o.x - b.x0, y: o.y - b.y0 }));
+        return true;
+    }
+    function pasteAt(cx, cy) {
+        if (!edClipboard) { toast(tr('Буфер пуст — сначала скопируй (Ctrl+C)', 'Clipboard is empty — copy first (Ctrl+C)')); return; }
+        pushUndo();
+        const added = edClipboard.map(c => Object.assign(JSON.parse(JSON.stringify(c)), { x: Math.max(0, cx + c.x), y: Math.max(0, cy + c.y) }));
+        const cells = new Set(added.map(o => o.x + ':' + o.y));
+        editorLevel.objects = editorLevel.objects.filter(o => !cells.has(o.x + ':' + o.y));
+        if (added.some(o => o.type === 'GOAL')) editorLevel.objects = editorLevel.objects.filter(o => o.type !== 'GOAL');
+        if (added.some(o => o.type === 'START_POS')) editorLevel.objects = editorLevel.objects.filter(o => o.type !== 'START_POS');
+        editorLevel.objects.push(...added);
+        stats.placed += added.length; statsDirty = true;
+        saveEditor(); setSelection(added);
+    }
+    function duplicateSelection() {
+        if (!copySelection()) return;
+        const b = selBounds(selSet);
+        pasteAt(b.x1, b.y0);
+    }
+    function rotateSelection() {
+        if (!selSet.length) return;
+        pushUndo();
+        const b = selBounds(selSet);
+        const cx = Math.round((b.x0 + b.x1 - 40) / 2 / GRID) * GRID, cy = Math.round((b.y0 + b.y1 - 40) / 2 / GRID) * GRID;
+        selSet.forEach(o => {
+            const [u, v] = rotPt(o.x - cx, o.y - cy, 90);
+            o.x = Math.max(0, cx + u); o.y = Math.max(0, cy + v);
+            if (!OBJ[o.type].fixed) o.rotation = ((o.rotation || 0) + 90) % 360;
+        });
+        saveEditor(); renderProps();
+    }
+    function flipSelection() {
+        if (!selSet.length) return;
+        pushUndo();
+        const b = selBounds(selSet);
+        selSet.forEach(o => {
+            o.x = b.x0 + (b.x1 - 40 - o.x);
+            if (!OBJ[o.type].fixed && (o.rotation === 90 || o.rotation === 270)) o.rotation = (o.rotation + 180) % 360;
+        });
+        saveEditor(); renderProps();
+    }
+    function deleteSelection() {
+        if (!selSet.length) return;
+        pushUndo();
+        const del = new Set(selSet);
+        editorLevel.objects = editorLevel.objects.filter(o => !del.has(o));
+        saveEditor(); setSelection([]);
+    }
+    function moveSelection(dx, dy) {
+        if (!selSet.length) return;
+        pushUndo();
+        const b = selBounds(selSet);
+        dx = Math.max(dx, -b.x0); dy = Math.max(dy, -b.y0);
+        selSet.forEach(o => { o.x += dx; o.y += dy; });
+        saveEditor(); renderProps();
     }
     function propAction(a) {
+        if (a === 'close') { setSelection([]); return; }
+        if (a === 'del') { deleteSelection(); return; }
+        if (a === 'dup') { duplicateSelection(); return; }
+        if (a === 'copy') { copySelection(); toast(tr(`Скопировано: ${selSet.length}. Вставка — Ctrl+V туда, где мышка.`, `Copied: ${selSet.length}. Paste with Ctrl+V at the mouse.`)); return; }
+        if (a === 'rot') { rotateSelection(); return; }
+        if (a === 'flip') { flipSelection(); return; }
         const o = selObj; if (!o) return;
-        if (a === 'close') { selObj = null; renderProps(); return; }
         pushUndo();
-        if (a === 'del') { editorLevel.objects = editorLevel.objects.filter(x => x !== o); selObj = null; }
-        else if (a === 'reset') { delete o.floor; delete o.ceil; delete o.lanes; }
+        if (a === 'reset') { delete o.floor; delete o.ceil; delete o.lanes; }
         else if (a === 'addceil') { const b = freezeBounds(o); o.ceil = b.floor + CORRIDOR; }
         else if (a === 'noceil') { delete o.ceil; }
         else if (a === 'floor-' || a === 'floor+') { const b = freezeBounds(o); dragPortalLine(o, 'floor', 0, b.floor + (a.endsWith('+') ? 40 : -40)); }
@@ -1861,7 +2196,8 @@ const OFFICIAL_LEVELS = [
         const rect = canvas.getBoundingClientRect();
         const sx = (e.clientX - rect.left) / rect.width * canvas.width;
         const sy = (e.clientY - rect.top) / rect.height * canvas.height;
-        return { x: sx / SCALE + G.edCamX, y: (canvas.height - sy) / SCALE + G.edCamY };
+        const k = SCALE * G.edZoom;
+        return { x: sx / k + G.edCamX, y: (canvas.height - sy) / k + G.edCamY, sx, sy };
     }
     function objAtPoint(w) {
         for (let i = editorLevel.objects.length - 1; i >= 0; i--) {
@@ -1876,29 +2212,41 @@ const OFFICIAL_LEVELS = [
         if (activeTool === 'ERASER') { const i = objAtPoint(w); if (i >= 0) editorLevel.objects.splice(i, 1); }
         else if (cx >= 0 && cy >= 0) {
             editorLevel.objects = editorLevel.objects.filter(o => !(o.x === cx && o.y === cy));
-            if (activeTool === 'GOAL') editorLevel.objects = editorLevel.objects.filter(o => o.type !== 'GOAL');
+            if (activeTool === 'GOAL' || activeTool === 'START_POS') editorLevel.objects = editorLevel.objects.filter(o => o.type !== activeTool);
             const obj = { type: activeTool, x: cx, y: cy, rotation: currentRotation };
+            if (activeTool === 'TEXT') obj.text = tr('Текст', 'Text');
+            if (activeTool === 'COLOR_TRIGGER') obj.color = '#9333ea';
+            if (activeTool === 'START_POS') Object.assign(obj, { sMode: 'cube', sG: 1, sSpeed: 'SPEED_1', sMini: false });
             editorLevel.objects.push(obj);
             stats.placed++; statsDirty = true;
-            if (MODE_PORTALS[activeTool]) selObj = obj;
+            if (MODE_PORTALS[activeTool] || ['TEXT', 'COLOR_TRIGGER', 'START_POS'].includes(activeTool)) { setSelection([obj]); saveEditor(); return; }
         }
-        if (selObj && !editorLevel.objects.includes(selObj)) selObj = null;
+        cleanSelection();
         saveEditor(); renderProps();
     }
     let painting = false;
+    function inMinimap(w) { const m = G.mm; return m && w.sx >= m.x && w.sx <= m.x + m.w && w.sy >= m.y && w.sy <= m.y + m.h; }
+    function minimapJump(w) { const m = G.mm; const wx = (w.sx - m.x) / m.w * m.maxX; G.edCamX = Math.max(-200, wx - VIEW_W / G.edZoom / 2); moveEditorCam(0, 0); }
     canvas.addEventListener('pointerdown', e => {
         music.ensure();
         if (G.mode === 'EDITOR') {
-            if (e.button === 2) { const i = objAtPoint(screenToWorld(e)); if (i >= 0) { pushUndo(); editorLevel.objects.splice(i, 1); saveEditor(); renderProps(); } return; }
-            if (e.button !== 0) return;
             const w = screenToWorld(e);
+            if (e.button === 0 && inMinimap(w)) { edDrag = { type: 'minimap' }; minimapJump(w); return; }
+            if (e.button === 2) { const i = objAtPoint(w); if (i >= 0) { pushUndo(); editorLevel.objects.splice(i, 1); saveEditor(); renderProps(); } return; }
+            if (e.button !== 0) return;
             const hit = activeTool !== 'ERASER' ? hitPortalLine(selObj, w) : null;
             if (hit) { pushUndo(); edDrag = Object.assign({ type: 'line', o: selObj }, hit); return; }
             if (activeTool === 'SELECT') {
-                const i = objAtPoint(w);
-                selObj = i >= 0 ? editorLevel.objects[i] : null;
-                if (selObj) { pushUndo(); edDrag = { type: 'move', o: selObj, dx: w.x - selObj.x, dy: w.y - selObj.y }; }
-                renderProps();
+                const i = objAtPoint(w), o = i >= 0 ? editorLevel.objects[i] : null;
+                if (o) {
+                    if (e.shiftKey) { setSelection(selSet.includes(o) ? selSet.filter(x => x !== o) : selSet.concat(o)); return; }
+                    if (!selSet.includes(o)) setSelection([o]);
+                    pushUndo();
+                    edDrag = { type: 'move', sx: w.x, sy: w.y, items: selSet.map(x => ({ o: x, ox: x.x, oy: x.y })) };
+                } else {
+                    edDrag = { type: 'box', x0: w.x, y0: w.y, x1: w.x, y1: w.y, add: e.shiftKey };
+                    if (!e.shiftKey) setSelection([]);
+                }
                 return;
             }
             pushUndo(); painting = true; editorPlace(e);
@@ -1908,24 +2256,49 @@ const OFFICIAL_LEVELS = [
         if (G.mode !== 'EDITOR') return;
         const w = screenToWorld(e);
         if (edDrag) {
-            if (edDrag.type === 'line') dragPortalLine(edDrag.o, edDrag.kind, edDrag.i, w.y);
-            else { edDrag.o.x = Math.max(0, Math.round((w.x - edDrag.dx) / GRID) * GRID); edDrag.o.y = Math.max(0, Math.round((w.y - edDrag.dy) / GRID) * GRID); }
+            if (edDrag.type === 'minimap') minimapJump(w);
+            else if (edDrag.type === 'line') dragPortalLine(edDrag.o, edDrag.kind, edDrag.i, w.y);
+            else if (edDrag.type === 'box') { edDrag.x1 = w.x; edDrag.y1 = w.y; }
+            else if (edDrag.type === 'move') {
+                let dx = Math.round((w.x - edDrag.sx) / GRID) * GRID, dy = Math.round((w.y - edDrag.sy) / GRID) * GRID;
+                dx = Math.max(dx, -Math.min(...edDrag.items.map(it => it.ox)));
+                dy = Math.max(dy, -Math.min(...edDrag.items.map(it => it.oy)));
+                edDrag.items.forEach(it => { it.o.x = it.ox + dx; it.o.y = it.oy + dy; });
+            }
             return;
         }
-        canvas.style.cursor = hitPortalLine(selObj, w) ? 'ns-resize' : (activeTool === 'SELECT' ? 'default' : 'crosshair');
+        canvas.style.cursor = inMinimap(w) ? 'pointer' : hitPortalLine(selObj, w) ? 'ns-resize' : (activeTool === 'SELECT' ? 'default' : 'crosshair');
         const nc = { x: Math.floor(w.x / GRID) * GRID, y: Math.floor(w.y / GRID) * GRID };
         const changed = !hoverCell || nc.x !== hoverCell.x || nc.y !== hoverCell.y;
-        hoverCell = nc.x >= 0 && nc.y >= 0 ? nc : null;
-        if (painting && changed && ['BLOCK', 'SLAB', 'SPIKE', 'SMALL_SPIKE', 'GROUND_SPIKES', 'ERASER'].includes(activeTool)) editorPlace(e);
+        hoverCell = nc.x >= 0 && nc.y >= 0 && !inMinimap(w) ? nc : null;
+        if (painting && changed && ['BLOCK', 'SLAB', 'SPIKE', 'SMALL_SPIKE', 'GROUND_SPIKES', 'ERASER', 'DECO_STAR', 'DECO_CHAIN'].includes(activeTool)) editorPlace(e);
     });
+    function finishBoxSelect() {
+        const d = edDrag;
+        const x0 = Math.min(d.x0, d.x1), x1 = Math.max(d.x0, d.x1), y0 = Math.min(d.y0, d.y1), y1 = Math.max(d.y0, d.y1);
+        if (x1 - x0 < 4 && y1 - y0 < 4) return;
+        const inside = editorLevel.objects.filter(o => o.x + 40 > x0 && o.x < x1 && o.y + 40 > y0 && o.y < y1);
+        setSelection(d.add ? [...new Set(selSet.concat(inside))] : inside);
+    }
     canvas.addEventListener('pointerleave', () => { hoverCell = null; });
     canvas.addEventListener('contextmenu', e => e.preventDefault());
     canvas.addEventListener('wheel', e => {
         if (G.mode !== 'EDITOR') return;
         e.preventDefault();
-        if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) moveEditorCam((e.deltaX || e.deltaY) * 0.8, 0);
-        else moveEditorCam(e.deltaY * 0.8, 0);
+        if (e.ctrlKey || e.metaKey) { setZoom(G.edZoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15)); return; }
+        if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) moveEditorCam((e.deltaX || e.deltaY) * 0.8 / G.edZoom, 0);
+        else moveEditorCam(e.deltaY * 0.8 / G.edZoom, 0);
     }, { passive: false });
+    function setZoom(z) {
+        z = Math.max(0.35, Math.min(2.5, z));
+        const cx = G.edCamX + VIEW_W / G.edZoom / 2;
+        G.edZoom = z;
+        G.edCamX = cx - VIEW_W / z / 2;
+        $('zoomText').innerText = Math.round(z * 100) + '%';
+        moveEditorCam(0, 0);
+    }
+    $('btnZoomIn').addEventListener('click', () => setZoom(G.edZoom * 1.25));
+    $('btnZoomOut').addEventListener('click', () => setZoom(G.edZoom / 1.25));
     function moveEditorCam(dx, dy) {
         G.edCamX = Math.max(-200, G.edCamX + dx);
         G.edCamY = Math.max(-80, G.edCamY + dy);
@@ -1942,7 +2315,7 @@ const OFFICIAL_LEVELS = [
             b.dataset.armed = '1'; toast(tr('Нажми ещё раз, чтобы удалить всё', 'Click again to delete everything'));
             setTimeout(() => { delete b.dataset.armed; }, 3000); return;
         }
-        delete b.dataset.armed; pushUndo(); editorLevel.objects = []; selObj = null; saveEditor(); renderProps(); toast(tr('Карта очищена. Вернуть можно кнопкой «Отмена».', 'Map cleared. Undo brings it back.'));
+        delete b.dataset.armed; pushUndo(); editorLevel.objects = []; saveEditor(); setSelection([]); toast(tr('Карта очищена. Вернуть можно кнопкой «Отмена».', 'Map cleared. Undo brings it back.'));
     });
     $('btnExportLevel').addEventListener('click', () => {
         const data = { format: 'geometry-ai', version: '1.4', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, objects: editorLevel.objects };
@@ -1975,6 +2348,71 @@ const OFFICIAL_LEVELS = [
         clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 2200);
     }
 
+    // ---------- Мои уровни, подсказка, переключатели ----------
+    document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('.absolute').classList.add('hidden')));
+    function renderLibrary() {
+        const lib = store.get('myLevels', []);
+        const box = $('libList'); box.innerHTML = '';
+        if (!lib.length) box.innerHTML = `<div class="text-sm text-zinc-400">${tr('Пока пусто. Начни строить — уровень сохранится сам.', 'Empty for now. Start building — the level saves itself.')}</div>`;
+        lib.forEach(entry => {
+            const cur = entry.id === editorLevel.id;
+            const d = document.createElement('div');
+            d.className = 'rounded-2xl p-3 border-2 flex flex-col gap-2';
+            d.style.borderColor = cur ? '#ffffff' : entry.color; d.style.background = `linear-gradient(160deg, ${entry.color}88, #09090b 80%)`;
+            d.innerHTML = `<div class="flex justify-between gap-2"><span class="font-black italic truncate"></span>${cur ? `<span class="text-[10px] font-black bg-white text-black px-1.5 rounded">${tr('ОТКРЫТ', 'OPEN')}</span>` : ''}</div>
+                <div class="text-[11px] font-mono text-zinc-300">${entry.objects.length} ${tr('объектов', 'objects')} • ${new Date(entry.t).toLocaleDateString()}</div>
+                <div class="flex gap-2"><button data-k="open" class="flex-1 py-1.5 rounded-lg bg-white text-black font-black text-xs">📂 ${tr('Открыть', 'Open')}</button>
+                <button data-k="del" class="px-2.5 py-1.5 rounded-lg bg-black/50 border border-white/30 text-xs">🗑</button></div>`;
+            d.querySelector('span').textContent = entry.name || tr('Без названия', 'Untitled');
+            d.querySelector('[data-k="open"]').addEventListener('click', () => {
+                saveToLibrary();
+                editorLevel = normalizeLevel(entry); editorLevel.id = entry.id;
+                undoStack = []; redoStack = []; G.lastPath = []; G.testDeaths = [];
+                store.set('editorLevel', editorLevel);
+                $('libModal').classList.add('hidden'); setSelection([]); openEditor();
+                toast(tr('Открыт уровень: ', 'Opened: ') + (entry.name || tr('Без названия', 'Untitled')));
+            });
+            const del = d.querySelector('[data-k="del"]');
+            del.addEventListener('click', () => {
+                if (!del.dataset.armed) { del.dataset.armed = '1'; del.textContent = tr('Точно?', 'Sure?'); setTimeout(() => { delete del.dataset.armed; del.textContent = '🗑'; }, 3000); return; }
+                store.set('myLevels', store.get('myLevels', []).filter(x => x.id !== entry.id));
+                if (cur) { editorLevel = normalizeLevel({ objects: [] }); editorLevel.name = ''; editorLevel.id = newLevelId(); undoStack = []; redoStack = []; store.set('editorLevel', editorLevel); openEditor(); }
+                renderLibrary();
+            });
+            box.appendChild(d);
+        });
+    }
+    $('btnLibrary').addEventListener('click', () => { clearTimeout(libTimer); saveToLibrary(); renderLibrary(); $('libModal').classList.remove('hidden'); });
+    $('btnLibNew').addEventListener('click', () => {
+        clearTimeout(libTimer); saveToLibrary();
+        editorLevel = normalizeLevel({ objects: [] }); editorLevel.name = ''; editorLevel.id = newLevelId();
+        undoStack = []; redoStack = []; G.lastPath = []; G.testDeaths = []; G.edCamX = -120; G.edCamY = -80;
+        store.set('editorLevel', editorLevel);
+        $('libModal').classList.add('hidden'); setSelection([]); openEditor();
+        toast(tr('Новый уровень! Старый лежит в «Моих уровнях».', 'New level! The old one is in "My levels".'));
+    });
+    const HELP = [
+        ['ЛКМ', 'поставить объект', 'place an object'], ['ПКМ', 'удалить объект', 'delete an object'],
+        ['Колесо', 'прокрутка влево-вправо', 'scroll'], ['Ctrl + колесо, + / −', 'масштаб', 'zoom'],
+        ['Стрелки', 'двигать камеру', 'move the camera'], ['👆 Выбор + рамка', 'выделить много объектов', 'select many objects'],
+        ['Shift + клик', 'добавить к выделению', 'add to selection'], ['Shift + стрелки', 'сдвинуть выделенное на 1 блок', 'move selection 1 block'],
+        ['Ctrl + C / Ctrl + V', 'копировать / вставить туда, где мышка', 'copy / paste at the mouse'], ['Ctrl + D', 'дублировать выделенное', 'duplicate selection'],
+        ['Ctrl + A', 'выделить всё', 'select all'], ['R', 'повернуть', 'rotate'], ['Delete', 'удалить выделенное', 'delete selection'],
+        ['Ctrl + Z / Ctrl + Y', 'отмена / повтор', 'undo / redo'], ['H', 'показать хитбоксы', 'show hitboxes'], ['Esc', 'снять выделение', 'clear selection'],
+        ['Мини-карта внизу', 'клик — прыжок в это место уровня', 'click to jump there'], ['🚩 С позиции', 'тест со стартовой позиции', 'test from the start position']
+    ];
+    $('btnHelp').addEventListener('click', () => {
+        $('helpList').innerHTML = HELP.map(([k, ru, en]) => `<div class="flex gap-3"><span class="font-mono font-bold text-sky-300 shrink-0">${k}</span><span class="text-zinc-300">${tr(ru, en)}</span></div>`).join('');
+        $('helpModal').classList.remove('hidden');
+    });
+    function refreshToggles() {
+        $('btnHitboxes').classList.toggle('tool-active', G.showHitboxes);
+        $('btnPathToggle').classList.toggle('tool-active', G.showPath);
+    }
+    $('btnHitboxes').addEventListener('click', () => { G.showHitboxes = !G.showHitboxes; store.set('hitboxes', G.showHitboxes); refreshToggles(); });
+    $('btnPathToggle').addEventListener('click', () => { G.showPath = !G.showPath; refreshToggles(); if (G.showPath && !G.lastPath.length) toast(tr('След появится после теста ▶', 'The path appears after a test ▶')); });
+    refreshToggles();
+
     // ---------- Онлайн уровни: коды ----------
     function b64uEncode(bytes) {
         let bin = '';
@@ -1993,7 +2431,9 @@ const OFFICIAL_LEVELS = [
             n: lv.name, c: lv.color, s: lv.song,
             o: lv.objects.map(o => {
                 const a = [o.type, o.x / GRID, o.y / GRID, o.rotation || 0];
-                if (o.floor != null || o.ceil != null || o.lanes) a.push({ f: o.floor, c: o.ceil, l: o.lanes });
+                const extra = {};
+                Object.keys(o).forEach(k => { if (!['type', 'x', 'y', 'rotation'].includes(k)) extra[k] = o[k]; });
+                if (Object.keys(extra).length) a.push(extra);
                 return a;
             })
         };
@@ -2018,7 +2458,7 @@ const OFFICIAL_LEVELS = [
         const lv = normalizeLevel({
             name: d.n, color: d.c, song: d.s,
             objects: (d.o || []).map(a => Object.assign({ type: a[0], x: a[1] * GRID, y: a[2] * GRID, rotation: a[3] || 0 },
-                a[4] ? { floor: a[4].f, ceil: a[4].c, lanes: a[4].l } : {}))
+                a[4] ? ('f' in a[4] || 'l' in a[4] || ('c' in a[4] && !('floor' in a[4])) ? { floor: a[4].f, ceil: a[4].c, lanes: a[4].l } : a[4]) : {}))
         });
         if (!lv.objects.length) throw new Error('empty');
         return lv;
@@ -2227,7 +2667,7 @@ const OFFICIAL_LEVELS = [
     }
     window.addEventListener('pointerup', () => {
         G.held = false; painting = false;
-        if (edDrag) { edDrag = null; saveEditor(); renderProps(); }
+        if (edDrag) { if (edDrag.type === 'box') finishBoxSelect(); edDrag = null; saveEditor(); renderProps(); }
         if (G.mode === 'EDITOR' && statsDirty) checkAchievements();
     });
     window.addEventListener('pointercancel', () => { G.held = false; painting = false; });
@@ -2242,14 +2682,26 @@ const OFFICIAL_LEVELS = [
         }
         if (e.code === 'KeyR' && G.screen === 'GAME' && G.mode !== 'EDITOR') { G.attempts++; resetRun(true); }
         if (G.mode === 'EDITOR' && G.screen === 'GAME') {
-            if (e.code === 'ArrowRight') moveEditorCam(120, 0);
-            if (e.code === 'ArrowLeft') moveEditorCam(-120, 0);
-            if (e.code === 'ArrowUp') moveEditorCam(0, 80);
-            if (e.code === 'ArrowDown') moveEditorCam(0, -80);
-            if (e.code === 'KeyR' && !e.ctrlKey && !e.metaKey) $('btnRotateObject').click();
-            if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
-            if ((e.ctrlKey || e.metaKey) && e.code === 'KeyY') { e.preventDefault(); redo(); }
-            if ((e.code === 'Delete' || e.code === 'Backspace') && selObj) { e.preventDefault(); propAction('del'); renderProps(); }
+            const ctrl = e.ctrlKey || e.metaKey;
+            const arrows = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
+            if (arrows[e.code]) {
+                e.preventDefault();
+                const [ax, ay] = arrows[e.code];
+                if (e.shiftKey && selSet.length) moveSelection(ax * GRID, ay * GRID);
+                else moveEditorCam(ax * 120 / G.edZoom, ay * 80 / G.edZoom);
+            }
+            if (e.code === 'KeyR' && !ctrl) { if (selSet.length) rotateSelection(); else $('btnRotateObject').click(); }
+            if (e.code === 'KeyH' && !ctrl) $('btnHitboxes').click();
+            if (ctrl && e.code === 'KeyZ') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+            if (ctrl && e.code === 'KeyY') { e.preventDefault(); redo(); }
+            if (ctrl && e.code === 'KeyC') { e.preventDefault(); if (copySelection()) toast(tr(`Скопировано: ${selSet.length}`, `Copied: ${selSet.length}`)); }
+            if (ctrl && e.code === 'KeyV') { e.preventDefault(); const c = hoverCell || { x: Math.max(0, Math.round((G.edCamX + VIEW_W / G.edZoom / 2) / GRID) * GRID), y: 0 }; pasteAt(c.x, c.y); }
+            if (ctrl && e.code === 'KeyD') { e.preventDefault(); duplicateSelection(); }
+            if (ctrl && e.code === 'KeyA') { e.preventDefault(); activeTool = 'SELECT'; activeTab = 'SELECT'; renderTabs(); renderToolBar(); setSelection(editorLevel.objects.slice()); }
+            if (e.code === 'Escape') { setSelection([]); ['libModal', 'helpModal'].forEach(id => $(id).classList.add('hidden')); }
+            if ((e.code === 'Equal' || e.code === 'NumpadAdd') && !ctrl) setZoom(G.edZoom * 1.25);
+            if ((e.code === 'Minus' || e.code === 'NumpadSubtract') && !ctrl) setZoom(G.edZoom / 1.25);
+            if ((e.code === 'Delete' || e.code === 'Backspace') && selSet.length) { e.preventDefault(); deleteSelection(); }
         }
     });
     window.addEventListener('keyup', e => { if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) G.held = false; });
