@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Geometry AI v1.7.1</title>
+    <title>Geometry AI v1.8</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
@@ -45,9 +45,9 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v1.7.1</span>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v1.8</span>
                 </div>
-                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Смайлики и удобные надписи" data-en="Emoji and easy text">Смайлики и удобные надписи</p>
+                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Свободный поворот, точный сдвиг, стили блоков" data-en="Free rotation, fine moves, block styles">Свободный поворот, точный сдвиг, стили блоков</p>
             </div>
         </button>
         <div class="flex items-center gap-2 flex-wrap">
@@ -63,7 +63,7 @@
         <div id="menuBgSquares" class="absolute inset-0 pointer-events-none"></div>
         <div class="relative text-center">
             <div class="text-5xl md:text-7xl font-black italic tracking-wider text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.45)]" data-ru="ГЕОМЕТРИЯ ИИ" data-en="GEOMETRY AI">ГЕОМЕТРИЯ ИИ</div>
-            <div class="mt-2 font-mono text-zinc-400 text-sm" data-ru="Обновление 1.7 — смайлики и надписи!" data-en="Update 1.7 — emoji and text!">Обновление 1.7 — смайлики и надписи!</div>
+            <div class="mt-2 font-mono text-zinc-400 text-sm" data-ru="Обновление 1.8 — поворот на любой угол и стили блоков!" data-en="Update 1.8 — any-angle rotation and block styles!">Обновление 1.8 — поворот на любой угол и стили блоков!</div>
         </div>
         <div class="relative flex flex-col md:flex-row gap-4 w-full max-w-3xl">
             <button id="btnOfficial" class="menu-btn flex-1 rounded-3xl bg-white text-black p-6 flex flex-col items-center gap-2 shadow-2xl">
@@ -245,6 +245,8 @@
             <div class="flex flex-wrap items-center gap-2">
                 <input id="edLevelName" maxlength="32" class="px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-700 text-sm font-bold w-48" placeholder="Название">
                 <label class="flex items-center gap-1.5 text-xs font-bold text-zinc-300"><span data-ru="Цвет фона" data-en="BG color">Цвет фона</span> <input id="edLevelColor" type="color" value="#2563eb" class="w-8 h-8 bg-transparent"></label>
+                <label class="flex items-center gap-1.5 text-xs font-bold text-zinc-300">🧱 <span data-ru="Блоки" data-en="Blocks">Блоки</span>
+                    <select id="edLevelWall" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1"></select></label>
                 <label class="flex items-center gap-1.5 text-xs font-bold text-zinc-300"><span data-ru="Музыка" data-en="Song">Музыка</span>
                     <select id="edLevelSong" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1"></select></label>
                 <div class="flex-1"></div>
@@ -335,22 +337,30 @@ const NON_GAMEPLAY = { editor: 1, trigger: 1, deco: 1 };
  'GRAV_DOWN_PORTAL','GRAV_UP_PORTAL','MINI_PORTAL','BIG_PORTAL','SPEED_05','SPEED_1','SPEED_2','SPEED_3','SPEED_4']
     .forEach(t => OBJ[t] = { cat: 'portal', rect: PORTAL_R, fixed: 1 });
 
+// Поворот точки по часовой стрелке (как на экране). Углы, кратные 90°, считаются точно.
 function rotPt(u, v, rot) {
     let r = (((rot || 0) % 360) + 360) % 360;
-    for (let i = 0; i < Math.round(r / 90); i++) { const t = u; u = v; v = -t; }
-    return [u, v];
+    if (r % 90 === 0) {
+        for (let i = 0; i < r / 90; i++) { const t = u; u = v; v = -t; }
+        return [u, v];
+    }
+    const a = -r * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+    return [u * c - v * s, u * s + v * c];
 }
 function objRect(o) {
     const d = OBJ[o.type];
     const [a, b, c, e] = d.rect;
     const rot = d.fixed ? 0 : (o.rotation || 0);
-    const p1 = rotPt(a - 20, b - 20, rot), p2 = rotPt(c - 20, e - 20, rot);
+    // хитбокс — прямоугольник, в который помещается повёрнутая фигура
+    const pts = [[a, b], [c, b], [a, e], [c, e]].map(([u, v]) => rotPt(u - 20, v - 20, rot));
+    const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
     return {
-        x0: o.x + 20 + Math.min(p1[0], p2[0]), x1: o.x + 20 + Math.max(p1[0], p2[0]),
-        y0: o.y + 20 + Math.min(p1[1], p2[1]), y1: o.y + 20 + Math.max(p1[1], p2[1])
+        x0: o.x + 20 + Math.min(...xs), x1: o.x + 20 + Math.max(...xs),
+        y0: o.y + 20 + Math.min(...ys), y1: o.y + 20 + Math.max(...ys)
     };
 }
 
+const WALL_STYLES = ['classic', 'neon', 'brick', 'glass', 'pixel', 'gold', 'stone', 'ice', 'wood', 'lava'];
 const MODE_NAMES_CORE = ['cube', 'ship', 'ball', 'ufo', 'wave', 'robot', 'spider', 'swing', 'airplane'];
 // Превращает JSON уровня в готовую к игре структуру
 function normalizeLevel(data) {
@@ -360,8 +370,11 @@ function normalizeLevel(data) {
         name: data.name || 'Мой уровень',
         color: data.color || '#2563eb',
         song: data.song || 0,
+        wall: WALL_STYLES.includes(data.wall) ? data.wall : 'classic',
         objects: (data.objects || []).filter(o => o && OBJ[o.type]).map(o => {
-            const r = { type: o.type, x: Math.round(o.x / GRID) * GRID, y: Math.round(o.y / GRID) * GRID, rotation: o.rotation || 0 };
+            // позиция с точностью до 1/4 пикселя (можно двигать не на целую клетку), угол — любой
+            const rot = Number(o.rotation) || 0;
+            const r = { type: o.type, x: Math.round(Number(o.x) * 4) / 4 || 0, y: Math.round(Number(o.y) * 4) / 4 || 0, rotation: Math.round((((rot % 360) + 360) % 360) * 10) / 10 };
             if (o.type === 'TEXT') {
                 r.text = String(o.text == null ? 'Текст' : o.text).slice(0, 60);
                 r.size = [1, 2, 3].includes(o.size) ? o.size : 2;
@@ -417,7 +430,7 @@ function prepareLevel(data) {
     let startY = 0;
     objs.forEach(o => { if (o.cat === 'solid' && o.rect.x0 <= 3 && o.rect.x1 >= 20) startY = Math.max(startY, o.rect.y1); });
     return {
-        name: lv.name, color: lv.color, song: lv.song, objs,
+        name: lv.name, color: lv.color, song: lv.song, wall: lv.wall, objs,
         goalX: goal ? goal.x : maxX + 320,
         coinTotal: objs.filter(o => o.cat === 'coin').length,
         colorTriggers: objs.filter(o => o.type === 'COLOR_TRIGGER').map(o => ({ x: o.x + 20, color: o.color })).sort((a, b) => a.x - b.x),
@@ -832,12 +845,16 @@ const OFFICIAL_LEVELS = [
     // ---------- Гараж: внешний вид и достижения ----------
     const COSMETICS = {
         icon: [['classic', 'Классика', 'Classic'], ['smile', 'Улыбка', 'Smile'], ['cool', 'Очки', 'Shades'], ['angry', 'Злюка', 'Angry'], ['x', 'Крестики', 'X eyes'],
-               ['robo', 'Робо', 'Robo'], ['star', 'Звезда', 'Star'], ['diamond', 'Ромб', 'Diamond'], ['skull', 'Череп', 'Skull'], ['ai', 'Чип ИИ', 'AI chip']],
-        trail: [['squares', 'Квадраты', 'Squares'], ['none', 'Без следа', 'None'], ['line', 'Линия', 'Line'], ['sparkle', 'Искры', 'Sparkles'], ['rainbow', 'Радуга', 'Rainbow'], ['fire', 'Огонь', 'Fire']],
-        wall: [['classic', 'Классика', 'Classic'], ['neon', 'Неон', 'Neon'], ['brick', 'Кирпич', 'Brick'], ['glass', 'Стекло', 'Glass'], ['pixel', 'Пиксели', 'Pixel'], ['gold', 'Золото', 'Gold']]
+               ['robo', 'Робо', 'Robo'], ['star', 'Звезда', 'Star'], ['diamond', 'Ромб', 'Diamond'], ['skull', 'Череп', 'Skull'], ['ai', 'Чип ИИ', 'AI chip'],
+               ['cat', 'Котик', 'Cat'], ['alien', 'Пришелец', 'Alien'], ['heart', 'Сердце', 'Heart']],
+        trail: [['squares', 'Квадраты', 'Squares'], ['none', 'Без следа', 'None'], ['line', 'Линия', 'Line'], ['sparkle', 'Искры', 'Sparkles'], ['rainbow', 'Радуга', 'Rainbow'], ['fire', 'Огонь', 'Fire'],
+                ['bubbles', 'Пузыри', 'Bubbles'], ['stars', 'Звёзды', 'Stars']]
     };
+    // Стили блоков выбираются в редакторе у каждого уровня (бесплатно)
+    const WALL_NAMES = { classic: ['Классика', 'Classic'], neon: ['Неон', 'Neon'], brick: ['Кирпич', 'Brick'], glass: ['Стекло', 'Glass'], pixel: ['Пиксели', 'Pixel'],
+        gold: ['Золото', 'Gold'], stone: ['Камень', 'Stone'], ice: ['Лёд', 'Ice'], wood: ['Дерево', 'Wood'], lava: ['Лава', 'Lava'] };
     const EXTRA_COLORS = ['#ffd700', '#7fffd4', '#ff3b3b', '#1f1f1f'];
-    const FREE = new Set(['icon:classic', 'trail:squares', 'trail:none', 'wall:classic', 'color2:auto',
+    const FREE = new Set(['icon:classic', 'trail:squares', 'trail:none', 'color2:auto',
         ...ICON_COLORS.map(c => 'color:' + c), ...ICON_COLORS.map(c => 'color2:' + c)]);
     let cos = Object.assign({ icon: 'classic', color: store.get('iconColor', '#ffe600'), color2: 'auto', trail: 'squares', wall: 'classic' }, store.get('cos', {}));
     let iconColor = cos.color;
@@ -866,17 +883,17 @@ const OFFICIAL_LEVELS = [
             en: i === OFFICIAL_LEVELS.length - 1 ? 'Smarter than AI' : 'Beat "' + (lv.nameEn || lv.name) + '"',
             dru: 'Пройди официальный уровень ' + (i + 1) + (lv.aiProof ? ' — его не может пройти ИИ' : ''),
             den: 'Beat official level ' + (i + 1) + (lv.aiProof ? ' — the AI can\'t' : ''),
-            v: () => stats.lv[i] ? 1 : 0, n: 1, reward: ['wall:neon', 'icon:angry', 'trail:sparkle', 'wall:brick', 'icon:ai'][i] || 'icon:star'
+            v: () => stats.lv[i] ? 1 : 0, n: 1, reward: ['icon:cat', 'icon:angry', 'trail:sparkle', 'trail:stars', 'icon:ai'][i] || 'icon:star'
         })),
-        { id: 'all', ru: 'Чемпион', en: 'Champion', dru: 'Пройди все официальные уровни', den: 'Beat every official level', v: () => OFFICIAL_LEVELS.filter((_, i) => stats.lv[i]).length, n: OFFICIAL_LEVELS.length, reward: 'wall:gold' },
+        { id: 'all', ru: 'Чемпион', en: 'Champion', dru: 'Пройди все официальные уровни', den: 'Beat every official level', v: () => OFFICIAL_LEVELS.filter((_, i) => stats.lv[i]).length, n: OFFICIAL_LEVELS.length, reward: 'icon:alien' },
         { id: 'coin1', ru: 'Первая монета', en: 'First coin', dru: 'Собери монету в официальном уровне', den: 'Collect a coin in an official level', v: () => coinStats().got, n: 1, reward: 'color:#ffd700' },
         { id: 'coinAll', ru: 'Коллекционер', en: 'Collector', dru: 'Собери все монеты официальных уровней', den: 'Collect every official coin', v: () => coinStats().got, n: () => coinStats().total, reward: 'trail:rainbow' },
-        { id: 'practice', ru: 'Ученик', en: 'Student', dru: 'Пройди уровень в тренировке', den: 'Beat a level in practice', v: () => stats.practiceWins, n: 1, reward: 'wall:glass' },
+        { id: 'practice', ru: 'Ученик', en: 'Student', dru: 'Пройди уровень в тренировке', den: 'Beat a level in practice', v: () => stats.practiceWins, n: 1, reward: 'trail:bubbles' },
         { id: 'wins10', ru: 'Ветеран', en: 'Veteran', dru: 'Пройди уровни 10 раз', den: 'Beat levels 10 times', v: () => stats.wins, n: 10, reward: 'trail:fire' },
         { id: 'modes', ru: 'Мастер режимов', en: 'Mode master', dru: 'Побывай во всех 9 режимах', den: 'Play all 9 modes', v: () => stats.modes.length, n: 9, reward: 'icon:diamond' },
         { id: 'speed4', ru: 'Сверхзвук', en: 'Supersonic', dru: 'Разгонись до скорости 4x', den: 'Reach 4x speed', v: () => stats.speed4 ? 1 : 0, n: 1, reward: 'color:#ff3b3b' },
         { id: 'ai', ru: 'Наблюдатель', en: 'Observer', dru: 'Посмотри, как ИИ проходит уровень до конца', den: 'Watch the AI beat a level', v: () => stats.aiWins, n: 1, reward: 'icon:robo' },
-        { id: 'builder', ru: 'Строитель', en: 'Builder', dru: 'Поставь 100 объектов в редакторе', den: 'Place 100 objects in the editor', v: () => stats.placed, n: 100, reward: 'wall:pixel' },
+        { id: 'builder', ru: 'Строитель', en: 'Builder', dru: 'Поставь 100 объектов в редакторе', den: 'Place 100 objects in the editor', v: () => stats.placed, n: 100, reward: 'icon:heart' },
         { id: 'share', ru: 'Автор', en: 'Author', dru: 'Получи код своего уровня', den: 'Get a code for your level', v: () => stats.shared, n: 1, reward: 'icon:star' },
         { id: 'online', ru: 'Гость', en: 'Guest', dru: 'Сыграй в онлайн уровень по коду', den: 'Play an online level from a code', v: () => stats.onlinePlays, n: 1, reward: 'color:#7fffd4' }
     ];
@@ -896,7 +913,7 @@ const OFFICIAL_LEVELS = [
         const [k, id] = r.split(':');
         if (k === 'color') return tr('новый цвет', 'new color');
         const it = (COSMETICS[k] || []).find(x => x[0] === id);
-        const kind = { icon: tr('кубик', 'icon'), trail: tr('след', 'trail'), wall: tr('стены', 'walls') }[k];
+        const kind = { icon: tr('кубик', 'icon'), trail: tr('след', 'trail') }[k];
         return kind + ' «' + (it ? tr(it[1], it[2]) : id) + '»';
     }
     const achQueue = [];
@@ -972,6 +989,25 @@ const OFFICIAL_LEVELS = [
                     g.beginPath(); g.arc(dx * s * 0.3, dy * s * 0.42, s * 0.06, 0, Math.PI * 2); g.fill();
                 });
                 break;
+            case 'cat':
+                g.beginPath(); g.moveTo(-s * 0.5, -s * 0.2); g.lineTo(-s * 0.42, -s * 0.55); g.lineTo(-s * 0.18, -s * 0.36); g.closePath(); g.fill();
+                g.beginPath(); g.moveTo(s * 0.5, -s * 0.2); g.lineTo(s * 0.42, -s * 0.55); g.lineTo(s * 0.18, -s * 0.36); g.closePath(); g.fill();
+                eye(-s * 0.32, -s * 0.18); eye(s * 0.1, -s * 0.18);
+                g.beginPath(); g.moveTo(-s * 0.06, s * 0.1); g.lineTo(s * 0.06, s * 0.1); g.lineTo(0, s * 0.18); g.closePath(); g.fill();
+                g.lineWidth = s * 0.05;
+                g.beginPath(); [-1, 1].forEach(d => { g.moveTo(d * s * 0.12, s * 0.2); g.lineTo(d * s * 0.48, s * 0.12); g.moveTo(d * s * 0.12, s * 0.24); g.lineTo(d * s * 0.48, s * 0.3); }); g.stroke();
+                break;
+            case 'alien':
+                [-1, 1].forEach(d => { g.save(); g.translate(d * s * 0.22, -s * 0.1); g.rotate(d * 0.5); g.beginPath(); g.ellipse(0, 0, s * 0.14, s * 0.26, 0, 0, Math.PI * 2); g.fill(); g.restore(); });
+                g.lineWidth = s * 0.06; g.beginPath(); g.moveTo(-s * 0.1, s * 0.32); g.lineTo(s * 0.1, s * 0.32); g.stroke();
+                break;
+            case 'heart':
+                g.fillStyle = '#ff2d55';
+                g.beginPath(); g.moveTo(0, s * 0.4);
+                g.bezierCurveTo(-s * 0.55, s * 0.05, -s * 0.35, -s * 0.5, 0, -s * 0.18);
+                g.bezierCurveTo(s * 0.35, -s * 0.5, s * 0.55, s * 0.05, 0, s * 0.4);
+                g.fill(); g.strokeStyle = '#000'; g.lineWidth = s * 0.06; g.stroke();
+                break;
             default:
                 eye(-s * 0.35, -s * 0.3); eye(s * 0.13, -s * 0.3);
         }
@@ -1015,6 +1051,34 @@ const OFFICIAL_LEVELS = [
                 gr.addColorStop(0, '#fff2a8'); gr.addColorStop(0.5, '#ffcc33'); gr.addColorStop(1, '#a06d00');
                 g.fillStyle = gr; g.fillRect(-20, -20, 40, 40);
                 g.strokeStyle = '#5c3d00'; g.lineWidth = 2; g.strokeRect(-19, -19, 38, 38); g.strokeRect(-11, -11, 22, 22);
+                break;
+            }
+            case 'stone':
+                g.fillStyle = '#4b5563'; g.fillRect(-20, -20, 40, 40);
+                [[-12, -10, 9, '#6b7280'], [6, -8, 7, '#374151'], [-4, 9, 8, '#6b7280'], [12, 12, 5, '#374151']].forEach(([x, y, r, c]) => { g.fillStyle = c; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); });
+                g.strokeStyle = '#d1d5db'; g.lineWidth = 2; g.strokeRect(-19, -19, 38, 38);
+                break;
+            case 'ice': {
+                const gr = g.createLinearGradient(-20, -20, 20, 20);
+                gr.addColorStop(0, '#e0f7ff'); gr.addColorStop(1, '#5bc0eb');
+                g.fillStyle = gr; g.fillRect(-20, -20, 40, 40);
+                g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = 2; g.strokeRect(-19, -19, 38, 38);
+                g.lineWidth = 1.5; g.beginPath(); g.moveTo(-12, 14); g.lineTo(-2, 2); g.lineTo(8, 6); g.moveTo(-2, 2); g.lineTo(2, -12); g.stroke();
+                break;
+            }
+            case 'wood':
+                g.fillStyle = '#8b5a2b'; g.fillRect(-20, -20, 40, 40);
+                g.strokeStyle = '#5c3a17'; g.lineWidth = 2;
+                g.beginPath(); [-7, 6].forEach(y => { g.moveTo(-20, y); g.lineTo(20, y); }); g.stroke();
+                g.strokeStyle = 'rgba(255,220,170,.35)'; g.lineWidth = 1;
+                g.beginPath(); g.moveTo(-16, -14); g.quadraticCurveTo(0, -11, 16, -15); g.moveTo(-16, 0); g.quadraticCurveTo(0, 3, 16, -1); g.moveTo(-16, 13); g.quadraticCurveTo(0, 16, 16, 12); g.stroke();
+                g.strokeStyle = '#3b2410'; g.lineWidth = 2; g.strokeRect(-19, -19, 38, 38);
+                break;
+            case 'lava': {
+                g.fillStyle = '#1c0a05'; g.fillRect(-20, -20, 40, 40);
+                g.strokeStyle = '#ff6a00'; g.lineWidth = 2.5; g.shadowColor = '#ff3b00'; g.shadowBlur = 8;
+                g.beginPath(); g.moveTo(-20, -4); g.lineTo(-8, 0); g.lineTo(-2, -10); g.lineTo(10, -6); g.lineTo(20, -12); g.moveTo(-8, 0); g.lineTo(-4, 14); g.moveTo(10, -6); g.lineTo(12, 20); g.stroke();
+                g.shadowBlur = 0; g.strokeStyle = '#ff9f1a'; g.lineWidth = 2; g.strokeRect(-19, -19, 38, 38);
                 break;
             }
             default: {
@@ -1114,7 +1178,7 @@ const OFFICIAL_LEVELS = [
     function applyLang() {
         document.querySelectorAll('[data-ru]').forEach(el => { const t = el.getAttribute('data-' + currentLang); if (t) el.innerText = t; });
         $('edLevelName').placeholder = tr('Название уровня', 'Level name');
-        refreshAudioButtons(); renderTabs(); renderToolBar(); renderLevelCards(); updatePracticeBtn(); renderProps(); refreshMenuIcon();
+        refreshAudioButtons(); renderTabs(); renderToolBar(); if (typeof fillWallSelect === 'function') fillWallSelect(); renderLevelCards(); updatePracticeBtn(); renderProps(); refreshMenuIcon();
         if (G.screen === 'ONLINE') renderOnline();
         if (G.screen === 'GARAGE') renderGarage();
         if (G.L) updateHud(true);
@@ -1144,7 +1208,7 @@ const OFFICIAL_LEVELS = [
         if (!editorLevel.id) editorLevel.id = newLevelId();
         if (!editorLevel.objects.length && !editorLevel.name) return;
         const lib = store.get('myLevels', []);
-        const entry = { id: editorLevel.id, name: editorLevel.name, color: editorLevel.color, song: editorLevel.song, objects: editorLevel.objects, t: Date.now() };
+        const entry = { id: editorLevel.id, name: editorLevel.name, color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, objects: editorLevel.objects, t: Date.now() };
         const i = lib.findIndex(x => x.id === entry.id);
         if (i >= 0) lib[i] = entry; else lib.unshift(entry);
         store.set('myLevels', lib);
@@ -1419,10 +1483,10 @@ const OFFICIAL_LEVELS = [
         else G.waveTrail = [];
         if (cos.trail !== 'none' && (cos.trail === 'line' || S.frame % 2 === 0)) {
             const tc = cos.trail === 'rainbow' ? `hsl(${(S.frame * 6) % 360},100%,60%)` : cos.trail === 'fire' ? ['#ff3b00', '#ff9f1a', '#ffe600'][(S.frame / 2) % 3 | 0]
-                : cos.trail === 'sparkle' ? (Math.random() < 0.5 ? '#ffffff' : '#ffe600') : iconColor;
-            const spread = cos.trail === 'sparkle' || cos.trail === 'fire';
+                : cos.trail === 'sparkle' ? (Math.random() < 0.5 ? '#ffffff' : '#ffe600') : cos.trail === 'stars' ? '#ffe600' : cos.trail === 'bubbles' ? '#9be7ff' : iconColor;
+            const spread = cos.trail === 'sparkle' || cos.trail === 'fire' || cos.trail === 'bubbles' || cos.trail === 'stars';
             G.trail.push({ x: S.x + pSize(S) / 2, y: S.y + pSize(S) / 2, a: 0.5, s: cos.trail === 'sparkle' ? 5 : pSize(S) * 0.6, c: tc,
-                vx: spread ? (Math.random() - 0.5) * 2 : 0, vy: cos.trail === 'fire' ? 1.2 : spread ? (Math.random() - 0.5) * 2 : 0 });
+                vx: spread ? (Math.random() - 0.5) * 2 : 0, vy: cos.trail === 'fire' ? 1.2 : cos.trail === 'bubbles' ? 0.8 : spread ? (Math.random() - 0.5) * 2 : 0 });
         }
         if (G.mode === 'PLAY') {
             if (!stats.modes.includes(S.mode)) { stats.modes.push(S.mode); statsDirty = true; }
@@ -1470,6 +1534,11 @@ const OFFICIAL_LEVELS = [
         else if (tg.type === 'SHAKE_TRIGGER') G.shake = { power: tg.power, dur: tg.dur, until: G.frameT + tg.dur };
         else if (tg.type === 'FLASH_TRIGGER') G.flash = { color: tg.color, t0: G.frameT, dur: tg.dur };
         else if (tg.type === 'MESSAGE_TRIGGER') G.msg = { text: tg.text, t0: G.frameT, until: G.frameT + tg.dur };
+    }
+    function drawStar(g, r) {
+        g.beginPath();
+        for (let i = 0; i < 10; i++) { const rr = i % 2 ? r * 0.45 : r, a = -Math.PI / 2 + i * Math.PI / 5; g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+        g.closePath(); g.fill();
     }
     function burst(x, y, c, n, sp) {
         for (let i = 0; i < n; i++) {
@@ -1538,6 +1607,7 @@ const OFFICIAL_LEVELS = [
         return `rgb(${r | 0},${g | 0},${b | 0})`;
     }
 
+    function levelWall() { return (G.mode === 'EDITOR' ? editorLevel.wall : G.L && G.L.wall) || 'classic'; }
     function drawObject(o, t, cam) {
         at(cam, o.x + 20, o.y + 20);
         const fixed = OBJ[o.type].fixed;
@@ -1545,11 +1615,11 @@ const OFFICIAL_LEVELS = [
         const used = G.S && G.mode !== 'EDITOR' && G.S.used.includes(o.id);
         const lc = G.curColor || (G.mode === 'EDITOR' ? editorLevel.color : G.L && G.L.color) || '#2563eb';
         switch (o.type) {
-            case 'BLOCK': drawWall(ctx, cos.wall, lc); break;
+            case 'BLOCK': drawWall(ctx, levelWall(), lc); break;
             case 'SLAB': {
                 ctx.save(); ctx.beginPath(); ctx.rect(-20, 0, 40, 20); ctx.clip();
-                drawWall(ctx, cos.wall, lc); ctx.restore();
-                ctx.strokeStyle = cos.wall === 'gold' ? '#5c3d00' : '#fff'; ctx.lineWidth = 2; ctx.strokeRect(-19, 1, 38, 18);
+                drawWall(ctx, levelWall(), lc); ctx.restore();
+                ctx.strokeStyle = levelWall() === 'gold' ? '#5c3d00' : '#fff'; ctx.lineWidth = 2; ctx.strokeRect(-19, 1, 38, 18);
                 break;
             }
             case 'SPIKE': case 'SMALL_SPIKE': {
@@ -1903,6 +1973,8 @@ const OFFICIAL_LEVELS = [
             } else G.trail.forEach(tr_ => {
                 at(cam, tr_.x, tr_.y); ctx.globalAlpha = tr_.a * (cos.trail === 'sparkle' ? 1.6 : 0.5); ctx.fillStyle = tr_.c || iconColor;
                 if (cos.trail === 'fire') { ctx.beginPath(); ctx.arc(0, 0, tr_.s * 0.45 * (tr_.a + 0.5), 0, Math.PI * 2); ctx.fill(); }
+                else if (cos.trail === 'bubbles') { ctx.globalAlpha = tr_.a * 1.4; ctx.strokeStyle = tr_.c; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, tr_.s * 0.3, 0, Math.PI * 2); ctx.stroke(); }
+                else if (cos.trail === 'stars') { ctx.globalAlpha = tr_.a * 1.6; drawStar(ctx, tr_.s * 0.35); }
                 else ctx.fillRect(-tr_.s / 2, -tr_.s / 2, tr_.s, tr_.s);
             });
             ctx.globalAlpha = 1;
@@ -2149,6 +2221,13 @@ const OFFICIAL_LEVELS = [
         } else c.classList.remove('flex-wrap');
     }
     SONGS.forEach((s, i) => { const o = document.createElement('option'); o.value = i; o.textContent = s.name; $('edLevelSong').appendChild(o); });
+    function fillWallSelect() {
+        const sel = $('edLevelWall'); sel.innerHTML = '';
+        WALL_STYLES.forEach(w => { const o = document.createElement('option'); o.value = w; o.textContent = tr(WALL_NAMES[w][0], WALL_NAMES[w][1]); sel.appendChild(o); });
+        sel.value = editorLevel.wall || 'classic';
+    }
+    fillWallSelect();
+    $('edLevelWall').addEventListener('change', e => { editorLevel.wall = e.target.value; saveEditor(); });
 
     function openEditor() {
         G.mode = 'EDITOR'; G.source = { kind: 'editor' }; G.running = false; G.attempts = 1;
@@ -2162,6 +2241,7 @@ const OFFICIAL_LEVELS = [
         $('edLevelName').value = editorLevel.name;
         $('edLevelColor').value = editorLevel.color;
         $('edLevelSong').value = editorLevel.song;
+        $('edLevelWall').value = editorLevel.wall || 'classic';
         $('zoomText').innerText = Math.round(G.edZoom * 100) + '%';
         renderProps();
         music.restart(editorLevel.song);
@@ -2276,19 +2356,36 @@ const OFFICIAL_LEVELS = [
         const btn = (a, label, cls = 'bg-zinc-800') => `<button data-a="${a}" class="px-2.5 py-1 rounded-lg ${cls} font-bold">${label}</button>`;
         const common = btn('dup', '⧉ ' + tr('Дублировать', 'Duplicate')) + btn('copy', '📋 ' + tr('Копировать', 'Copy')) + btn('rot', '🔄 ' + tr('Повернуть', 'Rotate')) +
             (selSet.length > 1 ? btn('flip', '↔ ' + tr('Отразить', 'Flip')) : '') + btn('del', '🗑 ' + tr('Удалить', 'Delete'), 'bg-red-500/80') + btn('close', '✕');
+        const ang = selSet[0].rotation || 0;
+        const tilted = selSet.some(o => (o.rotation || 0) % 90 !== 0 && ['solid', 'hazard'].includes(OBJ[o.type].cat));
+        const transform = `<div class="flex flex-wrap items-center gap-1.5 border-t border-sky-500/30 pt-2">
+                <span class="font-black w-28">🔄 ${tr('Поворот', 'Rotate')}</span>
+                ${[-45, -15, -5, -1].map(d => btn('rotby' + d, d + '°')).join('')}
+                <input id="propAngle" type="number" step="1" value="${ang}" class="w-16 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-700 font-mono font-bold text-center"><span>°</span>
+                ${[1, 5, 15, 45].map(d => btn('rotby' + d, '+' + d + '°')).join('')}
+                <input id="propAngleRange" type="range" min="0" max="359" step="1" value="${Math.round(ang)}" class="w-36 accent-sky-400">
+                ${btn('rotset0', tr('0°', '0°'))}
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5">
+                <span class="font-black w-28">✥ ${tr('Сдвиг', 'Move')}</span>
+                <span class="text-zinc-300">${tr('шаг', 'step')}:</span>
+                ${[[5, '1/8'], [10, '1/4'], [20, '1/2'], [40, tr('блок', 'block')]].map(([v, l]) => `<button data-step="${v}" class="px-2 py-1 rounded-lg ${moveStep === v ? 'bg-white text-black' : 'bg-zinc-800'} font-bold">${l}</button>`).join('')}
+                ${btn('mvL', '←')}${btn('mvU', '↑')}${btn('mvD', '↓')}${btn('mvR', '→')}
+                <span class="text-zinc-400">${tr('или Shift + стрелки; Q / E — поворот на 15°', 'or Shift + arrows; Q / E rotate 15°')}</span>
+            </div>` + (tilted ? `<div class="text-amber-300">⚠ ${tr('Блок или шип, повёрнутый не на 90°, касается игрока по рамке вокруг себя. Включи 🔲 Хитбоксы, чтобы её увидеть.', 'A block or spike not turned by 90° touches the player by the box around it. Turn on 🔲 Hitboxes to see it.')}</div>` : '');
         if (selSet.length > 1) {
             box.innerHTML = `<div class="flex flex-wrap items-center gap-2"><span class="font-black text-sm">👆 ${tr('Выбрано объектов', 'Selected objects')}: ${selSet.length}</span>
                 <span class="text-zinc-400">${tr('Тащи мышкой, чтобы двигать все сразу. Shift + стрелки — сдвиг на 1 блок.', 'Drag to move them all. Shift + arrows move by 1 block.')}</span><span class="flex-1"></span>${common}</div>
                 <div class="flex flex-wrap items-center gap-2"><span class="text-zinc-300">${tr('Группа для всех выделенных', 'Group for all selected')}</span>
                     <input id="propGroupAll" type="number" min="0" max="99" step="1" value="${selSet.every(o => o.group === selSet[0].group) ? (selSet[0].group || 0) : 0}" class="w-16 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-700 font-mono font-bold">
                     <button data-a="setgroup" class="px-2.5 py-1 rounded-lg bg-orange-500 text-black font-bold">${tr('Назначить', 'Apply')}</button>
-                    <span class="text-zinc-400">${tr('Так делают ловушки: дай блокам номер, а триггером 🚚 «Движение» сдвинь эту группу.', 'This is how traps work: give blocks a number and move the group with a 🚚 Move trigger.')}</span></div>`;
+                    <span class="text-zinc-400">${tr('Так делают ловушки: дай блокам номер, а триггером 🚚 «Движение» сдвинь эту группу.', 'This is how traps work: give blocks a number and move the group with a 🚚 Move trigger.')}</span></div>` + transform;
         } else {
             const o = selObj;
             const toolInfo = Object.values(TABS).flatMap(t => t.tools).find(t => t[0] === o.type);
             const title = toolInfo ? `${toolInfo[1]} ${tr(toolInfo[2], toolInfo[3])}` : o.type;
             let html = `<div class="flex flex-wrap items-center gap-2"><span class="font-black text-sm">${title}</span>
-                <span class="font-mono text-zinc-400">x:${o.x / 40} y:${o.y / 40}</span><span class="flex-1"></span>${common}</div>`;
+                <span class="font-mono text-zinc-400">x:${+(o.x / 40).toFixed(3)} y:${+(o.y / 40).toFixed(3)}</span><span class="flex-1"></span>${common}</div>` + transform;
             const sizeBtns = (cur) => [[1, 'Маленький', 'Small'], [2, 'Средний', 'Medium'], [3, 'Большой', 'Large']].map(([v, r2, e2]) =>
                 `<button data-a="size${v}" class="px-2.5 py-1 rounded-lg ${cur === v ? 'bg-white text-black' : 'bg-zinc-800'} font-bold">${tr(r2, e2)}</button>`).join('');
             if (o.type === 'TEXT') {
@@ -2382,6 +2479,14 @@ const OFFICIAL_LEVELS = [
         }
         box.classList.remove('hidden');
         box.querySelectorAll('[data-a]').forEach(btnEl => btnEl.addEventListener('click', () => propAction(btnEl.dataset.a)));
+        box.querySelectorAll('[data-step]').forEach(b2 => b2.addEventListener('click', () => { moveStep = +b2.dataset.step; renderProps(); }));
+        const angIn = $('propAngle'), angRange = $('propAngleRange');
+        if (angIn) angIn.addEventListener('change', () => { const v = Number(angIn.value.replace(',', '.')); if (Number.isFinite(v)) setSelectionAngle(v); });
+        if (angRange) {
+            angRange.addEventListener('pointerdown', () => pushUndo());
+            angRange.addEventListener('input', () => { setSelectionAngle(+angRange.value, { noUndo: true, noRender: true }); angIn.value = selSet[0].rotation || 0; });
+            angRange.addEventListener('change', () => renderProps());
+        }
     }
     // Буфер обмена редактора: объекты запоминаются относительно левого нижнего угла выделения
     let edClipboard = null;
@@ -2399,8 +2504,8 @@ const OFFICIAL_LEVELS = [
         if (!edClipboard) { toast(tr('Буфер пуст — сначала скопируй (Ctrl+C)', 'Clipboard is empty — copy first (Ctrl+C)')); return; }
         pushUndo();
         const added = edClipboard.map(c => Object.assign(JSON.parse(JSON.stringify(c)), { x: Math.max(0, cx + c.x), y: Math.max(0, cy + c.y) }));
-        const cells = new Set(added.map(o => o.x + ':' + o.y));
-        editorLevel.objects = editorLevel.objects.filter(o => !cells.has(o.x + ':' + o.y));
+        const cells = new Set(added.map(o => o.x + ':' + o.y + ':' + o.type));
+        editorLevel.objects = editorLevel.objects.filter(o => !cells.has(o.x + ':' + o.y + ':' + o.type));
         if (added.some(o => o.type === 'GOAL')) editorLevel.objects = editorLevel.objects.filter(o => o.type !== 'GOAL');
         if (added.some(o => o.type === 'START_POS')) editorLevel.objects = editorLevel.objects.filter(o => o.type !== 'START_POS');
         editorLevel.objects.push(...added);
@@ -2412,17 +2517,29 @@ const OFFICIAL_LEVELS = [
         const b = selBounds(selSet);
         pasteAt(b.x1, b.y0);
     }
-    function rotateSelection() {
+    // Поворот и сдвиг выделенного: любой угол, шаг сдвига на выбор
+    let moveStep = 10, rotStep = 15;
+    function normAngle(a) { return Math.round((((a % 360) + 360) % 360) * 10) / 10; }
+    function rotateSelectionBy(delta, opts = {}) {
+        if (!selSet.length || !delta) return;
+        if (!opts.noUndo) pushUndo();
+        if (selSet.length > 1) {
+            const cxs = selSet.map(o => o.x + 20), cys = selSet.map(o => o.y + 20);
+            let cx = (Math.min(...cxs) + Math.max(...cxs)) / 2, cy = (Math.min(...cys) + Math.max(...cys)) / 2;
+            if (delta % 90 === 0) { cx = Math.round((cx - 20) / GRID) * GRID + 20; cy = Math.round((cy - 20) / GRID) * GRID + 20; }
+            selSet.forEach(o => {
+                const [u, v] = rotPt(o.x + 20 - cx, o.y + 20 - cy, delta);
+                o.x = Math.max(0, Math.round((cx + u - 20) * 4) / 4); o.y = Math.max(0, Math.round((cy + v - 20) * 4) / 4);
+            });
+        }
+        selSet.forEach(o => { o.rotation = normAngle((o.rotation || 0) + delta); });
+        saveEditor();
+        if (!opts.noRender) renderProps();
+    }
+    function rotateSelection() { rotateSelectionBy(90); }
+    function setSelectionAngle(angle, opts) {
         if (!selSet.length) return;
-        pushUndo();
-        const b = selBounds(selSet);
-        const cx = Math.round((b.x0 + b.x1 - 40) / 2 / GRID) * GRID, cy = Math.round((b.y0 + b.y1 - 40) / 2 / GRID) * GRID;
-        selSet.forEach(o => {
-            const [u, v] = rotPt(o.x - cx, o.y - cy, 90);
-            o.x = Math.max(0, cx + u); o.y = Math.max(0, cy + v);
-            if (!OBJ[o.type].fixed) o.rotation = ((o.rotation || 0) + 90) % 360;
-        });
-        saveEditor(); renderProps();
+        rotateSelectionBy(normAngle(angle) - (selSet[0].rotation || 0), opts);
     }
     function flipSelection() {
         if (!selSet.length) return;
@@ -2430,7 +2547,7 @@ const OFFICIAL_LEVELS = [
         const b = selBounds(selSet);
         selSet.forEach(o => {
             o.x = b.x0 + (b.x1 - 40 - o.x);
-            if (!OBJ[o.type].fixed && (o.rotation === 90 || o.rotation === 270)) o.rotation = (o.rotation + 180) % 360;
+            if (!OBJ[o.type].fixed) o.rotation = normAngle(360 - (o.rotation || 0));
         });
         saveEditor(); renderProps();
     }
@@ -2456,6 +2573,12 @@ const OFFICIAL_LEVELS = [
         if (a === 'copy') { copySelection(); toast(tr(`Скопировано: ${selSet.length}. Вставка — Ctrl+V туда, где мышка.`, `Copied: ${selSet.length}. Paste with Ctrl+V at the mouse.`)); return; }
         if (a === 'rot') { rotateSelection(); return; }
         if (a === 'flip') { flipSelection(); return; }
+        if (a.startsWith('rotby')) { rotateSelectionBy(+a.slice(5)); return; }
+        if (a === 'rotset0') { setSelectionAngle(0); return; }
+        if (a === 'mvL') { moveSelection(-moveStep, 0); return; }
+        if (a === 'mvR') { moveSelection(moveStep, 0); return; }
+        if (a === 'mvU') { moveSelection(0, moveStep); return; }
+        if (a === 'mvD') { moveSelection(0, -moveStep); return; }
         if (a.startsWith('size') && selObj) { pushUndo(); selObj.size = +a.slice(4); if (selObj.type === 'TEXT') textSize = selObj.size; else emojiSize = selObj.size; saveEditor(); renderProps(); return; }
         if (a === 'setgroup') {
             pushUndo();
@@ -2504,7 +2627,9 @@ const OFFICIAL_LEVELS = [
         const cx = Math.floor(w.x / GRID) * GRID, cy = Math.floor(w.y / GRID) * GRID;
         if (activeTool === 'ERASER') { const i = objAtPoint(w); if (i >= 0) editorLevel.objects.splice(i, 1); }
         else if (cx >= 0 && cy >= 0) {
-            editorLevel.objects = editorLevel.objects.filter(o => !(o.x === cx && o.y === cy));
+            const newType = toolObject(activeTool, cx, cy).type;
+            // в одной клетке могут быть разные объекты; одинаковый — заменяется
+            editorLevel.objects = editorLevel.objects.filter(o => !(o.x === cx && o.y === cy && o.type === newType));
             if (activeTool === 'GOAL' || activeTool === 'START_POS') editorLevel.objects = editorLevel.objects.filter(o => o.type !== activeTool);
             const obj = normalizeLevel({ objects: [toolObject(activeTool, cx, cy)] }).objects[0];
             editorLevel.objects.push(obj);
@@ -2620,7 +2745,7 @@ const OFFICIAL_LEVELS = [
         delete b.dataset.armed; pushUndo(); editorLevel.objects = []; saveEditor(); setSelection([]); toast(tr('Карта очищена. Вернуть можно кнопкой «Отмена».', 'Map cleared. Undo brings it back.'));
     });
     $('btnExportLevel').addEventListener('click', () => {
-        const data = { format: 'geometry-ai', version: '1.7', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, objects: editorLevel.objects };
+        const data = { format: 'geometry-ai', version: '1.8', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, objects: editorLevel.objects };
         const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -2697,7 +2822,8 @@ const OFFICIAL_LEVELS = [
         ['ЛКМ', 'поставить объект', 'place an object'], ['ПКМ', 'удалить объект', 'delete an object'],
         ['Колесо', 'прокрутка влево-вправо', 'scroll'], ['Ctrl + колесо, + / −', 'масштаб', 'zoom'],
         ['Стрелки', 'двигать камеру', 'move the camera'], ['👆 Выбор + рамка', 'выделить много объектов', 'select many objects'],
-        ['Shift + клик', 'добавить к выделению', 'add to selection'], ['Shift + стрелки', 'сдвинуть выделенное на 1 блок', 'move selection 1 block'],
+        ['Shift + клик', 'добавить к выделению', 'add to selection'], ['Shift + стрелки', 'сдвинуть выделенное на выбранный шаг (1/8, 1/4, 1/2 или блок)', 'move selection by the chosen step'],
+        ['Q / E', 'повернуть выделенное на 15° влево / вправо', 'rotate selection 15° left / right'],
         ['Ctrl + C / Ctrl + V', 'копировать / вставить туда, где мышка', 'copy / paste at the mouse'], ['Ctrl + D', 'дублировать выделенное', 'duplicate selection'],
         ['Ctrl + A', 'выделить всё', 'select all'], ['R', 'повернуть', 'rotate'], ['Delete', 'удалить выделенное', 'delete selection'],
         ['Ctrl + Z / Ctrl + Y', 'отмена / повтор', 'undo / redo'], ['H', 'показать хитбоксы', 'show hitboxes'], ['Esc', 'снять выделение', 'clear selection'],
@@ -2734,7 +2860,7 @@ const OFFICIAL_LEVELS = [
     }
     async function encodeLevelCode(lv) {
         const compact = {
-            n: lv.name, c: lv.color, s: lv.song,
+            n: lv.name, c: lv.color, s: lv.song, w: lv.wall,
             o: lv.objects.map(o => {
                 const a = [o.type, o.x / GRID, o.y / GRID, o.rotation || 0];
                 const extra = {};
@@ -2762,7 +2888,7 @@ const OFFICIAL_LEVELS = [
         }
         const d = JSON.parse(new TextDecoder().decode(bytes));
         const lv = normalizeLevel({
-            name: d.n, color: d.c, song: d.s,
+            name: d.n, color: d.c, song: d.s, wall: d.w,
             objects: (d.o || []).map(a => Object.assign({ type: a[0], x: a[1] * GRID, y: a[2] * GRID, rotation: a[3] || 0 },
                 a[4] ? ('f' in a[4] || 'l' in a[4] || ('c' in a[4] && !('floor' in a[4])) ? { floor: a[4].f, ceil: a[4].c, lanes: a[4].l } : a[4]) : {}))
         });
@@ -2860,7 +2986,7 @@ const OFFICIAL_LEVELS = [
 
     // ---------- Экран гаража ----------
     let garageTab = 'icon';
-    const GARAGE_TABS = [['icon', 'Кубики', 'Icons'], ['color', 'Цвет 1', 'Color 1'], ['color2', 'Цвет 2', 'Color 2'], ['trail', 'Следы', 'Trails'], ['wall', 'Стены', 'Walls'], ['ach', 'Достижения', 'Achievements']];
+    const GARAGE_TABS = [['icon', 'Кубики', 'Icons'], ['color', 'Цвет 1', 'Color 1'], ['color2', 'Цвет 2', 'Color 2'], ['trail', 'Следы', 'Trails'], ['ach', 'Достижения', 'Achievements']];
     function renderGarage() {
         const tabs = $('garageTabs'); tabs.innerHTML = '';
         GARAGE_TABS.forEach(([k, ru, en]) => {
@@ -2930,6 +3056,8 @@ const OFFICIAL_LEVELS = [
                 if (id === 'line') { g.lineWidth = 2 + i; g.beginPath(); g.moveTo(x - 8, 6); g.lineTo(x, 6); g.stroke(); }
                 else if (id === 'fire') { g.beginPath(); g.arc(x, 6 - i, 3 + i * 0.6, 0, Math.PI * 2); g.fill(); }
                 else if (id === 'sparkle') g.fillRect(x, (i % 2 ? -4 : 12), 4, 4);
+                else if (id === 'bubbles') { g.strokeStyle = '#9be7ff'; g.lineWidth = 2; g.beginPath(); g.arc(x, 4 - i * 2, 3 + i * 0.4, 0, Math.PI * 2); g.stroke(); }
+                else if (id === 'stars') { g.fillStyle = '#ffe600'; g.save(); g.translate(x, (i % 2 ? -2 : 12)); drawStar(g, 4); g.restore(); }
                 else g.fillRect(x - 5, 1, 10, 10);
             }
             g.globalAlpha = 1; g.translate(22, 6); g.scale(0.5, 0.5); drawCubeIcon(g, 17, iconColor, iconColor2(), cos.icon);
@@ -2947,17 +3075,17 @@ const OFFICIAL_LEVELS = [
             const bg = g.createLinearGradient(0, 0, 0, 560); bg.addColorStop(0, '#1e3a8a'); bg.addColorStop(1, '#020617');
             g.fillStyle = bg; g.fillRect(0, 0, 560, 560);
             const ground = 400;
-            for (let i = -1; i < 9; i++) { g.setTransform(1.6, 0, 0, 1.6, ((i * 64 - (t * 120) % 64)) + 32, ground + 32); drawWall(g, cos.wall, '#2563eb'); }
+            for (let i = -1; i < 9; i++) { g.setTransform(1.6, 0, 0, 1.6, ((i * 64 - (t * 120) % 64)) + 32, ground + 32); drawWall(g, 'classic', '#2563eb'); }
             const ph = (t * 1.3) % 1, jump = Math.sin(ph * Math.PI) * 150, x = 220, y = ground - 28 - jump;
             if (cos.trail !== 'none') {
-                trail.push({ x, y, a: 0.6, c: cos.trail === 'rainbow' ? `hsl(${(now / 8) % 360},100%,60%)` : cos.trail === 'fire' ? ['#ff3b00', '#ff9f1a', '#ffe600'][(now / 50 | 0) % 3] : cos.trail === 'sparkle' ? (Math.random() < 0.5 ? '#fff' : '#ffe600') : iconColor });
+                trail.push({ x, y, a: 0.6, c: cos.trail === 'rainbow' ? `hsl(${(now / 8) % 360},100%,60%)` : cos.trail === 'fire' ? ['#ff3b00', '#ff9f1a', '#ffe600'][(now / 50 | 0) % 3] : cos.trail === 'sparkle' ? (Math.random() < 0.5 ? '#fff' : '#ffe600') : cos.trail === 'stars' ? '#ffe600' : cos.trail === 'bubbles' ? '#9be7ff' : iconColor });
             }
-            trail.forEach(p => { p.x -= 4; p.a -= 0.025; if (cos.trail === 'fire') p.y -= 1; if (cos.trail === 'sparkle') p.y += (Math.random() - 0.5) * 4; });
+            trail.forEach(p => { p.x -= 4; p.a -= 0.025; if (cos.trail === 'fire' || cos.trail === 'bubbles') p.y -= 1; if (cos.trail === 'sparkle' || cos.trail === 'stars') p.y += (Math.random() - 0.5) * 4; });
             while (trail.length && trail[0].a <= 0) trail.shift();
             g.setTransform(1, 0, 0, 1, 0, 0);
             if (cos.trail === 'line') {
                 for (let i = 1; i < trail.length; i++) { g.globalAlpha = trail[i].a; g.strokeStyle = iconColor; g.lineWidth = 16 * trail[i].a; g.lineCap = 'round'; g.beginPath(); g.moveTo(trail[i - 1].x, trail[i - 1].y); g.lineTo(trail[i].x, trail[i].y); g.stroke(); }
-            } else trail.forEach(p => { g.globalAlpha = p.a * 0.7; g.fillStyle = p.c; if (cos.trail === 'fire') { g.beginPath(); g.arc(p.x, p.y, 14 * p.a + 4, 0, Math.PI * 2); g.fill(); } else { const sz = cos.trail === 'sparkle' ? 8 : 34; g.fillRect(p.x - sz / 2, p.y - sz / 2, sz, sz); } });
+            } else trail.forEach(p => { g.globalAlpha = p.a * 0.7; g.fillStyle = p.c; if (cos.trail === 'bubbles') { g.strokeStyle = p.c; g.lineWidth = 3; g.beginPath(); g.arc(p.x, p.y, 10, 0, Math.PI * 2); g.stroke(); } else if (cos.trail === 'stars') { g.save(); g.translate(p.x, p.y); drawStar(g, 10); g.restore(); } else if (cos.trail === 'fire') { g.beginPath(); g.arc(p.x, p.y, 14 * p.a + 4, 0, Math.PI * 2); g.fill(); } else { const sz = cos.trail === 'sparkle' ? 8 : 34; g.fillRect(p.x - sz / 2, p.y - sz / 2, sz, sz); } });
             g.globalAlpha = 1;
             g.setTransform(1.65, 0, 0, 1.65, x, y); g.rotate(ph * Math.PI);
             drawCubeIcon(g, 17, iconColor, iconColor2(), cos.icon);
@@ -3007,11 +3135,13 @@ const OFFICIAL_LEVELS = [
             if (arrows[e.code]) {
                 e.preventDefault();
                 const [ax, ay] = arrows[e.code];
-                if (e.shiftKey && selSet.length) moveSelection(ax * GRID, ay * GRID);
+                if (e.shiftKey && selSet.length) moveSelection(ax * moveStep, ay * moveStep);
                 else moveEditorCam(ax * 120 / G.edZoom, ay * 80 / G.edZoom);
             }
             if (e.code === 'KeyR' && !ctrl) { if (selSet.length) rotateSelection(); else $('btnRotateObject').click(); }
             if (e.code === 'KeyH' && !ctrl) $('btnHitboxes').click();
+            if (e.code === 'KeyQ' && !ctrl && selSet.length) rotateSelectionBy(-rotStep);
+            if (e.code === 'KeyE' && !ctrl && selSet.length) rotateSelectionBy(rotStep);
             if (ctrl && e.code === 'KeyZ') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
             if (ctrl && e.code === 'KeyY') { e.preventDefault(); redo(); }
             if (ctrl && e.code === 'KeyC') { e.preventDefault(); if (copySelection()) toast(tr(`Скопировано: ${selSet.length}`, `Copied: ${selSet.length}`)); }
