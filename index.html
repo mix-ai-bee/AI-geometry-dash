@@ -424,7 +424,7 @@ function step(p, held, L) {
         }
         case 'airplane': {
             if (press) { s.lane = (s.lane + 1) % 3; s.fx = { t: 'jump' }; }
-            const target = s.floor + [10, 110, 220][s.lane];
+            const target = s.floor + [20, 120, 240][s.lane];
             s.vy = (target - s.y) * 0.25;
             break;
         }
@@ -566,20 +566,8 @@ function buildLevel(fn) {
 }
 const OFFICIAL_LEVELS = [
     {
-        name: 'Первые шаги', nameEn: 'First Steps', difficulty: 1, color: '#2563eb', song: 0,
-        objects: buildLevel(({ add, col, row }) => {
-            add('SPIKE', 14); add('SPIKE', 22); add('SPIKE', 23);
-            row(30, 34, 0); add('SPIKE', 38);
-            col(44, 0, 0); col(45, 0, 0); col(46, 0, 1); col(47, 0, 1); col(48, 0, 1); add('SPIKE', 51);
-            add('PAD', 57); row(59, 63, 0); col(60, 1, 1); col(61, 1, 1); col(62, 1, 1); col(63, 1, 1); add('COIN', 61, 4);
-            row(68, 72, 0, 'SPIKE'); add('ORB', 70, 2);
-            add('SHIP_PORTAL', 79, 1);
-            col(86, 0, 3); col(87, 0, 3); col(94, 6, 9); col(95, 6, 9); col(102, 0, 4); col(103, 0, 4); add('COIN', 106, 8);
-            col(110, 5, 9); col(111, 5, 9);
-            add('CUBE_PORTAL', 118, 1);
-            add('SPIKE', 126); add('SPIKE', 127); row(134, 136, 0); add('SPIKE', 137); add('SPIKE', 138);
-            add('GOAL', 148);
-        })
+        name: 'Первый полёт', nameEn: 'First Flight', difficulty: 1, color: '#2563eb', song: 0, author: 'mix-ai-bee',
+        objects: [{"type":"BLOCK","x":0,"y":0,"rotation":0},{"type":"BLOCK","x":40,"y":0,"rotation":0},{"type":"BLOCK","x":80,"y":0,"rotation":0},{"type":"BLOCK","x":120,"y":0,"rotation":0},{"type":"BLOCK","x":200,"y":0,"rotation":0},{"type":"BLOCK","x":160,"y":0,"rotation":0},{"type":"BLOCK","x":240,"y":0,"rotation":0},{"type":"BLOCK","x":280,"y":0,"rotation":0},{"type":"BLOCK","x":320,"y":0,"rotation":0},{"type":"BLOCK","x":360,"y":0,"rotation":0},{"type":"BLOCK","x":400,"y":0,"rotation":0},{"type":"BLOCK","x":440,"y":0,"rotation":0},{"type":"SPIKE","x":280,"y":40,"rotation":0},{"type":"SPIKE","x":320,"y":40,"rotation":0},{"type":"AIRPLANE_PORTAL","x":520,"y":40,"rotation":0},{"type":"BLOCK","x":520,"y":120,"rotation":0},{"type":"BLOCK","x":520,"y":160,"rotation":0},{"type":"BLOCK","x":520,"y":200,"rotation":0},{"type":"BLOCK","x":520,"y":240,"rotation":0},{"type":"BLOCK","x":520,"y":280,"rotation":0},{"type":"BLOCK","x":520,"y":320,"rotation":0},{"type":"BLOCK","x":520,"y":360,"rotation":0},{"type":"BLOCK","x":520,"y":400,"rotation":0},{"type":"BLOCK","x":680,"y":40,"rotation":0},{"type":"BLOCK","x":680,"y":200,"rotation":0},{"type":"BLOCK","x":680,"y":0,"rotation":0},{"type":"BLOCK","x":680,"y":240,"rotation":0},{"type":"BLOCK","x":1400,"y":200,"rotation":0},{"type":"BLOCK","x":1400,"y":240,"rotation":0},{"type":"BLOCK","x":1400,"y":280,"rotation":0},{"type":"BLOCK","x":960,"y":80,"rotation":0},{"type":"BLOCK","x":960,"y":120,"rotation":0},{"type":"BLOCK","x":960,"y":160,"rotation":0},{"type":"BLOCK","x":960,"y":200,"rotation":0},{"type":"BLOCK","x":960,"y":240,"rotation":0},{"type":"BLOCK","x":1200,"y":0,"rotation":0},{"type":"BLOCK","x":1200,"y":40,"rotation":0},{"type":"BLOCK","x":1200,"y":80,"rotation":0},{"type":"BLOCK","x":1200,"y":120,"rotation":0},{"type":"BLOCK","x":1200,"y":160,"rotation":0},{"type":"BLOCK","x":1400,"y":160,"rotation":0},{"type":"BLOCK","x":1400,"y":120,"rotation":0},{"type":"CUBE_PORTAL","x":1400,"y":40,"rotation":0},{"type":"CUBE_PORTAL","x":1400,"y":0,"rotation":0},{"type":"CUBE_PORTAL","x":1400,"y":80,"rotation":0},{"type":"SPIKE","x":1600,"y":0,"rotation":0},{"type":"SPIKE","x":1640,"y":0,"rotation":0},{"type":"BLOCK","x":2040,"y":0,"rotation":0},{"type":"BLOCK","x":2200,"y":0,"rotation":0},{"type":"BLOCK","x":2200,"y":40,"rotation":0},{"type":"BLOCK","x":2360,"y":0,"rotation":0},{"type":"BLOCK","x":2360,"y":40,"rotation":0},{"type":"BLOCK","x":2360,"y":80,"rotation":0},{"type":"SPIKE","x":2080,"y":0,"rotation":0},{"type":"SPIKE","x":2120,"y":0,"rotation":0},{"type":"SPIKE","x":2160,"y":0,"rotation":0},{"type":"SPIKE","x":2280,"y":0,"rotation":0},{"type":"SPIKE","x":2320,"y":0,"rotation":0},{"type":"SPIKE","x":2240,"y":0,"rotation":0},{"type":"GOAL","x":2600,"y":0,"rotation":0},{"type":"BLOCK","x":2600,"y":40,"rotation":0},{"type":"BLOCK","x":2600,"y":80,"rotation":0},{"type":"BLOCK","x":2600,"y":120,"rotation":0},{"type":"BLOCK","x":2600,"y":160,"rotation":0},{"type":"BLOCK","x":2600,"y":200,"rotation":0},{"type":"BLOCK","x":2600,"y":240,"rotation":0}]
     },
     {
         name: 'Гравитация', nameEn: 'Gravity', difficulty: 2, color: '#9333ea', song: 1,
