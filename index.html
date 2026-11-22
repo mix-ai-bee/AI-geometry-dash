@@ -2,1113 +2,1568 @@
 <html lang="ru" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geometry AI v1.2 - Cleaned Grav-Pad</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Geometry AI v1.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Outfit', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                    }
-                }
-            }
+            theme: { extend: { fontFamily: { sans: ['Outfit', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] } } }
         }
     </script>
     <style>
-        * {
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        canvas {
-            image-rendering: pixelated;
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-            height: 6px;
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #111;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.4);
-            border-radius: 4px;
-        }
-        .tool-active {
-            border-color: #ffffff !important;
-            background-color: rgba(255, 255, 255, 0.25) !important;
-            color: #ffffff !important;
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
-        }
-        .tab-active {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-            font-weight: 900 !important;
-        }
-        @keyframes cubeGlow {
-            0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6)); }
-            50% { filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.9)); }
-        }
-        .logo-cube {
-            animation: cubeGlow 2s infinite ease-in-out;
-        }
+        * { user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+        input, textarea { user-select: text; -webkit-user-select: text; }
+        body { background: #000; }
+        #gameCanvas { touch-action: none; }
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #111; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.4); border-radius: 4px; }
+        .tool-active { border-color: #fff !important; background-color: rgba(255,255,255,0.25) !important; color: #fff !important; box-shadow: 0 0 15px rgba(255,255,255,0.5); }
+        .tab-active { background-color: #fff !important; color: #000 !important; font-weight: 900 !important; }
+        @keyframes cubeGlow { 0%,100% { filter: drop-shadow(0 0 8px rgba(255,255,255,0.6)); } 50% { filter: drop-shadow(0 0 16px rgba(255,255,255,0.9)); } }
+        .logo-cube { animation: cubeGlow 2s infinite ease-in-out; }
+        @keyframes floatSq { 0% { transform: translateY(0) rotate(0deg); opacity: 0; } 10% { opacity: .5; } 100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; } }
+        .float-sq { position: absolute; bottom: -60px; border: 2px solid rgba(255,255,255,.35); border-radius: 6px; animation: floatSq linear infinite; }
+        .menu-btn { transition: transform .12s, box-shadow .2s, background .2s; }
+        .menu-btn:hover:not(:disabled) { transform: translateY(-3px) scale(1.02); box-shadow: 0 0 30px rgba(255,255,255,.35); }
+        .menu-btn:active:not(:disabled) { transform: scale(.97); }
+        .level-card { transition: transform .15s, box-shadow .2s; }
+        .level-card:hover { transform: translateY(-4px); }
+        .color-dot { width: 26px; height: 26px; border-radius: 8px; border: 2px solid rgba(255,255,255,.25); cursor: pointer; }
+        .color-dot.sel { border-color: #fff; box-shadow: 0 0 12px rgba(255,255,255,.7); }
     </style>
 </head>
 <body class="bg-black text-zinc-100 min-h-screen flex flex-col font-sans overflow-x-hidden select-none">
 
     <header class="border-b border-zinc-800 bg-zinc-900/90 backdrop-blur-md px-4 py-3 flex flex-wrap justify-between items-center z-20 gap-3">
-        <div class="flex items-center gap-3.5">
+        <button id="logoHomeBtn" class="flex items-center gap-3.5 text-left">
             <div class="logo-cube w-11 h-11 rounded-xl bg-white border-2 border-zinc-400 flex items-center justify-center font-black text-xl shadow-lg text-black relative">
-                <div class="absolute inset-1.5 border border-black/40 rounded-lg"></div>
-                🔲
+                <div class="absolute inset-1.5 border border-black/40 rounded-lg"></div>🔲
             </div>
             <div>
                 <div class="flex items-center gap-2">
-                    <h1 class="text-xl font-black italic tracking-wide text-white" id="logoTitleText">
-                        Геометрия ИИ
-                    </h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">
-                        v1.2
-                    </span>
+                    <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v1.3</span>
                 </div>
-                <p class="text-[11px] text-zinc-400 font-mono" id="subHeaderDesc">Вкладки • Музыка • Оптимизированный редактор</p>
+                <p class="text-[11px] text-zinc-400 font-mono" data-ru="9 режимов • Официальные уровни • Редактор" data-en="9 modes • Official levels • Editor">9 режимов • Официальные уровни • Редактор</p>
             </div>
-        </div>
-
-        <div class="flex items-center gap-2 bg-zinc-950/80 p-1 rounded-xl border border-zinc-800">
-            <button id="modeEditorBtn" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-black shadow-md">
-                🛠️ <span data-ru="Редактор" data-en="Editor">Редактор</span>
-            </button>
-            <button id="modePlayBtn" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-zinc-400 hover:text-white">
-                🎮 <span data-ru="Играть" data-en="Play">Играть</span>
-            </button>
-            <button id="modeAIBtn" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-zinc-400 hover:text-white">
-                🧠 <span data-ru="Умный ИИ 2.0" data-en="Smart AI 2.0">Умный ИИ 2.0</span>
-            </button>
-        </div>
-
-        <div class="flex items-center gap-2">
-            <button id="btnLangToggle" class="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold text-zinc-200 transition">
-                🌐 RU / EN
-            </button>
-            <button id="btnSoundToggle" class="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold text-zinc-300 transition">
-                🔊 <span data-ru="Звук: Вкл" data-en="Sound: On">Звук: Вкл</span>
-            </button>
-            <button id="btnMusicToggle" class="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold text-yellow-400 transition">
-                🎵 <span data-ru="Музыка: Вкл" data-en="Music: On">Музыка: Вкл</span>
-            </button>
-            <button id="btnExportLevel" class="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold text-zinc-200 transition">
-                💾 <span data-ru="Сохранить" data-en="Save">Сохранить</span>
-            </button>
-            <label class="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold text-zinc-300 cursor-pointer transition">
-                📂 <span data-ru="Загрузить JSON" data-en="Load JSON">Загрузить JSON</span>
-                <input type="file" id="btnImportLevel" accept=".json" class="hidden">
-            </label>
+        </button>
+        <div class="flex items-center gap-2 flex-wrap">
+            <button id="btnMenu" class="hidden px-3 py-1.5 rounded-xl bg-white text-black text-xs font-black transition hover:bg-zinc-200">🏠 <span data-ru="Меню" data-en="Menu">Меню</span></button>
+            <button id="btnLangToggle" class="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold text-zinc-200 transition">🌐 RU / EN</button>
+            <button id="btnSoundToggle" class="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold text-zinc-300 transition"></button>
+            <button id="btnMusicToggle" class="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold text-yellow-400 transition"></button>
         </div>
     </header>
 
-    <main class="flex-1 p-3 md:p-4 flex flex-col gap-3 max-w-7xl mx-auto w-full">
+    <!-- ================= ГЛАВНОЕ МЕНЮ ================= -->
+    <section id="screenMenu" class="relative flex-1 flex flex-col items-center justify-center gap-8 p-6 overflow-hidden">
+        <div id="menuBgSquares" class="absolute inset-0 pointer-events-none"></div>
+        <div class="relative text-center">
+            <div class="text-5xl md:text-7xl font-black italic tracking-wider text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.45)]" data-ru="ГЕОМЕТРИЯ ИИ" data-en="GEOMETRY AI">ГЕОМЕТРИЯ ИИ</div>
+            <div class="mt-2 font-mono text-zinc-400 text-sm" data-ru="Обновление 1.3 — все режимы!" data-en="Update 1.3 — all game modes!">Обновление 1.3 — все режимы!</div>
+        </div>
+        <div class="relative flex flex-col md:flex-row gap-4 w-full max-w-3xl">
+            <button id="btnOfficial" class="menu-btn flex-1 rounded-3xl bg-white text-black p-6 flex flex-col items-center gap-2 shadow-2xl">
+                <span class="text-5xl">▶️</span>
+                <span class="text-xl font-black uppercase" data-ru="Официальные уровни" data-en="Official Levels">Официальные уровни</span>
+                <span class="text-xs font-mono text-zinc-600" data-ru="5 уровней разной сложности" data-en="5 levels of different difficulty">5 уровней разной сложности</span>
+            </button>
+            <button id="btnCreate" class="menu-btn flex-1 rounded-3xl bg-zinc-900 border-2 border-zinc-600 p-6 flex flex-col items-center gap-2 shadow-2xl">
+                <span class="text-5xl">🛠️</span>
+                <span class="text-xl font-black uppercase text-white" data-ru="Создать уровень" data-en="Create Level">Создать уровень</span>
+                <span class="text-xs font-mono text-zinc-400" data-ru="Редактор со всеми объектами" data-en="Editor with every object">Редактор со всеми объектами</span>
+            </button>
+            <button disabled class="menu-btn flex-1 rounded-3xl bg-zinc-950 border-2 border-dashed border-zinc-700 p-6 flex flex-col items-center gap-2 opacity-60 cursor-not-allowed">
+                <span class="text-5xl">🌐</span>
+                <span class="text-xl font-black uppercase text-zinc-300" data-ru="Онлайн уровни" data-en="Online Levels">Онлайн уровни</span>
+                <span class="text-xs font-mono text-zinc-500" data-ru="Скоро: загрузка на сайт" data-en="Soon: upload to the site">Скоро: загрузка на сайт</span>
+            </button>
+        </div>
+        <div class="relative flex flex-col items-center gap-2">
+            <div class="text-xs font-mono text-zinc-400" data-ru="Цвет твоей иконки:" data-en="Your icon color:">Цвет твоей иконки:</div>
+            <div id="colorPicker" class="flex gap-2"></div>
+        </div>
+    </section>
 
-        <div class="bg-zinc-900/80 rounded-xl p-3 border border-zinc-800 flex justify-between items-center text-xs font-mono">
-            <div class="flex items-center gap-4">
-                <span class="text-zinc-300 font-bold"><span id="hudModeLabel">РЕЖИМ</span>: <span id="hudModeText" class="text-white">РЕДАКТОР</span></span>
-                <span class="text-zinc-400 font-bold"><span id="hudAttemptLabel">ПОПЫТКА</span>: <span id="hudAttemptText" class="text-white">#1</span></span>
+    <!-- ================= ВЫБОР УРОВНЯ ================= -->
+    <section id="screenLevels" class="hidden flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full flex flex-col gap-5">
+        <div class="flex items-center justify-between gap-3">
+            <button id="btnLevelsBack" class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-sm font-bold">◀ <span data-ru="Назад" data-en="Back">Назад</span></button>
+            <h2 class="text-2xl md:text-3xl font-black italic uppercase" data-ru="Официальные уровни" data-en="Official Levels">Официальные уровни</h2>
+            <div class="w-24"></div>
+        </div>
+        <div id="levelCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4"></div>
+        <p class="text-center text-xs font-mono text-zinc-500" data-ru="Пробел / клик / тап — прыжок. Esc — пауза." data-en="Space / click / tap — jump. Esc — pause.">Пробел / клик / тап — прыжок. Esc — пауза.</p>
+    </section>
+
+    <!-- ================= ИГРА / РЕДАКТОР ================= -->
+    <main id="screenGame" class="hidden flex-1 p-3 md:p-4 flex flex-col gap-3 max-w-7xl mx-auto w-full">
+
+        <div class="bg-zinc-900/80 rounded-xl p-3 border border-zinc-800 flex flex-wrap gap-2 justify-between items-center text-xs font-mono">
+            <div class="flex items-center gap-4 flex-wrap">
+                <span class="text-zinc-300 font-bold" id="hudLevelName">—</span>
+                <span class="text-zinc-400 font-bold"><span data-ru="ПОПЫТКА" data-en="ATTEMPT">ПОПЫТКА</span>: <span id="hudAttemptText" class="text-white">#1</span></span>
+                <span class="text-zinc-400 font-bold"><span data-ru="РЕЖИМ" data-en="MODE">РЕЖИМ</span>: <span id="hudModeText" class="text-white">—</span></span>
+                <span class="text-yellow-300 font-bold" id="hudCoins"></span>
+                <span id="hudPractice" class="hidden px-2 py-0.5 rounded bg-emerald-500 text-black font-black" data-ru="ТРЕНИРОВКА" data-en="PRACTICE">ТРЕНИРОВКА</span>
             </div>
-            <div class="flex items-center gap-3 w-1/2 max-w-xs">
-                <span class="text-zinc-200 font-bold text-nowrap"><span id="hudProgressLabel">ПРОГРЕСС</span>: <span id="hudPercentText" class="text-white">0%</span></span>
+            <div class="flex items-center gap-3 w-full sm:w-1/2 max-w-xs">
+                <span class="text-zinc-200 font-bold text-nowrap"><span id="hudPercentText" class="text-white">0%</span></span>
                 <div class="w-full h-2.5 bg-zinc-950 rounded-full border border-zinc-800 overflow-hidden">
-                    <div id="hudProgressBar" class="h-full bg-white w-0 transition-all duration-75"></div>
+                    <div id="hudProgressBar" class="h-full bg-white w-0"></div>
                 </div>
             </div>
         </div>
 
-        <div class="relative w-full aspect-[21/9] min-h-[340px] bg-black rounded-2xl border-2 border-zinc-800 overflow-hidden shadow-2xl">
+        <div id="canvasWrap" class="relative w-full aspect-[21/9] min-h-[340px] bg-black rounded-2xl border-2 border-zinc-800 overflow-hidden shadow-2xl">
             <canvas id="gameCanvas" class="w-full h-full block cursor-pointer"></canvas>
 
-            <div id="editorScrollControls" class="absolute top-3 left-3 right-3 flex justify-between items-center pointer-events-none">
-                <div class="bg-zinc-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zinc-700 text-xs font-mono text-zinc-200 pointer-events-auto flex items-center gap-2 shadow-lg">
-                    <span id="camLabel">Камера:</span>
-                    <button id="btnScrollLeft" class="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white font-bold transition">◀</button>
-                    <span id="scrollPosText" class="w-14 text-center font-bold">0px</span>
-                    <button id="btnScrollRight" class="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white font-bold transition">▶</button>
+            <div id="editorScrollControls" class="absolute top-3 left-3 right-3 flex justify-between items-start pointer-events-none gap-2">
+                <div class="bg-zinc-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zinc-700 text-xs font-mono text-zinc-200 pointer-events-auto flex items-center gap-1.5 shadow-lg">
+                    <button id="btnScrollLeft" class="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white font-bold">◀</button>
+                    <button id="btnScrollRight" class="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white font-bold">▶</button>
+                    <button id="btnScrollUp" class="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white font-bold">▲</button>
+                    <button id="btnScrollDown" class="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-white font-bold">▼</button>
+                    <span id="scrollPosText" class="w-16 text-center font-bold">x:0</span>
                 </div>
-                <div class="bg-zinc-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zinc-700 text-xs font-mono text-zinc-300 shadow-lg" id="editorHintText">
-                    💡 ЛКМ — поставить, ПКМ — удалить конкретный объект!
-                </div>
+                <div class="hidden md:block bg-zinc-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zinc-700 text-xs font-mono text-zinc-300 shadow-lg" data-ru="💡 ЛКМ — поставить, ПКМ — удалить, колесо — прокрутка" data-en="💡 LMB — place, RMB — remove, wheel — scroll">💡 ЛКМ — поставить, ПКМ — удалить, колесо — прокрутка</div>
             </div>
 
             <div id="playControlsOverlay" class="hidden absolute top-3 right-3 flex items-center gap-2">
-                <button id="btnPlayRestart" class="px-4 py-2 bg-white hover:bg-zinc-200 text-black font-black rounded-xl text-xs uppercase tracking-wider shadow-lg transition active:scale-95">
-                    🔄 <span data-ru="Старт / Рестарт" data-en="Start / Restart">Старт / Рестарт</span>
-                </button>
+                <button id="btnPause" class="px-3 py-2 bg-white/90 hover:bg-white text-black font-black rounded-xl text-xs shadow-lg">❚❚ <span data-ru="Пауза" data-en="Pause">Пауза</span></button>
             </div>
 
-            <div id="winModal" class="hidden absolute inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center gap-4 z-30">
-                <div class="text-4xl md:text-6xl font-black italic text-white tracking-widest animate-bounce" id="winTitleText">
-                    🎉 ПОБЕДА!
+            <div id="pauseModal" class="hidden absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center gap-3 z-30">
+                <div class="text-3xl md:text-5xl font-black italic" data-ru="ПАУЗА" data-en="PAUSED">ПАУЗА</div>
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <button id="btnResume" class="px-5 py-2.5 bg-white text-black font-black rounded-xl text-sm">▶ <span data-ru="Продолжить" data-en="Resume">Продолжить</span></button>
+                    <button id="btnRestart" class="px-5 py-2.5 bg-zinc-800 border border-zinc-600 font-black rounded-xl text-sm">🔄 <span data-ru="Заново" data-en="Restart">Заново</span></button>
+                    <button id="btnPracticeToggle" class="px-5 py-2.5 bg-emerald-500 text-black font-black rounded-xl text-sm">💎 <span id="practiceBtnText">Тренировка</span></button>
+                    <button id="btnPauseExit" class="px-5 py-2.5 bg-zinc-800 border border-zinc-600 font-black rounded-xl text-sm">🚪 <span data-ru="Выйти" data-en="Exit">Выйти</span></button>
                 </div>
-                <p class="text-zinc-400 font-mono text-sm" id="winSubText">Уровень пройден идеально!</p>
-                <button id="btnWinRestart" class="px-6 py-2.5 bg-white hover:bg-zinc-200 text-black font-black rounded-xl text-sm uppercase tracking-wider shadow-xl transition active:scale-95">
-                    <span data-ru="Заново" data-en="Restart">Заново</span> 🔄
-                </button>
+            </div>
+
+            <div id="winModal" class="hidden absolute inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center gap-3 z-30">
+                <div class="text-4xl md:text-6xl font-black italic text-white tracking-widest animate-bounce" data-ru="🎉 УРОВЕНЬ ПРОЙДЕН!" data-en="🎉 LEVEL COMPLETE!">🎉 УРОВЕНЬ ПРОЙДЕН!</div>
+                <p class="text-zinc-300 font-mono text-sm" id="winSubText"></p>
+                <div class="flex gap-2">
+                    <button id="btnWinRestart" class="px-6 py-2.5 bg-white hover:bg-zinc-200 text-black font-black rounded-xl text-sm uppercase">🔄 <span data-ru="Заново" data-en="Restart">Заново</span></button>
+                    <button id="btnWinExit" class="px-6 py-2.5 bg-zinc-800 border border-zinc-600 font-black rounded-xl text-sm uppercase">🏠 <span data-ru="Меню" data-en="Menu">Меню</span></button>
+                </div>
             </div>
         </div>
 
         <div id="aiLogContainer" class="hidden bg-zinc-900/90 rounded-xl p-3 border border-zinc-800 flex flex-col gap-1.5 shadow-xl">
             <div class="flex justify-between items-center text-xs font-mono text-zinc-300 font-bold">
-                <span class="flex items-center gap-2">
-                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
-                    <span id="aiLogTitle">🤖 МЫСЛИ УМНОГО ИИ (AUTO-PILOT):</span>
-                </span>
-                <span id="aiStatusBadge" class="text-zinc-400">Сканирование траектории...</span>
+                <span class="flex items-center gap-2"><span class="inline-block w-2.5 h-2.5 rounded-full bg-white animate-ping"></span><span data-ru="🤖 МЫСЛИ ИИ 3.0 (просчёт будущего)" data-en="🤖 AI 3.0 THOUGHTS (future simulation)">🤖 МЫСЛИ ИИ 3.0 (просчёт будущего)</span></span>
+                <span id="aiStatusBadge" class="text-zinc-400"></span>
             </div>
-            <div id="aiThoughtLog" class="h-16 bg-black rounded-lg p-2.5 font-mono text-[11px] text-zinc-300 overflow-y-auto custom-scrollbar flex flex-col gap-1 border border-zinc-800">
-                <div class="text-zinc-400">[ИИ 2.0]: Автопилот готов к работе!</div>
-            </div>
+            <div id="aiThoughtLog" class="h-16 bg-black rounded-lg p-2.5 font-mono text-[11px] text-zinc-300 overflow-y-auto custom-scrollbar flex flex-col gap-1 border border-zinc-800"></div>
         </div>
 
-        <!-- Панель редактора с вкладками -->
+        <!-- Панель редактора -->
         <div id="bottomEditorBar" class="bg-zinc-900/95 border border-zinc-800 rounded-2xl p-3 shadow-2xl flex flex-col gap-2.5">
-            
-            <!-- Вкладки категорий -->
-            <div class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar border-b border-zinc-800 pb-2">
-                <button data-tab="ORBS" class="tab-btn tab-active px-3 py-1.5 rounded-xl bg-zinc-800 text-xs font-bold text-zinc-300 transition shrink-0">
-                    ⚪ <span data-ru="Орбы и Батуты" data-en="Orbs & Pads">Орбы и Батуты</span>
-                </button>
-                <button data-tab="SPIKES" class="tab-btn px-3 py-1.5 rounded-xl bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-white transition shrink-0">
-                    🔺 <span data-ru="Шипы" data-en="Spikes">Шипы</span>
-                </button>
-                <button data-tab="CUBES" class="tab-btn px-3 py-1.5 rounded-xl bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-white transition shrink-0">
-                    ⬛ <span data-ru="Блоки и Кубы" data-en="Blocks & Cubes">Блоки и Кубы</span>
-                </button>
-                <button data-tab="FINISHES" class="tab-btn px-3 py-1.5 rounded-xl bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-white transition shrink-0">
-                    🏁 <span data-ru="Финиши" data-en="Finishes">Финиши</span>
-                </button>
-                <button data-tab="DELETE" class="tab-btn px-3 py-1.5 rounded-xl bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-white transition shrink-0">
-                    ❌ <span data-ru="Удалитель" data-en="Eraser">Удалитель</span>
-                </button>
+            <div class="flex flex-wrap items-center gap-2">
+                <input id="edLevelName" maxlength="32" class="px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-700 text-sm font-bold w-48" placeholder="Название">
+                <label class="flex items-center gap-1.5 text-xs font-bold text-zinc-300"><span data-ru="Цвет фона" data-en="BG color">Цвет фона</span> <input id="edLevelColor" type="color" value="#2563eb" class="w-8 h-8 bg-transparent"></label>
+                <label class="flex items-center gap-1.5 text-xs font-bold text-zinc-300"><span data-ru="Музыка" data-en="Song">Музыка</span>
+                    <select id="edLevelSong" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1"></select></label>
+                <div class="flex-1"></div>
+                <button id="btnEdTest" class="px-3.5 py-2 bg-white text-black rounded-xl text-xs font-black">▶ <span data-ru="Тест" data-en="Test">Тест</span></button>
+                <button id="btnEdTestAI" class="px-3.5 py-2 bg-zinc-800 border border-zinc-600 rounded-xl text-xs font-black">🤖 <span data-ru="Тест ИИ" data-en="AI Test">Тест ИИ</span></button>
+                <button id="btnExportLevel" class="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold">💾 <span data-ru="Сохранить JSON" data-en="Save JSON">Сохранить JSON</span></button>
+                <label class="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold cursor-pointer">📂 <span data-ru="Загрузить JSON" data-en="Load JSON">Загрузить JSON</span><input type="file" id="btnImportLevel" accept=".json" class="hidden"></label>
             </div>
-
-            <!-- Содержимое активной вкладки -->
+            <div id="tabsRow" class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar border-b border-zinc-800 pb-2"></div>
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div id="tabContentContainer" class="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1 w-full md:w-auto"></div>
-
                 <div class="flex items-center gap-2">
-                    <button id="btnRotateObject" class="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-lg">
-                        🔄 <span id="rotLabelText">Поворот</span>: <span id="rotValText">0°</span>
-                    </button>
-
-                    <button id="btnClearAll" class="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-lg">
-                        🗑️ <span data-ru="Очистить карту" data-en="Clear All">Очистить карту</span>
-                    </button>
+                    <button id="btnRotateObject" class="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 rounded-xl text-xs font-bold shrink-0">🔄 <span data-ru="Поворот" data-en="Rotate">Поворот</span>: <span id="rotValText">0°</span></button>
+                    <button id="btnClearAll" class="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 rounded-xl text-xs font-bold shrink-0">🗑️ <span data-ru="Очистить" data-en="Clear">Очистить</span></button>
                 </div>
             </div>
-
         </div>
-
     </main>
 
-    <script>
-        let currentLang = 'ru';
-        function toggleLanguage() {
-            currentLang = currentLang === 'ru' ? 'en' : 'ru';
-            document.querySelectorAll('[data-ru]').forEach(el => {
-                const text = el.getAttribute(`data-${currentLang}`);
-                if (text) el.innerText = text;
-            });
-            document.getElementById('logoTitleText').innerText = currentLang === 'ru' ? 'Геометрия ИИ' : 'GEOMETRY AI';
-            document.getElementById('camLabel').innerText = currentLang === 'ru' ? 'Камера:' : 'Camera:';
-            document.getElementById('rotLabelText').innerText = currentLang === 'ru' ? 'Поворот' : 'Rotate';
-            document.getElementById('editorHintText').innerHTML = currentLang === 'ru' 
-                ? '💡 ЛКМ — поставить, ПКМ — удалить конкретный объект!' 
-                : '💡 LMB — place, RMB — remove specific object!';
-            renderToolBar();
+<!-- =====================================================================
+     ЯДРО ИГРЫ: физика всех режимов + ИИ. Без DOM — можно тестировать в Node.
+     ===================================================================== -->
+<script id="gameCore">
+const GRID = 40;
+const BASE_SPEED = 6.9;           // пикселей за кадр при скорости 1x (60 кадров/сек)
+const CORRIDOR = 400;             // высота коридора для летающих режимов (10 блоков)
+const SPEEDS = { SPEED_05: 0.8, SPEED_1: 1, SPEED_2: 1.25, SPEED_3: 1.5, SPEED_4: 1.85 };
+const MODE_PORTALS = {
+    CUBE_PORTAL: 'cube', SHIP_PORTAL: 'ship', BALL_PORTAL: 'ball', UFO_PORTAL: 'ufo',
+    WAVE_PORTAL: 'wave', ROBOT_PORTAL: 'robot', SPIDER_PORTAL: 'spider', SWING_PORTAL: 'swing',
+    AIRPLANE_PORTAL: 'airplane'
+};
+const CORRIDOR_MODES = { ship: 1, ball: 1, ufo: 1, wave: 1, spider: 1, swing: 1 };
+
+const ORB_R = [-4, -4, 44, 44];
+const PAD_R = [3, 0, 37, 7];
+const PORTAL_R = [6, -40, 34, 80];
+// Описание всех объектов: категория и хитбокс в координатах клетки (0..40, ось Y вверх)
+const OBJ = {
+    BLOCK: { cat: 'solid', rect: [0, 0, 40, 40] },
+    SLAB: { cat: 'solid', rect: [0, 0, 40, 20] },
+    SPIKE: { cat: 'hazard', rect: [14, 2, 26, 22] },
+    SMALL_SPIKE: { cat: 'hazard', rect: [15, 0, 25, 11] },
+    GROUND_SPIKES: { cat: 'hazard', rect: [6, 0, 34, 8] },
+    SAW: { cat: 'hazard', circle: 22, rect: [-2, -2, 42, 42] },
+    ORB: { cat: 'orb', kind: 'yellow', rect: ORB_R, fixed: 1 },
+    PINK_ORB: { cat: 'orb', kind: 'pink', rect: ORB_R, fixed: 1 },
+    RED_ORB: { cat: 'orb', kind: 'red', rect: ORB_R, fixed: 1 },
+    GRAVITY_ORB: { cat: 'orb', kind: 'blue', rect: ORB_R, fixed: 1 },
+    GREEN_ORB: { cat: 'orb', kind: 'green', rect: ORB_R, fixed: 1 },
+    BLACK_ORB: { cat: 'orb', kind: 'black', rect: ORB_R, fixed: 1 },
+    PAD: { cat: 'pad', kind: 'yellow', rect: PAD_R },
+    PINK_PAD: { cat: 'pad', kind: 'pink', rect: PAD_R },
+    RED_PAD: { cat: 'pad', kind: 'red', rect: PAD_R },
+    BLUE_PAD: { cat: 'pad', kind: 'blue', rect: PAD_R },
+    COIN: { cat: 'coin', rect: [6, 6, 34, 34], fixed: 1 },
+    GOAL: { cat: 'goal', rect: [0, 0, 40, 40], fixed: 1 }
+};
+['CUBE_PORTAL','SHIP_PORTAL','BALL_PORTAL','UFO_PORTAL','WAVE_PORTAL','ROBOT_PORTAL','SPIDER_PORTAL','SWING_PORTAL','AIRPLANE_PORTAL',
+ 'GRAV_DOWN_PORTAL','GRAV_UP_PORTAL','MINI_PORTAL','BIG_PORTAL','SPEED_05','SPEED_1','SPEED_2','SPEED_3','SPEED_4']
+    .forEach(t => OBJ[t] = { cat: 'portal', rect: PORTAL_R, fixed: 1 });
+
+function rotPt(u, v, rot) {
+    let r = (((rot || 0) % 360) + 360) % 360;
+    for (let i = 0; i < Math.round(r / 90); i++) { const t = u; u = v; v = -t; }
+    return [u, v];
+}
+function objRect(o) {
+    const d = OBJ[o.type];
+    const [a, b, c, e] = d.rect;
+    const rot = d.fixed ? 0 : (o.rotation || 0);
+    const p1 = rotPt(a - 20, b - 20, rot), p2 = rotPt(c - 20, e - 20, rot);
+    return {
+        x0: o.x + 20 + Math.min(p1[0], p2[0]), x1: o.x + 20 + Math.max(p1[0], p2[0]),
+        y0: o.y + 20 + Math.min(p1[1], p2[1]), y1: o.y + 20 + Math.max(p1[1], p2[1])
+    };
+}
+
+// Превращает JSON уровня в готовую к игре структуру
+function normalizeLevel(data) {
+    if (Array.isArray(data)) data = { objects: data };
+    data = data || {};
+    return {
+        name: data.name || 'Мой уровень',
+        color: data.color || '#2563eb',
+        song: data.song || 0,
+        objects: (data.objects || []).filter(o => o && OBJ[o.type]).map(o => ({
+            type: o.type, x: Math.round(o.x / GRID) * GRID, y: Math.round(o.y / GRID) * GRID, rotation: o.rotation || 0
+        }))
+    };
+}
+function prepareLevel(data) {
+    const lv = normalizeLevel(data);
+    const objs = lv.objects.map((o, i) => {
+        const d = OBJ[o.type];
+        return { id: i, type: o.type, x: o.x, y: o.y, rotation: o.rotation, cat: d.cat, kind: d.kind, circle: d.circle, rect: objRect(o) };
+    }).sort((a, b) => a.rect.x0 - b.rect.x0);
+    const goal = objs.find(o => o.type === 'GOAL');
+    const maxX = objs.reduce((m, o) => Math.max(m, o.rect.x1), 600);
+    let startY = 0;
+    objs.forEach(o => { if (o.cat === 'solid' && o.rect.x0 <= 3 && o.rect.x1 >= 20) startY = Math.max(startY, o.rect.y1); });
+    return {
+        name: lv.name, color: lv.color, song: lv.song, objs,
+        goalX: goal ? goal.x : maxX + 320,
+        coinTotal: objs.filter(o => o.cat === 'coin').length,
+        startY
+    };
+}
+function queryNear(L, x0, x1) {
+    const a = L.objs; let lo = 0, hi = a.length;
+    const key = x0 - 60;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (a[m].rect.x0 < key) lo = m + 1; else hi = m; }
+    const out = [];
+    for (let i = lo; i < a.length && a[i].rect.x0 <= x1; i++) out.push(a[i]);
+    return out;
+}
+
+function pSize(s) {
+    if (s.mode === 'wave') return s.mini ? 10 : 16;
+    return s.mini ? 20 : 34;
+}
+function initState(L) {
+    return {
+        x: 3, y: L.startY, vy: 0, mode: 'cube', g: 1, mini: false, speed: 1,
+        grounded: true, prevHeld: false, buf: 0, robotT: 0, lane: 0,
+        floor: 0, ceil: null, used: [], coins: [], dead: false, won: false, rot: 0, frame: 0, fx: null
+    };
+}
+function overlaps(a, x0, y0, x1, y1) { return x1 > a.x0 && x0 < a.x1 && y1 > a.y0 && y0 < a.y1; }
+
+function setSizeKeepCenter(s, fn) {
+    const before = pSize(s); fn(); const after = pSize(s);
+    s.y += (before - after) / 2;
+}
+
+function applyOrb(s, kind) {
+    const m = s.mini ? 0.8 : 1;
+    const G = s.g;
+    if (kind === 'yellow') s.vy = G * 12.9 * m;
+    else if (kind === 'pink') s.vy = G * 9.2 * m;
+    else if (kind === 'red') s.vy = G * 16.5 * m;
+    else if (kind === 'blue') { s.g = -s.g; s.vy = -s.g * 4; }
+    else if (kind === 'green') { s.g = -s.g; s.vy = s.g * 12.9 * m; }
+    else if (kind === 'black') s.vy = -G * 18;
+    s.grounded = false; s.robotT = 0;
+    if (s.mode === 'ship' || s.mode === 'swing' || s.mode === 'ufo') s.vy *= 0.6;
+}
+function applyPad(s, kind) {
+    const m = s.mini ? 0.8 : 1;
+    const G = s.g;
+    if (kind === 'blue') { s.g = -s.g; s.vy = -s.g * 8; }
+    else if (s.mode === 'ship' || s.mode === 'wave') return false;
+    else if (kind === 'yellow') s.vy = G * 16.8 * m;
+    else if (kind === 'pink') s.vy = G * 11 * m;
+    else if (kind === 'red') s.vy = G * 21 * m;
+    if (s.mode === 'ufo' || s.mode === 'swing') s.vy *= 0.7;
+    s.grounded = false; s.robotT = 0;
+    return true;
+}
+
+// ОДИН КАДР ФИЗИКИ. Чистая функция: (состояние, зажата ли кнопка, уровень) -> новое состояние
+function step(p, held, L) {
+    const s = Object.assign({}, p);
+    if (s.dead || s.won) return s;
+    s.frame++;
+    s.fx = null;
+    const press = held && !s.prevHeld;
+    s.prevHeld = held;
+    if (press) s.buf = 6; else if (s.buf > 0) s.buf--;
+    if (!held) s.buf = 0;
+
+    const vx = BASE_SPEED * s.speed;
+    let size = pSize(s);
+    let near = queryNear(L, s.x - 20, s.x + size + 60);
+    let acted = false;
+
+    // --- Орбы (по клику, с небольшим буфером) ---
+    if (s.buf > 0 && s.mode !== 'airplane') {
+        for (const o of near) {
+            if (o.cat !== 'orb' || s.used.includes(o.id)) continue;
+            if (s.mode === 'wave' && o.kind !== 'blue' && o.kind !== 'green') continue;
+            if (overlaps(o.rect, s.x, s.y, s.x + size, s.y + size)) {
+                applyOrb(s, o.kind);
+                s.used = s.used.concat(o.id);
+                s.buf = 0; acted = true; s.fx = { t: 'orb', kind: o.kind, x: o.x + 20, y: o.y + 20 };
+                break;
+            }
         }
-        document.getElementById('btnLangToggle').addEventListener('click', toggleLanguage);
+    }
 
-        class MusicEngine {
-            constructor() {
-                this.ctx = null;
-                this.enabled = true;
-                this.timer = null;
-                this.step = 0;
-            }
-            start() {
-                if (!this.enabled) return;
-                if (!this.ctx) {
-                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (this.ctx.state === 'suspended') {
-                    this.ctx.resume();
-                }
-                if (this.timer) return;
-
-                const melody = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 440.00, 523.25];
-                this.timer = setInterval(() => {
-                    if (!this.enabled || !this.ctx) return;
-                    try {
-                        const osc = this.ctx.createOscillator();
-                        const gain = this.ctx.createGain();
-                        osc.type = 'square';
-                        osc.frequency.setValueAtTime(melody[this.step % melody.length], this.ctx.currentTime);
-                        gain.gain.setValueAtTime(0.03, this.ctx.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.18);
-                        osc.connect(gain);
-                        gain.connect(this.ctx.destination);
-                        osc.start();
-                        osc.stop(this.ctx.currentTime + 0.18);
-                        this.step++;
-                    } catch(e){}
-                }, 160);
-            }
-            stop() {
-                if (this.timer) {
-                    clearInterval(this.timer);
-                    this.timer = null;
-                }
-            }
-            toggle() {
-                this.enabled = !this.enabled;
-                if (this.enabled) {
-                    this.start();
+    // --- Управление в зависимости от режима ---
+    const mm = s.mini ? 0.8 : 1;
+    switch (s.mode) {
+        case 'cube': {
+            if (held && s.grounded && !acted) { s.vy = s.g * 12.9 * mm; s.grounded = false; s.fx = s.fx || { t: 'jump' }; }
+            s.vy -= s.g * 0.95;
+            if (s.vy * s.g < -15) s.vy = -15 * s.g;
+            break;
+        }
+        case 'ship': {
+            s.vy += held ? s.g * 0.5 : -s.g * 0.42;
+            const lim = s.mini ? 6 : 7.5;
+            s.vy = Math.max(-lim, Math.min(lim, s.vy));
+            break;
+        }
+        case 'ball': {
+            if (press && s.grounded && !acted) { s.g = -s.g; s.vy = -s.g * 4; s.grounded = false; s.fx = { t: 'flip' }; }
+            s.vy -= s.g * 0.85;
+            s.vy = Math.max(-12, Math.min(12, s.vy));
+            break;
+        }
+        case 'ufo': {
+            if (press && !acted) { s.vy = s.g * (s.mini ? 8 : 9.5); s.fx = { t: 'jump' }; }
+            s.vy -= s.g * 0.62;
+            if (s.vy * s.g < -9) s.vy = -9 * s.g;
+            break;
+        }
+        case 'wave': {
+            s.vy = (held ? 1 : -1) * s.g * vx * (s.mini ? 2 : 1);
+            break;
+        }
+        case 'robot': {
+            if (held && s.grounded && !acted) { s.vy = s.g * 7.5 * mm; s.robotT = 14; s.grounded = false; s.fx = { t: 'jump' }; }
+            else if (held && s.robotT > 0) { s.vy = s.g * 7.5 * mm; s.robotT--; }
+            if (!held) s.robotT = 0;
+            s.vy -= s.g * 0.95;
+            if (s.vy * s.g < -15) s.vy = -15 * s.g;
+            break;
+        }
+        case 'spider': {
+            if (press && s.grounded && !acted) {
+                const fromY = s.y;
+                if (s.g === 1) {
+                    let best = s.ceil != null ? s.ceil : Infinity;
+                    for (const o of near) if (o.cat === 'solid' && o.rect.x1 > s.x && o.rect.x0 < s.x + size && o.rect.y0 >= s.y + size - 0.5) best = Math.min(best, o.rect.y0);
+                    if (best !== Infinity) s.y = best - size;
                 } else {
-                    this.stop();
+                    let best = s.floor;
+                    for (const o of near) if (o.cat === 'solid' && o.rect.x1 > s.x && o.rect.x0 < s.x + size && o.rect.y1 <= s.y + 0.5) best = Math.max(best, o.rect.y1);
+                    s.y = best;
                 }
-                return this.enabled;
+                s.g = -s.g; s.vy = 0; s.fx = { t: 'spider', from: fromY };
             }
+            s.vy -= s.g * 0.95;
+            if (s.vy * s.g < -15) s.vy = -15 * s.g;
+            break;
         }
+        case 'swing': {
+            if (press && !acted) { s.g = -s.g; s.vy *= 0.5; s.fx = { t: 'flip' }; }
+            s.vy -= s.g * 0.5;
+            s.vy = Math.max(-7, Math.min(7, s.vy));
+            break;
+        }
+        case 'airplane': {
+            if (press) { s.lane = (s.lane + 1) % 3; s.fx = { t: 'jump' }; }
+            const target = s.floor + [10, 110, 220][s.lane];
+            s.vy = (target - s.y) * 0.25;
+            break;
+        }
+    }
 
-        const music = new MusicEngine();
-        document.getElementById('btnMusicToggle').addEventListener('click', () => {
-            const state = music.toggle();
-            document.getElementById('btnMusicToggle').innerHTML = state 
-                ? (currentLang === 'ru' ? '🎵 Музыка: Вкл' : '🎵 Music: On') 
-                : (currentLang === 'ru' ? '🔇 Музыка: Выкл' : '🔇 Music: Off');
-        });
+    // --- Движение ---
+    const prevY = s.y;
+    s.y += s.vy;
+    s.x += vx;
 
-        class SoundFX {
-            constructor() {
-                this.ctx = null;
-                this.enabled = true;
+    // --- Твёрдые блоки ---
+    s.grounded = false;
+    near = queryNear(L, s.x - 20, s.x + size + 20);
+    for (const o of near) {
+        if (o.cat !== 'solid') continue;
+        const r = o.rect;
+        if (!(s.x + size > r.x0 + 0.01 && s.x < r.x1 - 0.01 && s.y + size > r.y0 + 0.01 && s.y < r.y1 - 0.01)) continue;
+        if (s.mode === 'airplane') { s.dead = true; break; }
+        const tol = 9;
+        if (prevY >= r.y1 - tol && s.vy <= 0.01) {
+            s.y = r.y1; if (s.vy < 0) s.vy = 0; if (s.g === 1) s.grounded = true;
+        } else if (prevY + size <= r.y0 + tol && s.vy >= -0.01) {
+            s.y = r.y0 - size; if (s.vy > 0) s.vy = 0; if (s.g === -1) s.grounded = true;
+        } else { s.dead = true; break; }
+    }
+    if (s.dead) return s;
+
+    // --- Пол и потолок ---
+    if (s.y < s.floor) { s.y = s.floor; if (s.vy < 0) s.vy = 0; if (s.g === 1) s.grounded = true; }
+    if (s.ceil != null && s.y + size > s.ceil) { s.y = s.ceil - size; if (s.vy > 0) s.vy = 0; if (s.g === -1) s.grounded = true; }
+    if (s.y > 2400) { s.dead = true; return s; }
+
+    // --- Шипы, пилы, батуты, порталы, монеты ---
+    const inset = s.mode === 'wave' ? 0 : size * 0.16;
+    const hx0 = s.x + inset, hy0 = s.y + inset, hx1 = s.x + size - inset, hy1 = s.y + size - inset;
+    for (const o of near) {
+        if (o.cat === 'hazard') {
+            if (o.circle) {
+                const cx = o.x + 20, cy = o.y + 20;
+                const nx = Math.max(hx0, Math.min(cx, hx1)), ny = Math.max(hy0, Math.min(cy, hy1));
+                if ((nx - cx) ** 2 + (ny - cy) ** 2 < o.circle * o.circle) { s.dead = true; return s; }
+            } else if (overlaps(o.rect, hx0, hy0, hx1, hy1)) { s.dead = true; return s; }
+        } else if (s.used.includes(o.id)) {
+            continue;
+        } else if (o.cat === 'pad') {
+            if (s.mode !== 'airplane' && overlaps(o.rect, s.x, s.y, s.x + size, s.y + size)) {
+                if (applyPad(s, o.kind)) { s.used = s.used.concat(o.id); s.fx = { t: 'pad', kind: o.kind, x: o.x + 20, y: o.y + 5 }; }
             }
-            init() {
-                if (!this.ctx) {
-                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        } else if (o.cat === 'portal') {
+            if (!overlaps(o.rect, s.x, s.y, s.x + size, s.y + size)) continue;
+            s.used = s.used.concat(o.id);
+            const t = o.type;
+            if (MODE_PORTALS[t]) {
+                const nm = MODE_PORTALS[t];
+                if (nm !== s.mode) {
+                    setSizeKeepCenter(s, () => { s.mode = nm; });
+                    s.robotT = 0; s.lane = 0; s.rot = 0;
+                    if (nm !== 'cube' && nm !== 'robot') s.vy *= 0.5;
                 }
-                if (this.ctx.state === 'suspended') {
-                    this.ctx.resume();
-                }
-                music.start();
+                if (CORRIDOR_MODES[nm]) {
+                    s.floor = Math.max(0, Math.round((o.y + 20 - CORRIDOR / 2) / GRID) * GRID);
+                    s.ceil = s.floor + CORRIDOR;
+                    if (s.y < s.floor) s.y = s.floor;
+                    if (s.y + pSize(s) > s.ceil) s.y = s.ceil - pSize(s);
+                } else { s.floor = 0; s.ceil = null; }
+            } else if (t === 'GRAV_DOWN_PORTAL' || t === 'GRAV_UP_PORTAL') {
+                const ng = t === 'GRAV_UP_PORTAL' ? -1 : 1;
+                if (ng !== s.g) { s.g = ng; s.vy *= 0.5; s.grounded = false; }
+            } else if (t === 'MINI_PORTAL' || t === 'BIG_PORTAL') {
+                setSizeKeepCenter(s, () => { s.mini = t === 'MINI_PORTAL'; });
+            } else if (SPEEDS[t]) {
+                s.speed = SPEEDS[t];
             }
-            playTone(freq, duration, type = 'sine', gainVal = 0.1) {
-                if (!this.enabled || !this.ctx) return;
-                try {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.type = type;
-                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                    gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start();
-                    osc.stop(this.ctx.currentTime + duration);
-                } catch(e){}
-            }
-            playJump() { this.playTone(400, 0.12, 'square', 0.08); }
-            playPad() { this.playTone(600, 0.2, 'triangle', 0.1); }
-            playOrb() { this.playTone(900, 0.25, 'sine', 0.12); }
-            playExplode() { this.playTone(100, 0.3, 'sawtooth', 0.15); }
-            playWin() {
-                if (!this.enabled || !this.ctx) return;
-                [440, 554.37, 659.25, 880].forEach((f, i) => {
-                    setTimeout(() => this.playTone(f, 0.25, 'sine', 0.1), i * 100);
-                });
+            s.fx = { t: 'portal', type: t, x: o.x + 20, y: o.y + 20 };
+            size = pSize(s);
+        } else if (o.cat === 'coin') {
+            if (overlaps(o.rect, s.x, s.y, s.x + size, s.y + size)) {
+                s.used = s.used.concat(o.id); s.coins = s.coins.concat(o.id);
+                s.fx = { t: 'coin', x: o.x + 20, y: o.y + 20 };
             }
         }
+    }
 
-        const sound = new SoundFX();
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+    // --- Финиш ---
+    if (s.x + size >= L.goalX) s.won = true;
 
-        const GRID_SIZE = 40;
-        const BASE_GRAVITY = 0.65;
-        const JUMP_FORCE = -10.2;
-        const PAD_FORCE = -14.5;
-        const ORB_FORCE = -11.0;
-        const GAME_SPEED = 6.5;
+    // --- Красивое вращение ---
+    if (s.mode === 'cube') {
+        if (!s.grounded) s.rot += 7.4 * s.g * s.speed;
+        else s.rot = Math.round(s.rot / 90) * 90;
+    } else if (s.mode === 'ball') s.rot += vx * 1.6 * s.g;
+    else if (s.mode === 'ship' || s.mode === 'wave') s.rot = -Math.atan2(s.vy, vx) * 180 / Math.PI;
+    else if (s.mode === 'swing') s.rot = -s.vy * 3;
+    else if (s.mode === 'airplane') s.rot = -s.vy * 2;
+    else s.rot = 0;
+    return s;
+}
 
-        let currentMode = 'EDITOR'; 
-        let isRunning = false;
-        let attemptCount = 1;
-        let editorCameraX = 0;
-        let activeTab = 'ORBS';
-        let activeTool = 'ORB';
-        let currentRotation = 0;
-        let isJumpHeld = false;
-
-        const tabsData = {
-            ORBS: [
-                { id: 'ORB', icon: '🟡', ru: 'Орб', en: 'Jump Orb' },
-                { id: 'GRAVITY_ORB', icon: '⚪', ru: 'Грави-Орб', en: 'Grav-Orb' },
-                { id: 'PAD', icon: '🟨', ru: 'Батут', en: 'Jump Pad' },
-                { id: 'AIRPLANE_PORTAL', icon: '✈️', ru: 'Портал Самолётика', en: 'Airplane Portal' },
-                { id: 'CUBE_PORTAL', icon: '🟩', ru: 'Портал Кубика', en: 'Cube Portal' }
-            ],
-            SPIKES: [
-                { id: 'SPIKE', icon: '🔺', ru: 'Шип', en: 'Spike' }
-            ],
-            CUBES: [
-                { id: 'BLOCK', icon: '⬛', ru: 'Блок', en: 'Block' }
-            ],
-            FINISHES: [
-                { id: 'GOAL', icon: '🏁', ru: 'Финиш', en: 'Goal' }
-            ],
-            DELETE: [
-                { id: 'ERASER', icon: '❌', ru: 'Удалитель', en: 'Eraser' }
-            ]
-        };
-
-        function renderToolBar() {
-            const container = document.getElementById('tabContentContainer');
-            container.innerHTML = '';
-            const tools = tabsData[activeTab] || [];
-
-            tools.forEach(t => {
-                const btn = document.createElement('button');
-                btn.className = `tool-btn px-3 py-2 rounded-xl border border-zinc-700 bg-zinc-800 text-xs font-bold flex items-center gap-2 transition shrink-0 ${activeTool === t.id ? 'tool-active' : 'text-zinc-300 hover:bg-zinc-700'}`;
-                btn.dataset.tool = t.id;
-                btn.innerHTML = `<span class="text-base">${t.icon}</span> <span>${currentLang === 'ru' ? t.ru : t.en}</span>`;
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('tool-active'));
-                    btn.classList.add('tool-active');
-                    activeTool = t.id;
-                });
-                container.appendChild(btn);
-            });
-        }
-
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
-                btn.classList.add('tab-active');
-                activeTab = btn.dataset.tab;
-                const firstTool = tabsData[activeTab][0].id;
-                activeTool = firstTool;
-                renderToolBar();
-            });
-        });
-
-        renderToolBar();
-
-        const player = {
-            x: 0,
-            y: 0,
-            vx: GAME_SPEED,
-            vy: 0,
-            size: 34,
-            rotation: 0,
-            isGrounded: false,
-            mode: 'cube',
-            gravityDir: 1,
-            airplaneLane: 0,
-            trail: []
-        };
-
-        let levelObjects = [];
-        let particles = [];
-
-        function resizeCanvas() {
-            const rect = canvas.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        function getGroundY() {
-            return canvas.height - 80;
-        }
-
-        function resetPlayer() {
-            const gy = getGroundY();
-            let highestBlockY = gy;
-            
-            levelObjects.forEach(obj => {
-                if (obj.type === 'BLOCK' && obj.x === 0) {
-                    const blockTop = gy - obj.y - (obj.h || 40);
-                    if (blockTop < highestBlockY) {
-                        highestBlockY = blockTop;
-                    }
-                }
-            });
-
-            player.x = (GRID_SIZE - player.size) / 2;
-            player.y = highestBlockY - player.size;
-            player.vx = GAME_SPEED;
-            player.vy = 0;
-            player.rotation = 0;
-            player.isGrounded = true;
-            player.mode = 'cube';
-            player.gravityDir = 1;
-            player.airplaneLane = 0;
-            player.trail = [];
-            levelObjects.forEach(o => o.used = false);
-            document.getElementById('winModal').classList.add('hidden');
-        }
-
-        function triggerGravityOrb(orbObj) {
-            player.gravityDir *= -1;
-            player.vy = player.gravityDir * -5;
-            player.isGrounded = false;
-            sound.playOrb();
-            createParticles(orbObj.x + 20, getGroundY() - orbObj.y - 20, '#ffffff', 14);
-        }
-
-        function triggerJumpOrb(orbObj) {
-            player.vy = ORB_FORCE * player.gravityDir;
-            player.isGrounded = false;
-            sound.playOrb();
-            createParticles(orbObj.x + 20, getGroundY() - orbObj.y - 20, '#ffe600', 12);
-        }
-
-        function isLaneSafe(lane, futureX) {
-            const gy = getGroundY();
-            const laneHeights = [20, 120, 240];
-            const targetY = gy - player.size - laneHeights[lane];
-            const ps = player.size;
-
-            for (let obj of levelObjects) {
-                const oy = gy - obj.y - (obj.h || 40);
-                const bw = obj.w || 40;
-                const bh = obj.h || 40;
-
-                if (obj.type === 'BLOCK' || obj.type === 'SPIKE') {
-                    if (futureX + ps > obj.x && futureX < obj.x + bw) {
-                        if (targetY + ps > oy && targetY < oy + bh) {
-                            return false;
-                        }
-                    }
-                }
+// ===== ИИ 3.0: просчитывает будущее и ищет последовательность нажатий, при которой не умрёт =====
+const AI_CHUNK = 4, AI_DEPTH = 13;
+function aiSearch(s0, L, prevPlan, budgetMax) {
+    let budget = budgetMax || 5000;
+    let best = { len: -1, plan: [false] };
+    const plan = [];
+    function dfs(s, depth) {
+        if (depth === AI_DEPTH || s.won) return true;
+        if (budget-- <= 0) return false;
+        const pref = prevPlan && prevPlan[depth] !== undefined ? prevPlan[depth] : false;
+        for (const a of [pref, !pref]) {
+            let t = s, ok = true;
+            for (let i = 0; i < AI_CHUNK; i++) { t = step(t, a, L); if (t.dead) { ok = false; break; } }
+            plan[depth] = a;
+            if (ok) {
+                if (depth + 1 > best.len) best = { len: depth + 1, plan: plan.slice(0, depth + 1) };
+                if (dfs(t, depth + 1)) return true;
             }
+        }
+        return false;
+    }
+    if (dfs(s0, 0)) return { plan: plan.slice(0, AI_DEPTH), safe: true };
+    return { plan: best.plan, safe: false };
+}
+</script>
+
+<!-- =====================================================================
+     ОФИЦИАЛЬНЫЕ УРОВНИ. Временные уровни — замени их своими JSON-ами:
+     просто вставь { name, color, song, difficulty, objects: [...] }.
+     ===================================================================== -->
+<script id="officialLevels">
+function buildLevel(fn) {
+    const o = [];
+    const api = {
+        add: (type, cx, cy = 0, rot = 0) => o.push({ type, x: cx * 40, y: cy * 40, rotation: rot }),
+        col: (cx, from, to) => { for (let y = from; y <= to; y++) o.push({ type: 'BLOCK', x: cx * 40, y: y * 40, rotation: 0 }); },
+        row: (x0, x1, cy, type = 'BLOCK', rot = 0) => { for (let x = x0; x <= x1; x++) o.push({ type, x: x * 40, y: cy * 40, rotation: rot }); }
+    };
+    fn(api);
+    return o;
+}
+const OFFICIAL_LEVELS = [
+    {
+        name: 'Первые шаги', nameEn: 'First Steps', difficulty: 1, color: '#2563eb', song: 0,
+        objects: buildLevel(({ add, col, row }) => {
+            add('SPIKE', 14); add('SPIKE', 22); add('SPIKE', 23);
+            row(30, 34, 0); add('SPIKE', 38);
+            col(44, 0, 0); col(45, 0, 0); col(46, 0, 1); col(47, 0, 1); col(48, 0, 1); add('SPIKE', 51);
+            add('PAD', 57); row(59, 63, 0); col(60, 1, 1); col(61, 1, 1); col(62, 1, 1); col(63, 1, 1); add('COIN', 61, 4);
+            row(68, 72, 0, 'SPIKE'); add('ORB', 70, 2);
+            add('SHIP_PORTAL', 79, 1);
+            col(86, 0, 3); col(87, 0, 3); col(94, 6, 9); col(95, 6, 9); col(102, 0, 4); col(103, 0, 4); add('COIN', 106, 8);
+            col(110, 5, 9); col(111, 5, 9);
+            add('CUBE_PORTAL', 118, 1);
+            add('SPIKE', 126); add('SPIKE', 127); row(134, 136, 0); add('SPIKE', 137); add('SPIKE', 138);
+            add('GOAL', 148);
+        })
+    },
+    {
+        name: 'Гравитация', nameEn: 'Gravity', difficulty: 2, color: '#9333ea', song: 1,
+        objects: buildLevel(({ add, col, row }) => {
+            add('SPIKE', 14); add('SPIKE', 15); row(21, 24, 0); add('SPIKE', 27);
+            add('BALL_PORTAL', 32, 1);
+            add('SPIKE', 38); add('SPIKE', 39); add('SPIKE', 45, 9, 180); add('SPIKE', 46, 9, 180);
+            add('SPIKE', 52); add('SPIKE', 53); add('SPIKE', 59, 9, 180); add('SPIKE', 60, 9, 180); add('COIN', 56, 4);
+            add('UFO_PORTAL', 66, 1);
+            col(72, 0, 2); col(79, 7, 9); col(86, 0, 3); col(93, 6, 9); add('COIN', 89, 7);
+            add('GRAV_UP_PORTAL', 99, 4); col(105, 6, 9); add('GRAV_DOWN_PORTAL', 111, 4);
+            add('CUBE_PORTAL', 117, 1);
+            add('SPIKE', 124); add('PINK_PAD', 130); add('SPIKE', 131); add('SPIKE', 132); add('COIN', 140, 3); add('GRAVITY_ORB', 140, 1);
+            add('GOAL', 150);
+        })
+    },
+    {
+        name: 'Волна', nameEn: 'The Wave', difficulty: 3, color: '#059669', song: 2,
+        objects: buildLevel(({ add, col, row }) => {
+            add('SPIKE', 12); add('SPEED_2', 17, 1); add('SPIKE', 23); add('SPIKE', 24);
+            add('WAVE_PORTAL', 30, 1);
+            col(37, 0, 4); col(45, 5, 9); col(53, 0, 4); col(61, 5, 9); add('COIN', 57, 8);
+            add('MINI_PORTAL', 66, 4);
+            col(71, 0, 5); col(77, 4, 9); col(83, 0, 5);
+            add('BIG_PORTAL', 88, 5);
+            add('SAW', 94, 2); add('SAW', 98, 7); add('COIN', 98, 2);
+            add('SPEED_1', 103, 4); add('ROBOT_PORTAL', 104, 1);
+            col(110, 0, 1); col(111, 0, 1); add('SPIKE', 114); add('SPIKE', 115); add('SPIKE', 116);
+            col(121, 0, 1); col(122, 0, 1); col(123, 0, 1); add('SPIKE', 124);
+            add('GOAL', 132);
+        })
+    },
+    {
+        name: 'Механизмы', nameEn: 'Machinery', difficulty: 4, color: '#dc2626', song: 3,
+        objects: buildLevel(({ add, col, row }) => {
+            add('ROBOT_PORTAL', 6, 1);
+            col(14, 0, 1); row(15, 18, 1); add('SPIKE', 21); add('SPIKE', 22); add('SMALL_SPIKE', 28); add('SMALL_SPIKE', 29);
+            add('SPIDER_PORTAL', 34, 1);
+            row(40, 43, 0, 'SPIKE'); row(48, 51, 9, 'SPIKE', 180); row(56, 59, 0, 'SPIKE'); add('COIN', 54, 8); row(63, 64, 9, 'SPIKE', 180);
+            add('SWING_PORTAL', 68, 1);
+            col(74, 0, 3); col(81, 6, 9); col(88, 0, 3); add('SAW', 94, 9); add('SAW', 94, 0); add('COIN', 94, 5);
+            col(98, 4, 9); add('CUBE_PORTAL', 101, 1);
+            row(107, 113, 0, 'SPIKE'); add('RED_ORB', 109, 2);
+            row(119, 121, 0, 'SPIKE'); add('PINK_ORB', 119, 2); add('SPIKE', 122); add('SPIKE', 123);
+            add('GROUND_SPIKES', 128); add('GROUND_SPIKES', 129); add('COIN', 133, 2);
+            add('GOAL', 142);
+        })
+    },
+    {
+        name: 'Финальный рывок', nameEn: 'Final Rush', difficulty: 5, color: '#f59e0b', song: 4,
+        objects: buildLevel(({ add, col, row }) => {
+            add('SPEED_3', 5, 1);
+            add('SPIKE', 14); add('SPIKE', 15); row(22, 25, 0); add('SPIKE', 28); add('SPIKE', 29);
+            add('SPEED_2', 33, 1); add('SHIP_PORTAL', 35, 1);
+            col(45, 0, 4); col(55, 5, 9); col(65, 0, 4); col(75, 5, 9); add('COIN', 70, 8);
+            col(80, 0, 1); add('WAVE_PORTAL', 83, 2);
+            col(92, 0, 4); col(101, 5, 9); col(110, 0, 4); col(117, 3, 9);
+            add('SPEED_3', 120, 1); add('BALL_PORTAL', 121, 1); row(128, 129, 0, 'SPIKE'); row(136, 137, 9, 'SPIKE', 180); add('COIN', 132, 5);
+            add('SPIDER_PORTAL', 143, 1); row(149, 152, 0, 'SPIKE'); row(158, 161, 9, 'SPIKE', 180);
+            add('SWING_PORTAL', 167, 1); col(175, 0, 2); col(184, 7, 9); col(193, 0, 2); col(196, 5, 9);
+            add('UFO_PORTAL', 200, 2); col(208, 0, 2); col(216, 7, 9); col(221, 3, 9); add('COIN', 219, 1);
+            add('ROBOT_PORTAL', 224, 1); col(231, 0, 1); add('SPIKE', 235); add('SPIKE', 236);
+            add('CUBE_PORTAL', 242, 1); add('SPIKE', 249); add('SPIKE', 250); add('SPIKE', 257);
+            add('GOAL', 266);
+        })
+    }
+];
+</script>
+
+<!-- ===================== ИНТЕРФЕЙС, РЕНДЕР, ЗВУК ===================== -->
+<script>
+    const store = {
+        get(k, d) { try { const v = localStorage.getItem('gai13_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+        set(k, v) { try { localStorage.setItem('gai13_' + k, JSON.stringify(v)); } catch (e) {} }
+    };
+    let currentLang = store.get('lang', 'ru');
+    const tr = (ru, en) => currentLang === 'ru' ? ru : en;
+    const $ = id => document.getElementById(id);
+
+    const MODE_NAMES = {
+        cube: ['КУБ', 'CUBE'], ship: ['КОРАБЛЬ', 'SHIP'], ball: ['ШАР', 'BALL'], ufo: ['НЛО', 'UFO'], wave: ['ВОЛНА', 'WAVE'],
+        robot: ['РОБОТ', 'ROBOT'], spider: ['ПАУК', 'SPIDER'], swing: ['КАЧЕЛИ', 'SWING'], airplane: ['САМОЛЁТИК', 'PLANE']
+    };
+    const DIFFS = [null,
+        { ru: 'Легко', en: 'Easy', face: '🙂', color: '#38bdf8' },
+        { ru: 'Нормально', en: 'Normal', face: '😐', color: '#4ade80' },
+        { ru: 'Сложно', en: 'Hard', face: '😠', color: '#facc15' },
+        { ru: 'Безумно', en: 'Insane', face: '😡', color: '#f472b6' },
+        { ru: 'Экстрим', en: 'Extreme', face: '👿', color: '#ef4444' }];
+    const ICON_COLORS = ['#ffffff', '#ffe600', '#3dff6e', '#33ccff', '#ff5fd2', '#ff8c1a', '#b266ff'];
+    let iconColor = store.get('iconColor', '#ffe600');
+
+    // ---------- Музыка ----------
+    const SONGS = [
+        { name: 'Classic', bpm: 160, notes: [261.63, 329.63, 392.0, 523.25, 392.0, 329.63, 440.0, 523.25] },
+        { name: 'Night Drive', bpm: 150, notes: [220, 0, 261.63, 220, 329.63, 0, 293.66, 261.63, 196, 0, 246.94, 196, 293.66, 0, 261.63, 246.94] },
+        { name: 'Green Wave', bpm: 175, notes: [329.63, 392, 493.88, 392, 587.33, 493.88, 392, 329.63, 369.99, 440, 554.37, 440, 659.25, 554.37, 440, 369.99] },
+        { name: 'Machinery', bpm: 180, notes: [146.83, 146.83, 293.66, 146.83, 174.61, 174.61, 349.23, 174.61, 130.81, 130.81, 261.63, 130.81, 196, 196, 392, 233.08] },
+        { name: 'Final Rush', bpm: 200, notes: [440, 523.25, 659.25, 880, 783.99, 659.25, 523.25, 587.33, 698.46, 880, 1046.5, 880, 698.46, 587.33, 523.25, 493.88] }
+    ];
+    class MusicEngine {
+        constructor() { this.ctx = null; this.enabled = store.get('music', true); this.timer = null; this.step = 0; this.song = 0; }
+        ensure() {
+            if (!this.ctx) { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return false; } }
+            if (this.ctx.state === 'suspended') this.ctx.resume();
             return true;
         }
-
-        function updateSmartAILogic() {
-            if (currentMode !== 'AI' || !isRunning) return;
-            const gy = getGroundY();
-
-            levelObjects.forEach(obj => {
-                const oy = gy - obj.y - (obj.h || 40);
-                if (obj.type === 'GRAVITY_ORB') {
-                    if (Math.abs(player.x - obj.x) < 45 && Math.abs(player.y - oy) < 55) {
-                        triggerGravityOrb(obj);
-                    }
-                } else if (obj.type === 'ORB' && !obj.used) {
-                    if (Math.abs(player.x - obj.x) < 45 && Math.abs(player.y - oy) < 55) {
-                        triggerJumpOrb(obj);
-                        obj.used = true;
-                    }
-                }
-            });
-
-            if (player.mode === 'cube' && player.isGrounded) {
-                let obstacleAhead = levelObjects.some(obj => {
-                    return (obj.type === 'SPIKE' || obj.type === 'BLOCK') && (obj.x - player.x > 0 && obj.x - player.x < 110);
-                });
-                if (obstacleAhead) {
-                    executeAction();
-                }
-            } else if (player.mode === 'airplane') {
-                let futureX = player.x + 60;
-                if (!isLaneSafe(player.airplaneLane, futureX)) {
-                    let candidateLanes = [
-                        (player.airplaneLane + 1) % 3,
-                        (player.airplaneLane + 2) % 3
-                    ];
-
-                    for (let candidate of candidateLanes) {
-                        if (isLaneSafe(candidate, futureX)) {
-                            player.airplaneLane = candidate;
-                            sound.playJump();
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        function executeAction() {
-            sound.init();
-            const gy = getGroundY();
-
-            let hitGravOrb = levelObjects.find(obj => {
-                const oy = gy - obj.y - (obj.h || 40);
-                return obj.type === 'GRAVITY_ORB' && Math.abs(player.x - obj.x) < 55 && Math.abs(player.y - oy) < 65;
-            });
-
-            if (hitGravOrb) {
-                triggerGravityOrb(hitGravOrb);
-                return;
-            }
-
-            let hitOrb = levelObjects.find(obj => {
-                const oy = gy - obj.y - (obj.h || 40);
-                return obj.type === 'ORB' && !obj.used && Math.abs(player.x - obj.x) < 55 && Math.abs(player.y - oy) < 65;
-            });
-
-            if (hitOrb) {
-                triggerJumpOrb(hitOrb);
-                hitOrb.used = true;
-                return;
-            }
-
-            if (player.mode === 'cube') {
-                if (player.isGrounded) {
-                    player.vy = JUMP_FORCE * player.gravityDir;
-                    player.isGrounded = false;
-                    sound.playJump();
-                    createParticles(player.x, player.y + (player.gravityDir === 1 ? player.size : 0), '#ffffff', 6);
-                }
-            } else if (player.mode === 'airplane') {
-                player.airplaneLane = (player.airplaneLane + 1) % 3;
-                sound.playJump();
-            }
-        }
-
-        function handleHeldInput() {
-            if (currentMode === 'PLAY' && isRunning && isJumpHeld && player.mode === 'cube' && player.isGrounded) {
-                executeAction();
-            }
-        }
-
-        function updatePhysics() {
-            if (!isRunning || currentMode === 'EDITOR') return;
-
-            updateSmartAILogic();
-            handleHeldInput();
-
-            const gy = getGroundY();
-
-            if (player.mode === 'cube') {
-                player.vy += BASE_GRAVITY * player.gravityDir;
-                player.y += player.vy;
-
-                if (player.gravityDir === 1 && player.y >= gy - player.size) {
-                    player.y = gy - player.size;
-                    player.vy = 0;
-                    player.isGrounded = true;
-                } else if (player.gravityDir === -1 && player.y <= 0) {
-                    player.y = 0;
-                    player.vy = 0;
-                    player.isGrounded = true;
-                } else {
-                    player.isGrounded = false;
-                }
-
-                if (!player.isGrounded) {
-                    player.rotation += 8.5 * player.gravityDir;
-                } else {
-                    player.rotation = Math.round(player.rotation / 90) * 90;
-                }
-            } else if (player.mode === 'airplane') {
-                const laneHeights = [20, 120, 240];
-                let targetY = gy - player.size - laneHeights[player.airplaneLane];
-                
-                player.y += (targetY - player.y) * 0.25;
-                player.vy = 0;
-                player.isGrounded = false;
-                player.rotation = (player.airplaneLane - 1) * 15;
-            }
-
-            player.x += player.vx;
-
-            if (Math.random() < 0.6) {
-                player.trail.push({ x: player.x + player.size/2, y: player.y + player.size/2, alpha: 0.6 });
-            }
-            player.trail.forEach(t => t.alpha -= 0.04);
-            player.trail = player.trail.filter(t => t.alpha > 0);
-
-            const px = player.x;
-            const py = player.y;
-            const ps = player.size;
-
-            let finishGate = levelObjects.find(o => o.type === 'GOAL');
-            let maxLevelX = finishGate ? finishGate.x : Math.max(...levelObjects.map(o => o.x), 1500);
-
-            levelObjects.forEach(obj => {
-                const oy = gy - obj.y - (obj.h || 40);
-
-                if (obj.type === 'BLOCK') {
-                    const bw = obj.w || 40;
-                    const bh = obj.h || 40;
-                    if (px + ps > obj.x && px < obj.x + bw && py + ps > oy && py < oy + bh) {
-                        if (player.mode === 'cube' && player.gravityDir === 1 && py + ps - player.vy <= oy + 12) {
-                            player.y = oy - ps;
-                            player.vy = 0;
-                            player.isGrounded = true;
-                        } else if (player.mode === 'cube' && player.gravityDir === -1 && py - player.vy >= oy + bh - 12) {
-                            player.y = oy + bh;
-                            player.vy = 0;
-                            player.isGrounded = true;
-                        } else {
-                            handleDeath('Столкновение с блоком');
-                        }
-                    }
-                } else if (obj.type === 'SPIKE') {
-                    if (px + ps - 8 > obj.x && px + 8 < obj.x + 40 && py + ps > oy && py + 8 < oy + 40) {
-                        handleDeath('Касание шипа');
-                    }
-                } else if (obj.type === 'PAD' && player.mode === 'cube') {
-                    if (px + ps > obj.x && px < obj.x + 40 && py + ps >= oy - 5 && py < oy + 20) {
-                        player.vy = PAD_FORCE * player.gravityDir;
-                        player.isGrounded = false;
-                        sound.playPad();
-                        createParticles(obj.x + 20, oy, '#ffe600', 10);
-                    }
-                } else if (obj.type === 'AIRPLANE_PORTAL') {
-                    if (px + ps > obj.x && px < obj.x + 40 && py + ps > oy && py < oy + 40) {
-                        if (player.mode !== 'airplane') {
-                            player.mode = 'airplane';
-                            player.airplaneLane = 0;
-                            createParticles(obj.x + 20, oy + 20, '#ff8c00', 15);
-                            sound.playOrb();
-                        }
-                    }
-                } else if (obj.type === 'CUBE_PORTAL') {
-                    if (px + ps > obj.x && px < obj.x + 40 && py + ps > oy && py < oy + 40) {
-                        if (player.mode !== 'cube') {
-                            player.mode = 'cube';
-                            player.vy = 0;
-                            createParticles(obj.x + 20, oy + 20, '#00ff66', 15);
-                            sound.playOrb();
-                        }
-                    }
-                } else if (obj.type === 'GOAL') {
-                    const goalHeight = obj.h || 40;
-                    const goalY = gy - obj.y - goalHeight;
-                    if (px + ps >= obj.x && px <= obj.x + (obj.w || 40) && py + ps >= goalY && py <= gy - obj.y) {
-                        handleWin();
-                    }
-                }
-            });
-
-            const progress = Math.min(100, Math.max(0, Math.floor((player.x / maxLevelX) * 100)));
-            document.getElementById('hudProgressBar').style.width = `${progress}%`;
-            document.getElementById('hudPercentText').innerText = `${progress}%`;
-
-            particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.alpha -= 0.025; });
-            particles = particles.filter(p => p.alpha > 0);
-        }
-
-        function handleDeath(reason) {
-            sound.playExplode();
-            createParticles(player.x + player.size/2, player.y + player.size/2, '#ffffff', 22);
-            attemptCount++;
-            document.getElementById('hudAttemptText').innerText = `#${attemptCount}`;
-            resetPlayer();
-        }
-
-        function handleWin() {
-            isRunning = false;
-            sound.playWin();
-            document.getElementById('hudProgressBar').style.width = `100%`;
-            document.getElementById('hudPercentText').innerText = `100%`;
-            document.getElementById('winModal').classList.remove('hidden');
-        }
-
-        function render() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const gy = getGroundY();
-            const cameraX = (currentMode === 'EDITOR') ? editorCameraX : (player.x - 150);
-
-            ctx.save();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-            ctx.lineWidth = 1;
-            const gridOffset = -(cameraX) % 40;
-            for (let x = gridOffset; x < canvas.width; x += 40) {
-                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-            }
-            for (let y = canvas.height; y > 0; y -= 40) {
-                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-            }
-            ctx.restore();
-
-            ctx.save();
-            ctx.translate(-cameraX, 0);
-
-            if (currentMode === 'EDITOR') {
-                let highestBlockY = gy;
-                levelObjects.forEach(obj => {
-                    if (obj.type === 'BLOCK' && obj.x === 0) {
-                        const blockTop = gy - obj.y - (obj.h || 40);
-                        if (blockTop < highestBlockY) highestBlockY = blockTop;
-                    }
-                });
-
-                const startCubeX = (GRID_SIZE - 34) / 2;
-                const startCubeY = highestBlockY - 34;
-
-                ctx.save();
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-                ctx.fillRect(0, highestBlockY - GRID_SIZE, GRID_SIZE, GRID_SIZE);
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([4, 4]);
-                ctx.strokeRect(0, highestBlockY - GRID_SIZE, GRID_SIZE, GRID_SIZE);
-
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-                ctx.fillRect(startCubeX, startCubeY, 34, 34);
-                ctx.strokeStyle = '#ffffff';
-                ctx.setLineDash([]);
-                ctx.strokeRect(startCubeX, startCubeY, 34, 34);
-
-                ctx.font = 'bold 10px JetBrains Mono';
-                ctx.fillStyle = '#ffffff';
-                ctx.fillText('СТАРТ', 2, highestBlockY - GRID_SIZE - 6);
-                ctx.restore();
-            }
-
-            if (isRunning && player.mode === 'airplane') {
-                ctx.strokeStyle = 'rgba(255, 140, 0, 0.4)';
-                ctx.setLineDash([6, 6]);
-                const laneHeights = [20, 120, 240];
-                for (let i = 0; i < 3; i++) {
-                    let laneY = gy - player.size - laneHeights[i];
-                    ctx.beginPath();
-                    ctx.moveTo(cameraX, laneY + player.size/2);
-                    ctx.lineTo(cameraX + canvas.width, laneY + player.size/2);
-                    ctx.stroke();
-                }
-                ctx.setLineDash([]);
-            }
-
-            levelObjects.forEach(obj => {
-                const oy = gy - obj.y - (obj.h || 40);
-                ctx.save();
-                ctx.translate(obj.x + 20, oy + 20);
-                ctx.rotate((obj.rotation || 0) * Math.PI / 180);
-
-                if (obj.type === 'BLOCK') {
-                    ctx.fillStyle = '#18181b';
-                    ctx.fillRect(-20, -20, 40, 40);
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(-19, -19, 38, 38);
-                } else if (obj.type === 'SPIKE') {
-                    ctx.beginPath();
-                    ctx.moveTo(-20, 20);
-                    ctx.lineTo(0, -20);
-                    ctx.lineTo(20, 20);
-                    ctx.closePath();
-                    ctx.fillStyle = '#000000';
-                    ctx.fill();
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                } else if (obj.type === 'PAD') {
-                    ctx.fillStyle = '#ffe600';
-                    ctx.fillRect(-20, 8, 40, 12);
-                    ctx.strokeStyle = '#000000';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(-20, 8, 40, 12);
-                } else if (obj.type === 'ORB') {
-                    ctx.beginPath();
-                    ctx.arc(0, 0, 14, 0, Math.PI * 2);
-                    ctx.fillStyle = obj.used ? '#475569' : '#ffe600';
-                    ctx.fill();
-                    ctx.strokeStyle = '#000000';
-                    ctx.lineWidth = 2.5;
-                    ctx.stroke();
-                } else if (obj.type === 'GRAVITY_ORB') {
-                    ctx.beginPath();
-                    ctx.arc(0, 0, 14, 0, Math.PI * 2);
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fill();
-                    ctx.strokeStyle = '#000000';
-                    ctx.lineWidth = 3;
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.arc(0, 0, 7, 0, Math.PI * 2);
-                    ctx.strokeStyle = '#000000';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                } else if (obj.type === 'AIRPLANE_PORTAL') {
-                    ctx.fillStyle = '#ff8c00';
-                    ctx.fillRect(-10, -25, 20, 50);
-                    ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(-10, -25, 20, 50);
-                    ctx.fillStyle = '#000';
-                    ctx.font = 'bold 8px monospace';
-                    ctx.fillText('AIR', -9, 3);
-                } else if (obj.type === 'CUBE_PORTAL') {
-                    ctx.fillStyle = '#00ff66';
-                    ctx.fillRect(-10, -25, 20, 50);
-                    ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(-10, -25, 20, 50);
-                    ctx.fillStyle = '#000';
-                    ctx.font = 'bold 8px monospace';
-                    ctx.fillText('CUBE', -12, 3);
-                } else if (obj.type === 'GOAL') {
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-                    ctx.fillRect(-20, -20, 40, 40);
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 3;
-                    ctx.strokeRect(-20, -20, 40, 40);
-                    ctx.font = '22px sans-serif';
-                    ctx.fillText('🏁', -12, 8);
-                }
-                ctx.restore();
-            });
-
-            if (currentMode !== 'EDITOR') {
-                player.trail.forEach(t => {
-                    ctx.fillStyle = `rgba(255, 255, 255, ${t.alpha})`;
-                    ctx.fillRect(t.x - 12, t.y - 12, 24, 24);
-                });
-
-                ctx.save();
-                ctx.translate(player.x + player.size/2, player.y + player.size/2);
-                ctx.rotate((player.rotation * Math.PI) / 180);
-
-                if (player.mode === 'cube') {
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(-player.size/2, -player.size/2, player.size, player.size);
-                    ctx.strokeStyle = '#000000';
-                    ctx.lineWidth = 2.5;
-                    ctx.strokeRect(-player.size/2, -player.size/2, player.size, player.size);
-                } else {
-                    ctx.fillStyle = '#ff8c00';
-                    ctx.beginPath();
-                    ctx.moveTo(-15, 10);
-                    ctx.lineTo(20, 0);
-                    ctx.lineTo(-15, -10);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                }
-                ctx.restore();
-            }
-
-            particles.forEach(p => {
-                ctx.fillStyle = p.color;
-                ctx.fillRect(p.x, p.y, p.size || 4, p.size || 4);
-            });
-
-            ctx.fillStyle = '#09090b';
-            ctx.fillRect(cameraX - 100, gy, canvas.width + 200, 80);
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(cameraX - 100, gy);
-            ctx.lineTo(cameraX + canvas.width + 100, gy);
-            ctx.stroke();
-
-            ctx.restore();
-        }
-
-        function createParticles(x, y, color, count = 8) {
-            for (let i = 0; i < count; i++) {
-                particles.push({
-                    x: x, y: y,
-                    vx: (Math.random() - 0.5) * 8,
-                    vy: (Math.random() - 0.5) * 8,
-                    color: color, alpha: 1
-                });
-            }
-        }
-
-        function loop() {
-            updatePhysics();
-            render();
-            requestAnimationFrame(loop);
-        }
-
-        canvas.addEventListener('mousedown', (e) => {
-            sound.init();
-            if (currentMode === 'EDITOR' && e.button === 0) {
-                const rect = canvas.getBoundingClientRect();
-                const clickX = e.clientX - rect.left + editorCameraX;
-                const clickY = getGroundY() - (e.clientY - rect.top);
-
-                const snapX = Math.floor(clickX / GRID_SIZE) * GRID_SIZE;
-                const snapY = Math.floor(clickY / GRID_SIZE) * GRID_SIZE;
-
-                if (activeTool === 'ERASER') {
-                    levelObjects = levelObjects.filter(o => {
-                        const objH = o.h || 40;
-                        const objW = o.w || 40;
-                        return !(clickX >= o.x && clickX <= o.x + objW && clickY >= o.y && clickY <= o.y + objH);
-                    });
-                } else if (snapX >= 0 && snapY >= 0) {
-                    levelObjects = levelObjects.filter(o => !(o.x === snapX && o.y === snapY));
-                    if (activeTool === 'GOAL') {
-                        levelObjects = levelObjects.filter(o => o.type !== 'GOAL');
-                        levelObjects.push({ type: 'GOAL', x: snapX, y: snapY, w: 40, h: 40, rotation: currentRotation });
-                    } else {
-                        levelObjects.push({ type: activeTool, x: snapX, y: snapY, w: 40, h: 40, rotation: currentRotation });
-                    }
-                }
-            } else if (currentMode === 'PLAY') {
-                isJumpHeld = true;
-                executeAction();
-            }
-        });
-
-        canvas.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            if (currentMode === 'EDITOR') {
-                const rect = canvas.getBoundingClientRect();
-                const clickX = e.clientX - rect.left + editorCameraX;
-                const clickY = getGroundY() - (e.clientY - rect.top);
-
-                const existingIndex = levelObjects.findIndex(o => {
-                    const objH = o.h || 40;
-                    const objW = o.w || 40;
-                    return clickX >= o.x && clickX <= o.x + objW && clickY >= o.y && clickY <= o.y + objH;
-                });
-                if (existingIndex !== -1) {
-                    levelObjects.splice(existingIndex, 1);
-                }
-            }
-        });
-
-        window.addEventListener('mouseup', () => { isJumpHeld = false; });
-
-        window.addEventListener('keydown', (e) => {
-            if ((e.code === 'Space' || e.code === 'ArrowUp') && currentMode === 'PLAY') {
-                if (!isJumpHeld) executeAction();
-                isJumpHeld = true;
-            }
-        });
-
-        window.addEventListener('keyup', (e) => {
-            if (e.code === 'Space' || e.code === 'ArrowUp') isJumpHeld = false;
-        });
-
-        function setMode(mode) {
-            currentMode = mode;
-            isRunning = false;
-            isJumpHeld = false;
-
-            const modeEditorBtn = document.getElementById('modeEditorBtn');
-            const modePlayBtn = document.getElementById('modePlayBtn');
-            const modeAIBtn = document.getElementById('modeAIBtn');
-            const editorControls = document.getElementById('editorScrollControls');
-            const bottomBar = document.getElementById('bottomEditorBar');
-            const playControls = document.getElementById('playControlsOverlay');
-            const aiLogs = document.getElementById('aiLogContainer');
-            const hudText = document.getElementById('hudModeText');
-
-            [modeEditorBtn, modePlayBtn, modeAIBtn].forEach(b => {
-                b.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-zinc-400 hover:text-white';
-            });
-
-            if (mode === 'EDITOR') {
-                modeEditorBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-black shadow-md';
-                editorControls.classList.remove('hidden');
-                bottomBar.classList.remove('hidden');
-                playControls.classList.add('hidden');
-                aiLogs.classList.add('hidden');
-                hudText.innerText = currentLang === 'ru' ? 'РЕДАКТОР' : 'EDITOR';
-                document.getElementById('winModal').classList.add('hidden');
-            } else if (mode === 'PLAY') {
-                modePlayBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-black shadow-md';
-                editorControls.classList.add('hidden');
-                bottomBar.classList.add('hidden');
-                playControls.classList.remove('hidden');
-                aiLogs.classList.add('hidden');
-                hudText.innerText = currentLang === 'ru' ? 'ИГРА' : 'PLAY';
-                resetPlayer();
-            } else if (mode === 'AI') {
-                modeAIBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-black shadow-md';
-                editorControls.classList.add('hidden');
-                bottomBar.classList.add('hidden');
-                playControls.classList.remove('hidden');
-                aiLogs.classList.remove('hidden');
-                hudText.innerText = 'SMART AI 2.0';
-                resetPlayer();
-            }
-        }
-
-        document.getElementById('modeEditorBtn').addEventListener('click', () => setMode('EDITOR'));
-        document.getElementById('modePlayBtn').addEventListener('click', () => setMode('PLAY'));
-        document.getElementById('modeAIBtn').addEventListener('click', () => setMode('AI'));
-
-        document.getElementById('btnPlayRestart').addEventListener('click', () => {
-            resetPlayer();
-            isRunning = true;
-            sound.init();
-        });
-
-        document.getElementById('btnWinRestart').addEventListener('click', () => {
-            resetPlayer();
-            isRunning = true;
-            sound.init();
-        });
-
-        document.getElementById('btnRotateObject').addEventListener('click', () => {
-            currentRotation = (currentRotation + 90) % 360;
-            document.getElementById('rotValText').innerText = currentRotation + '°';
-        });
-
-        document.getElementById('btnClearAll').addEventListener('click', () => {
-            levelObjects = [];
-            document.getElementById('hudProgressBar').style.width = '0%';
-            document.getElementById('hudPercentText').innerText = '0%';
-        });
-
-        document.getElementById('btnScrollLeft').addEventListener('click', () => {
-            editorCameraX = Math.max(0, editorCameraX - 200);
-            document.getElementById('scrollPosText').innerText = `${editorCameraX}px`;
-        });
-        document.getElementById('btnScrollRight').addEventListener('click', () => {
-            editorCameraX += 200;
-            document.getElementById('scrollPosText').innerText = `${editorCameraX}px`;
-        });
-
-        document.getElementById('btnSoundToggle').addEventListener('click', () => {
-            sound.enabled = !sound.enabled;
-            document.getElementById('btnSoundToggle').innerHTML = sound.enabled 
-                ? (currentLang === 'ru' ? '🔊 Звук: Вкл' : '🔊 Sound: On') 
-                : (currentLang === 'ru' ? '🔇 Звук: Выкл' : '🔇 Sound: Off');
-        });
-
-        document.getElementById('btnExportLevel').addEventListener('click', () => {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(levelObjects, null, 2));
-            const dl = document.createElement('a');
-            dl.setAttribute("href", dataStr);
-            dl.setAttribute("download", "my_gd_level.json");
-            dl.click();
-            dl.remove();
-        });
-
-        document.getElementById('btnImportLevel').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
+        play(song) {
+            if (song !== undefined && song !== this.song) { this.song = song; this.stop(); }
+            if (!this.enabled || this.timer || !this.ensure()) return;
+            const sng = SONGS[this.song] || SONGS[0];
+            this.step = 0;
+            this.timer = setInterval(() => {
+                if (!this.enabled || !this.ctx) return;
+                const f = sng.notes[this.step % sng.notes.length]; this.step++;
+                if (!f) return;
                 try {
-                    levelObjects = JSON.parse(event.target.result);
-                    resetPlayer();
-                    alert(currentLang === 'ru' ? 'Уровень успешно загружен!' : 'Level loaded successfully!');
-                } catch (err) {
-                    alert(currentLang === 'ru' ? 'Ошибка загрузки JSON-файла!' : 'Error loading JSON file!');
-                }
-            };
-            reader.readAsText(file);
-        });
+                    const t = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+                    osc.type = 'square'; osc.frequency.setValueAtTime(f, t);
+                    gain.gain.setValueAtTime(0.03, t); gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+                    osc.connect(gain); gain.connect(this.ctx.destination); osc.start(t); osc.stop(t + 0.18);
+                    if (this.step % 4 === 1) {
+                        const k = this.ctx.createOscillator(), kg = this.ctx.createGain();
+                        k.type = 'sine'; k.frequency.setValueAtTime(120, t); k.frequency.exponentialRampToValueAtTime(40, t + 0.12);
+                        kg.gain.setValueAtTime(0.12, t); kg.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+                        k.connect(kg); kg.connect(this.ctx.destination); k.start(t); k.stop(t + 0.15);
+                    }
+                } catch (e) {}
+            }, 60000 / sng.bpm / 2);
+        }
+        restart(song) { this.stop(); this.song = song; this.play(); }
+        stop() { if (this.timer) { clearInterval(this.timer); this.timer = null; } }
+        toggle() { this.enabled = !this.enabled; store.set('music', this.enabled); if (this.enabled) this.play(); else this.stop(); }
+    }
+    const music = new MusicEngine();
 
-        setMode('EDITOR');
+    class SoundFX {
+        constructor() { this.enabled = store.get('sound', true); }
+        tone(freq, duration, type = 'sine', gainVal = 0.1, slide) {
+            if (!this.enabled || !music.ensure()) return;
+            const c = music.ctx;
+            try {
+                const t = c.currentTime, osc = c.createOscillator(), gain = c.createGain();
+                osc.type = type; osc.frequency.setValueAtTime(freq, t);
+                if (slide) osc.frequency.exponentialRampToValueAtTime(slide, t + duration);
+                gain.gain.setValueAtTime(gainVal, t); gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+                osc.connect(gain); gain.connect(c.destination); osc.start(t); osc.stop(t + duration);
+            } catch (e) {}
+        }
+        jump() { this.tone(400, 0.1, 'square', 0.05, 600); }
+        pad() { this.tone(500, 0.2, 'triangle', 0.1, 1000); }
+        orb() { this.tone(900, 0.22, 'sine', 0.1, 1300); }
+        portal() { this.tone(300, 0.3, 'sawtooth', 0.05, 900); }
+        coin() { this.tone(1200, 0.08, 'square', 0.06); setTimeout(() => this.tone(1600, 0.15, 'square', 0.06), 70); }
+        explode() { this.tone(160, 0.4, 'sawtooth', 0.15, 40); }
+        win() { [440, 554.37, 659.25, 880, 1108.7].forEach((f, i) => setTimeout(() => this.tone(f, 0.3, 'sine', 0.1), i * 110)); }
+    }
+    const sound = new SoundFX();
+
+    function refreshAudioButtons() {
+        $('btnSoundToggle').innerHTML = (sound.enabled ? '🔊 ' : '🔇 ') + tr('Звук', 'Sound');
+        $('btnMusicToggle').innerHTML = (music.enabled ? '🎵 ' : '🔇 ') + tr('Музыка', 'Music');
+    }
+    $('btnSoundToggle').addEventListener('click', () => { sound.enabled = !sound.enabled; store.set('sound', sound.enabled); refreshAudioButtons(); });
+    $('btnMusicToggle').addEventListener('click', () => { music.toggle(); refreshAudioButtons(); });
+
+    // ---------- Язык ----------
+    function applyLang() {
+        document.querySelectorAll('[data-ru]').forEach(el => { const t = el.getAttribute('data-' + currentLang); if (t) el.innerText = t; });
+        $('edLevelName').placeholder = tr('Название уровня', 'Level name');
+        refreshAudioButtons(); renderTabs(); renderToolBar(); renderLevelCards(); updatePracticeBtn();
+        if (G.L) updateHud(true);
+    }
+    $('btnLangToggle').addEventListener('click', () => { currentLang = currentLang === 'ru' ? 'en' : 'ru'; store.set('lang', currentLang); applyLang(); });
+
+    // ---------- Состояние приложения ----------
+    const G = {
+        screen: 'MENU', mode: 'EDITOR', source: null, L: null, S: null, held: false,
+        running: false, paused: false, deathTimer: 0, attempts: 1, practice: false, checkpoints: [],
+        particles: [], waveTrail: [], trail: [], aiPlan: [], aiTimer: 0, aiAction: false, lastAiMode: null,
+        camX: 0, camY: -80, edCamX: -120, edCamY: -80, frameT: 0, bestThisRun: 0, fromEditor: false
+    };
+    let editorLevel = normalizeLevel(store.get('editorLevel', { name: '', color: '#2563eb', song: 0, objects: [] }));
+    function saveEditor() { store.set('editorLevel', editorLevel); }
+
+    function showScreen(name) {
+        G.screen = name;
+        $('screenMenu').classList.toggle('hidden', name !== 'MENU');
+        $('screenLevels').classList.toggle('hidden', name !== 'LEVELS');
+        $('screenGame').classList.toggle('hidden', name !== 'GAME');
+        $('btnMenu').classList.toggle('hidden', name === 'MENU');
+        if (name !== 'GAME') { G.running = false; music.restart(0); }
+        if (name === 'LEVELS') renderLevelCards();
+        if (name === 'GAME') setTimeout(resizeCanvas, 0);
+    }
+    $('btnMenu').addEventListener('click', () => showScreen('MENU'));
+    $('logoHomeBtn').addEventListener('click', () => showScreen('MENU'));
+    $('btnOfficial').addEventListener('click', () => { music.play(); showScreen('LEVELS'); });
+    $('btnCreate').addEventListener('click', () => { music.play(); openEditor(); });
+    $('btnLevelsBack').addEventListener('click', () => showScreen('MENU'));
+
+    // Фон меню
+    (function () {
+        const bg = $('menuBgSquares');
+        for (let i = 0; i < 18; i++) {
+            const d = document.createElement('div');
+            const s = 20 + Math.random() * 50;
+            d.className = 'float-sq';
+            d.style.cssText = `left:${Math.random() * 100}%;width:${s}px;height:${s}px;animation-duration:${8 + Math.random() * 12}s;animation-delay:${-Math.random() * 15}s`;
+            bg.appendChild(d);
+        }
+        const cp = $('colorPicker');
+        ICON_COLORS.forEach(c => {
+            const d = document.createElement('div');
+            d.className = 'color-dot' + (c === iconColor ? ' sel' : '');
+            d.style.background = c;
+            d.addEventListener('click', () => { iconColor = c; store.set('iconColor', c); cp.querySelectorAll('.color-dot').forEach(x => x.classList.remove('sel')); d.classList.add('sel'); });
+            cp.appendChild(d);
+        });
+    })();
+
+    // ---------- Карточки уровней ----------
+    function renderLevelCards() {
+        const box = $('levelCards'); if (!box) return;
+        box.innerHTML = '';
+        OFFICIAL_LEVELS.forEach((lv, i) => {
+            const d = DIFFS[lv.difficulty] || DIFFS[1];
+            const prog = store.get('prog_' + i, { best: 0, practice: 0, coins: [] });
+            const coinTotal = lv.objects.filter(o => o.type === 'COIN').length;
+            const card = document.createElement('div');
+            card.className = 'level-card rounded-3xl p-4 flex flex-col gap-3 border-2 shadow-2xl';
+            card.style.background = `linear-gradient(160deg, ${lv.color}cc, #09090b 75%)`;
+            card.style.borderColor = lv.color;
+            let coinsHtml = '';
+            for (let c = 0; c < coinTotal; c++) coinsHtml += `<span class="${c < prog.coins.length ? 'text-yellow-300' : 'text-zinc-600'}">●</span>`;
+            card.innerHTML = `
+                <div class="flex justify-between items-center"><span class="font-mono text-xs text-white/70">#${i + 1}</span><span class="text-3xl">${d.face}</span></div>
+                <div class="text-xl font-black italic leading-tight">${currentLang === 'ru' ? lv.name : (lv.nameEn || lv.name)}</div>
+                <div class="text-xs font-black uppercase" style="color:${d.color}">${tr(d.ru, d.en)} ${'★'.repeat(lv.difficulty)}</div>
+                <div class="text-[11px] font-mono text-zinc-300">${tr('Обычный', 'Normal')}: ${prog.best}%</div>
+                <div class="w-full h-2 bg-black/60 rounded-full overflow-hidden"><div class="h-full bg-white" style="width:${prog.best}%"></div></div>
+                <div class="text-[11px] font-mono text-zinc-400">${tr('Тренировка', 'Practice')}: ${prog.practice}%</div>
+                <div class="w-full h-1.5 bg-black/60 rounded-full overflow-hidden"><div class="h-full bg-emerald-400" style="width:${prog.practice}%"></div></div>
+                <div class="text-sm tracking-widest">${coinsHtml}</div>
+                <div class="flex gap-2 mt-auto">
+                    <button data-play="${i}" class="flex-1 py-2 rounded-xl bg-white text-black font-black text-sm">▶ ${tr('Играть', 'Play')}</button>
+                    <button data-ai="${i}" title="AI" class="px-3 py-2 rounded-xl bg-black/50 border border-white/30 font-black text-sm">🤖</button>
+                </div>`;
+            box.appendChild(card);
+        });
+        box.querySelectorAll('[data-play]').forEach(b => b.addEventListener('click', () => startLevel({ kind: 'official', index: +b.dataset.play }, 'PLAY')));
+        box.querySelectorAll('[data-ai]').forEach(b => b.addEventListener('click', () => startLevel({ kind: 'official', index: +b.dataset.ai }, 'AI')));
+    }
+
+    // ---------- Холст ----------
+    const canvas = $('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const VIEW_H = 520;
+    let SCALE = 1, VIEW_W = 1200;
+    function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width) return;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+        SCALE = canvas.height / VIEW_H;
+        VIEW_W = canvas.width / SCALE;
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function camera() {
+        if (G.mode === 'EDITOR') return { x: G.edCamX, y: G.edCamY };
+        return { x: G.camX, y: G.camY };
+    }
+    // мир -> экран: поставить начало координат в точку мира (wx, wy), y вниз
+    function at(cam, wx, wy) {
+        ctx.setTransform(SCALE, 0, 0, SCALE, (wx - cam.x) * SCALE, canvas.height - (wy - cam.y) * SCALE);
+    }
+
+    // ---------- Запуск уровня ----------
+    function levelData(src) {
+        if (src.kind === 'official') return OFFICIAL_LEVELS[src.index];
+        return editorLevel;
+    }
+    function startLevel(src, mode) {
+        G.source = src; G.mode = mode;
+        G.fromEditor = src.kind === 'editor';
+        G.L = prepareLevel(levelData(src));
+        G.attempts = 1; G.practice = false; G.checkpoints = []; G.bestThisRun = 0;
+        showScreen('GAME');
+        $('bottomEditorBar').classList.add('hidden');
+        $('editorScrollControls').classList.add('hidden');
+        $('playControlsOverlay').classList.remove('hidden');
+        $('aiLogContainer').classList.toggle('hidden', mode !== 'AI');
+        $('aiThoughtLog').innerHTML = '';
+        if (mode === 'AI') aiLog(tr('Загружаю уровень и начинаю просчитывать будущее...', 'Loading level, simulating the future...'));
+        music.restart(G.L.song);
+        resetRun(true);
+    }
+    function resetRun(full) {
+        const cp = G.practice && !full ? G.checkpoints[G.checkpoints.length - 1] : null;
+        G.S = cp ? Object.assign({}, cp) : initState(G.L);
+        G.running = true; G.paused = false; G.deathTimer = 0;
+        G.held = G.mode === 'PLAY' ? G.held : false;
+        if (G.S.prevHeld !== undefined) G.S.prevHeld = true; // не прыгать сразу после рестарта от старого нажатия
+        G.aiPlan = []; G.aiTimer = 0; G.trail = []; G.waveTrail = [];
+        G.camX = G.S.x - VIEW_W * 0.3;
+        G.camY = cameraTargetY(G.S, -80);
+        $('winModal').classList.add('hidden');
+        $('pauseModal').classList.add('hidden');
+        if (!cp && !G.practice) music.restart(G.L.song);
+        updateHud(true);
+    }
+    function onDeath() {
+        sound.explode();
+        burst(G.S.x + pSize(G.S) / 2, G.S.y + pSize(G.S) / 2, iconColor, 30, 7);
+        burst(G.S.x + pSize(G.S) / 2, G.S.y + pSize(G.S) / 2, '#ffffff', 16, 5);
+        saveProgress(false);
+        G.deathTimer = 40;
+        if (G.mode === 'AI') aiLog(tr('💥 Не смог найти безопасный путь. Пробую снова!', '💥 No safe path found. Retrying!'));
+    }
+    function onWin() {
+        G.running = false;
+        sound.win();
+        saveProgress(true);
+        const coins = G.S.coins.length;
+        $('winSubText').innerText = tr(`Попыток: ${G.attempts} • Монет: ${coins}/${G.L.coinTotal}`, `Attempts: ${G.attempts} • Coins: ${coins}/${G.L.coinTotal}`)
+            + (G.practice ? tr(' • (тренировка)', ' • (practice)') : '');
+        $('winModal').classList.remove('hidden');
+        if (G.mode === 'AI') aiLog(tr('🏁 Уровень пройден! Траектория была идеальной.', '🏁 Level complete! Perfect trajectory.'));
+        for (let i = 0; i < 5; i++) setTimeout(() => burst(G.S.x, G.S.y + 100, ['#fff', '#ffe600', '#3dff6e', '#33ccff', '#ff5fd2'][i], 30, 8), i * 150);
+    }
+    function progressPct() {
+        if (!G.L || !G.S) return 0;
+        if (G.S.won) return 100;
+        return Math.max(0, Math.min(100, Math.floor(G.S.x / G.L.goalX * 100)));
+    }
+    function saveProgress(won) {
+        if (!G.source || G.source.kind !== 'official' || G.mode !== 'PLAY') return;
+        const key = 'prog_' + G.source.index;
+        const prog = store.get(key, { best: 0, practice: 0, coins: [] });
+        const pct = won ? 100 : progressPct();
+        if (G.practice) prog.practice = Math.max(prog.practice, pct);
+        else {
+            prog.best = Math.max(prog.best, pct);
+            if (won) {
+                const lvObjs = G.L.objs;
+                G.S.coins.forEach(id => { const o = lvObjs.find(x => x.id === id); const k = o ? o.x + ':' + o.y : id; if (!prog.coins.includes(k)) prog.coins.push(k); });
+            }
+        }
+        store.set(key, prog);
+    }
+
+    // ---------- Тренировка ----------
+    function updatePracticeBtn() {
+        $('practiceBtnText').innerText = G.practice ? tr('Выйти из тренировки', 'Exit practice') : tr('Тренировка', 'Practice');
+        $('hudPractice').classList.toggle('hidden', !G.practice);
+    }
+    $('btnPracticeToggle').addEventListener('click', () => {
+        G.practice = !G.practice; G.checkpoints = [];
+        updatePracticeBtn();
+        G.attempts++;
+        resetRun(true);
+    });
+
+    // ---------- Пауза ----------
+    function setPaused(p) {
+        if (G.screen !== 'GAME' || G.mode === 'EDITOR' || !G.running) return;
+        G.paused = p;
+        $('pauseModal').classList.toggle('hidden', !p);
+        if (p) music.stop(); else music.play();
+    }
+    $('btnPause').addEventListener('click', () => setPaused(!G.paused));
+    $('btnResume').addEventListener('click', () => setPaused(false));
+    $('btnRestart').addEventListener('click', () => { G.attempts++; G.checkpoints = []; resetRun(true); });
+    $('btnPauseExit').addEventListener('click', exitLevel);
+    $('btnWinRestart').addEventListener('click', () => { G.attempts = 1; G.checkpoints = []; resetRun(true); });
+    $('btnWinExit').addEventListener('click', exitLevel);
+    function exitLevel() {
+        $('pauseModal').classList.add('hidden'); $('winModal').classList.add('hidden');
+        if (G.fromEditor) openEditor(); else showScreen('LEVELS');
+    }
+
+    // ---------- ИИ ----------
+    function aiLog(msg) {
+        const box = $('aiThoughtLog');
+        const d = document.createElement('div');
+        d.textContent = `[ИИ 3.0]: ${msg}`;
+        box.appendChild(d);
+        while (box.children.length > 30) box.removeChild(box.firstChild);
+        box.scrollTop = box.scrollHeight;
+    }
+    function aiTick() {
+        if (G.aiTimer <= 0) {
+            const prev = G.aiPlan.slice(1);
+            const res = aiSearch(G.S, G.L, prev, 5000);
+            const changed = prev.length && res.plan.some((a, i) => prev[i] !== undefined && prev[i] !== a);
+            G.aiPlan = res.plan;
+            G.aiTimer = AI_CHUNK;
+            $('aiStatusBadge').innerText = res.safe ? tr('✅ Путь безопасен', '✅ Path is safe') : tr('⚠️ Опасно!', '⚠️ Danger!');
+            if (changed && Math.random() < 0.15) aiLog(tr('Вижу препятствие впереди — меняю траекторию.', 'Obstacle ahead — adjusting trajectory.'));
+        }
+        G.aiTimer--;
+        return !!G.aiPlan[0];
+    }
+
+    // ---------- Игровой цикл ----------
+    function cameraTargetY(S, cur) {
+        if (S.ceil != null) return S.floor - (VIEW_H - CORRIDOR) / 2 + 20;
+        let t = cur;
+        const rel = S.y - cur;
+        if (rel > VIEW_H * 0.58) t = S.y - VIEW_H * 0.58;
+        if (rel < VIEW_H * 0.22) t = S.y - VIEW_H * 0.22;
+        return Math.max(-80, t);
+    }
+    function gameStep() {
+        if (G.deathTimer > 0) {
+            G.deathTimer--;
+            if (G.deathTimer === 0) { G.attempts++; resetRun(false); }
+            return;
+        }
+        const input = G.mode === 'AI' ? aiTick() : G.held;
+        const prev = G.S;
+        G.S = step(G.S, input, G.L);
+        const S = G.S;
+        handleFx(S, prev);
+        if (S.mode === 'wave') { G.waveTrail.push([S.x + pSize(S) / 2, S.y + pSize(S) / 2]); if (G.waveTrail.length > 90) G.waveTrail.shift(); }
+        else G.waveTrail = [];
+        if (S.frame % 2 === 0) G.trail.push({ x: S.x + pSize(S) / 2, y: S.y + pSize(S) / 2, a: 0.5, s: pSize(S) * 0.6 });
+        if (S.mode !== prev.mode && G.mode === 'AI') aiLog(tr(`Новый режим: ${MODE_NAMES[S.mode][0]}. Перестраиваю модель физики.`, `New mode: ${MODE_NAMES[S.mode][1]}. Rebuilding physics model.`));
+        if (S.dead) { onDeath(); return; }
+        if (S.won) { onWin(); return; }
+        if (G.practice && S.frame % 75 === 0 && (S.grounded || S.mode !== 'cube')) {
+            G.checkpoints.push(Object.assign({}, S));
+            if (G.checkpoints.length > 50) G.checkpoints.shift();
+        }
+        G.camX = S.x - VIEW_W * 0.3;
+        G.camY += (cameraTargetY(S, G.camY) - G.camY) * 0.12;
+    }
+    function handleFx(S, prev) {
+        if (!S.fx) return;
+        const f = S.fx;
+        const cx = S.x + pSize(S) / 2, cy = S.y + pSize(S) / 2;
+        if (f.t === 'jump') { sound.jump(); burst(cx, S.g === 1 ? S.y : S.y + pSize(S), '#ffffff', 5, 2); }
+        else if (f.t === 'flip') { sound.jump(); burst(cx, cy, iconColor, 8, 3); }
+        else if (f.t === 'orb') { sound.orb(); burst(f.x, f.y, ORB_COLORS[f.kind], 16, 4); ring(f.x, f.y, ORB_COLORS[f.kind]); }
+        else if (f.t === 'pad') { sound.pad(); burst(f.x, f.y, ORB_COLORS[f.kind], 14, 4); }
+        else if (f.t === 'portal') { sound.portal(); burst(f.x, f.y, portalColor(f.type), 20, 5); ring(f.x, f.y, portalColor(f.type)); }
+        else if (f.t === 'coin') { sound.coin(); burst(f.x, f.y, '#ffd700', 20, 4); }
+        else if (f.t === 'spider') { sound.jump(); for (let i = 0; i < 10; i++) G.particles.push({ x: cx, y: f.from + (S.y - f.from) * i / 10 + pSize(S) / 2, vx: 0, vy: 0, a: 0.8, c: iconColor, s: 8 }); }
+    }
+    function burst(x, y, c, n, sp) {
+        for (let i = 0; i < n; i++) {
+            const a = Math.random() * Math.PI * 2, v = Math.random() * sp + 1;
+            G.particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, a: 1, c, s: 3 + Math.random() * 4 });
+        }
+    }
+    function ring(x, y, c) { G.particles.push({ x, y, ring: 1, r: 10, a: 0.9, c }); }
+
+    let lastT = performance.now(), acc = 0;
+    function loop(now) {
+        const dt = Math.min(0.1, (now - lastT) / 1000);
+        lastT = now;
+        G.frameT += dt;
+        if (G.screen === 'GAME') {
+            if (G.mode !== 'EDITOR' && G.running && !G.paused) {
+                acc += dt;
+                let n = 0;
+                while (acc >= 1 / 60 && n < 5) { gameStep(); acc -= 1 / 60; n++; if (!G.running) break; }
+                if (n >= 5) acc = 0;
+            } else acc = 0;
+            if (!G.paused) {
+                G.particles.forEach(p => { if (p.ring) { p.r += 3; p.a -= 0.05; } else { p.x += p.vx; p.y += p.vy; p.vy -= 0.08; p.a -= 0.025; } });
+                G.particles = G.particles.filter(p => p.a > 0);
+                G.trail.forEach(t => t.a -= 0.04); G.trail = G.trail.filter(t => t.a > 0);
+            }
+            render();
+            updateHud(false);
+        }
         requestAnimationFrame(loop);
-    </script>
+    }
+
+    let hudCache = '';
+    function updateHud(force) {
+        if (!G.L) return;
+        const S = G.S;
+        const pct = G.mode === 'EDITOR' ? 0 : progressPct();
+        const name = G.mode === 'EDITOR' ? tr('🛠 Редактор', '🛠 Editor') + (editorLevel.name ? ': ' + editorLevel.name : '') : (G.source.kind === 'official' ? (currentLang === 'ru' ? OFFICIAL_LEVELS[G.source.index].name : OFFICIAL_LEVELS[G.source.index].nameEn) : (editorLevel.name || tr('Мой уровень', 'My level')));
+        const mode = S ? MODE_NAMES[S.mode][currentLang === 'ru' ? 0 : 1] + (S.mini ? tr(' (мини)', ' (mini)') : '') + (S.speed !== 1 ? ' ×' + S.speed : '') : '—';
+        const coins = S && G.L.coinTotal ? `★ ${S.coins.length}/${G.L.coinTotal}` : '';
+        const key = [pct, name, mode, coins, G.attempts, G.mode].join('|');
+        if (!force && key === hudCache) return;
+        hudCache = key;
+        $('hudPercentText').innerText = pct + '%';
+        $('hudProgressBar').style.width = pct + '%';
+        $('hudLevelName').innerText = name;
+        $('hudModeText').innerText = G.mode === 'EDITOR' ? tr('РЕДАКТОР', 'EDITOR') : mode;
+        $('hudAttemptText').innerText = '#' + G.attempts;
+        $('hudCoins').innerText = G.mode === 'EDITOR' ? '' : coins;
+    }
+
+    // ---------- Рендер ----------
+    const ORB_COLORS = { yellow: '#ffe600', pink: '#ff5fd2', red: '#ff3b3b', blue: '#33ccff', green: '#3dff6e', black: '#222222' };
+    const PORTAL_STYLE = {
+        CUBE_PORTAL: ['#3dff6e', '■'], SHIP_PORTAL: ['#ff5fd2', '➤'], BALL_PORTAL: ['#ff3b3b', '●'], UFO_PORTAL: ['#ff9f1a', '◓'],
+        WAVE_PORTAL: ['#33ccff', '◢'], ROBOT_PORTAL: ['#f4f4f5', '🤖'], SPIDER_PORTAL: ['#b266ff', '🕷'], SWING_PORTAL: ['#ffe600', '⇅'],
+        AIRPLANE_PORTAL: ['#ff8c00', '✈'], GRAV_DOWN_PORTAL: ['#33a1ff', '↓'], GRAV_UP_PORTAL: ['#ffd500', '↑'],
+        MINI_PORTAL: ['#ff66cc', '◦'], BIG_PORTAL: ['#33ff99', '◯'],
+        SPEED_05: ['#ff9f1a', '<'], SPEED_1: ['#33ccff', '>'], SPEED_2: ['#3dff6e', '>>'], SPEED_3: ['#ff5fd2', '>>>'], SPEED_4: ['#ff3b3b', '>>>>']
+    };
+    function portalColor(t) { return (PORTAL_STYLE[t] || ['#fff'])[0]; }
+    function shade(hex, f) {
+        const n = parseInt(hex.slice(1), 16);
+        let r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+        if (f < 0) { r *= 1 + f; g *= 1 + f; b *= 1 + f; } else { r += (255 - r) * f; g += (255 - g) * f; b += (255 - b) * f; }
+        return `rgb(${r | 0},${g | 0},${b | 0})`;
+    }
+
+    function drawObject(o, t, cam) {
+        at(cam, o.x + 20, o.y + 20);
+        const fixed = OBJ[o.type].fixed;
+        if (!fixed) ctx.rotate((o.rotation || 0) * Math.PI / 180);
+        const used = G.S && G.mode !== 'EDITOR' && G.S.used.includes(o.id);
+        const lc = G.L ? G.L.color : '#2563eb';
+        switch (o.type) {
+            case 'BLOCK': {
+                const gr = ctx.createLinearGradient(0, -20, 0, 20);
+                gr.addColorStop(0, shade(lc, -0.55)); gr.addColorStop(1, '#050507');
+                ctx.fillStyle = gr; ctx.fillRect(-20, -20, 40, 40);
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(-19, -19, 38, 38);
+                ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.strokeRect(-12, -12, 24, 24);
+                break;
+            }
+            case 'SLAB': {
+                ctx.fillStyle = shade(lc, -0.6); ctx.fillRect(-20, 0, 40, 20);
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(-19, 1, 38, 18);
+                break;
+            }
+            case 'SPIKE': case 'SMALL_SPIKE': {
+                const h = o.type === 'SPIKE' ? 40 : 18;
+                ctx.beginPath(); ctx.moveTo(-18, 20); ctx.lineTo(0, 20 - h); ctx.lineTo(18, 20); ctx.closePath();
+                const gr = ctx.createLinearGradient(0, 20 - h, 0, 20); gr.addColorStop(0, '#2a2a2a'); gr.addColorStop(1, '#000');
+                ctx.fillStyle = gr; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+                break;
+            }
+            case 'GROUND_SPIKES': {
+                ctx.beginPath(); ctx.moveTo(-18, 20);
+                for (let i = 0; i < 4; i++) { ctx.lineTo(-18 + i * 9 + 4.5, 9); ctx.lineTo(-18 + (i + 1) * 9, 20); }
+                ctx.closePath(); ctx.fillStyle = '#000'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+                break;
+            }
+            case 'SAW': {
+                ctx.rotate(t * 6);
+                ctx.beginPath();
+                for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2, r = i % 2 ? 22 : 30; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+                ctx.closePath(); ctx.fillStyle = '#111'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.strokeStyle = '#fff'; ctx.stroke();
+                break;
+            }
+            case 'ORB': case 'PINK_ORB': case 'RED_ORB': case 'GRAVITY_ORB': case 'GREEN_ORB': case 'BLACK_ORB': {
+                const c = ORB_COLORS[OBJ[o.type].kind];
+                const pulse = 1 + Math.sin(t * 6) * 0.08;
+                ctx.beginPath(); ctx.arc(0, 0, 19 * pulse, 0, Math.PI * 2); ctx.strokeStyle = used ? 'rgba(255,255,255,.15)' : c; ctx.lineWidth = 2; ctx.stroke();
+                ctx.beginPath(); ctx.arc(0, 0, 13, 0, Math.PI * 2); ctx.fillStyle = used ? '#3f3f46' : c; ctx.fill();
+                ctx.strokeStyle = o.type === 'BLACK_ORB' ? '#fff' : '#000'; ctx.lineWidth = 2.5; ctx.stroke();
+                if (o.type === 'GRAVITY_ORB' || o.type === 'GREEN_ORB') { ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke(); }
+                break;
+            }
+            case 'PAD': case 'PINK_PAD': case 'RED_PAD': case 'BLUE_PAD': {
+                const c = ORB_COLORS[OBJ[o.type].kind];
+                ctx.beginPath(); ctx.moveTo(-17, 20); ctx.quadraticCurveTo(0, 6, 17, 20); ctx.closePath();
+                ctx.fillStyle = c; ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.stroke();
+                if (!used) { ctx.globalAlpha = 0.4 + Math.sin(t * 8) * 0.2; ctx.fillStyle = c; ctx.fillRect(-12, 2 - (t * 30 % 14), 24, 2); ctx.globalAlpha = 1; }
+                break;
+            }
+            case 'COIN': {
+                if (used) break;
+                const sx = Math.cos(t * 3);
+                ctx.scale(Math.max(0.15, Math.abs(sx)), 1);
+                ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fillStyle = '#ffd700'; ctx.fill();
+                ctx.strokeStyle = '#7a5a00'; ctx.lineWidth = 3; ctx.stroke();
+                ctx.fillStyle = '#7a5a00'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('★', 0, 1);
+                break;
+            }
+            case 'GOAL': {
+                if (G.mode === 'EDITOR') {
+                    ctx.fillStyle = 'rgba(255,255,255,.2)'; ctx.fillRect(-20, -20, 40, 40);
+                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.strokeRect(-20, -20, 40, 40);
+                    ctx.font = '22px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('🏁', 0, 2);
+                }
+                break;
+            }
+            default: {
+                const st = PORTAL_STYLE[o.type];
+                if (!st) break;
+                const [c, label] = st;
+                const isSpeed = o.type.startsWith('SPEED');
+                if (isSpeed) {
+                    ctx.fillStyle = c; ctx.globalAlpha = used ? 0.35 : 1;
+                    ctx.font = 'bold 26px JetBrains Mono, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.shadowColor = c; ctx.shadowBlur = 14; ctx.fillText(label, 0, 2); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+                    break;
+                }
+                ctx.globalAlpha = used ? 0.4 : 1;
+                ctx.shadowColor = c; ctx.shadowBlur = 18;
+                ctx.beginPath(); ctx.ellipse(0, 0, 13, 58, 0, 0, Math.PI * 2);
+                ctx.strokeStyle = c; ctx.lineWidth = 6; ctx.stroke();
+                ctx.beginPath(); ctx.ellipse(0, 0, 7, 50, 0, 0, Math.PI * 2); ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = c; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, 0, 1);
+                ctx.globalAlpha = 1;
+            }
+        }
+    }
+
+    function drawPlayer(S, cam) {
+        const size = pSize(S);
+        at(cam, S.x + size / 2, S.y + size / 2);
+        const flip = S.g === -1;
+        ctx.rotate(S.rot * Math.PI / 180);
+        if (flip && S.mode !== 'cube' && S.mode !== 'ball') ctx.scale(1, -1);
+        const k = size / 34;
+        ctx.scale(k, k);
+        const c1 = iconColor, c2 = '#000', c3 = shade(iconColor, -0.45);
+        const cubeIcon = (s) => {
+            ctx.fillStyle = c1; ctx.fillRect(-s, -s, s * 2, s * 2);
+            ctx.strokeStyle = c2; ctx.lineWidth = 2.5; ctx.strokeRect(-s, -s, s * 2, s * 2);
+            ctx.fillStyle = c3; ctx.fillRect(-s * 0.55, -s * 0.55, s * 1.1, s * 1.1);
+            ctx.strokeRect(-s * 0.55, -s * 0.55, s * 1.1, s * 1.1);
+            ctx.fillStyle = '#000'; ctx.fillRect(-s * 0.35, -s * 0.3, s * 0.22, s * 0.22); ctx.fillRect(s * 0.13, -s * 0.3, s * 0.22, s * 0.22);
+        };
+        ctx.lineJoin = 'round';
+        switch (S.mode) {
+            case 'cube': cubeIcon(17); break;
+            case 'ship':
+                ctx.save(); ctx.translate(-2, -8); cubeIcon(8); ctx.restore();
+                ctx.beginPath(); ctx.moveTo(-20, -2); ctx.lineTo(20, 2); ctx.lineTo(8, 12); ctx.lineTo(-20, 12); ctx.closePath();
+                ctx.fillStyle = c3; ctx.fill(); ctx.strokeStyle = c2; ctx.lineWidth = 2.5; ctx.stroke();
+                ctx.fillStyle = c1; ctx.fillRect(-14, 4, 18, 4);
+                break;
+            case 'ball':
+                ctx.beginPath(); ctx.arc(0, 0, 17, 0, Math.PI * 2); ctx.fillStyle = c1; ctx.fill(); ctx.strokeStyle = c2; ctx.lineWidth = 2.5; ctx.stroke();
+                for (let i = 0; i < 4; i++) { ctx.rotate(Math.PI / 2); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -17); ctx.stroke(); }
+                ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fillStyle = c3; ctx.fill(); ctx.stroke();
+                break;
+            case 'ufo':
+                ctx.save(); ctx.translate(0, -6); ctx.beginPath(); ctx.arc(0, 0, 10, Math.PI, 0); ctx.fillStyle = 'rgba(200,240,255,.8)'; ctx.fill(); ctx.strokeStyle = c2; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+                ctx.save(); ctx.translate(0, -8); cubeIcon(5); ctx.restore();
+                ctx.beginPath(); ctx.ellipse(0, 4, 19, 8, 0, 0, Math.PI * 2); ctx.fillStyle = c1; ctx.fill(); ctx.strokeStyle = c2; ctx.lineWidth = 2.5; ctx.stroke();
+                ctx.fillStyle = c3; ctx.fillRect(-12, 3, 24, 3);
+                break;
+            case 'wave':
+                ctx.beginPath(); ctx.moveTo(-14, -12); ctx.lineTo(18, 0); ctx.lineTo(-14, 12); ctx.lineTo(-6, 0); ctx.closePath();
+                ctx.fillStyle = c1; ctx.fill(); ctx.strokeStyle = c2; ctx.lineWidth = 2.5; ctx.stroke();
+                break;
+            case 'robot': {
+                const leg = Math.sin(G.frameT * 20) * (S.grounded ? 5 : 0);
+                ctx.fillStyle = c3; ctx.strokeStyle = c2; ctx.lineWidth = 2;
+                ctx.fillRect(-11 + leg, 6, 7, 11); ctx.strokeRect(-11 + leg, 6, 7, 11);
+                ctx.fillRect(4 - leg, 6, 7, 11); ctx.strokeRect(4 - leg, 6, 7, 11);
+                ctx.save(); ctx.translate(0, -4); cubeIcon(12); ctx.restore();
+                break;
+            }
+            case 'spider': {
+                ctx.strokeStyle = c2; ctx.lineWidth = 5;
+                for (let i = -1; i <= 1; i += 2) for (let j = 0; j < 2; j++) {
+                    const sw = Math.sin(G.frameT * 25 + j * 2) * 3;
+                    ctx.beginPath(); ctx.moveTo(i * 4, 4); ctx.lineTo(i * (12 + j * 5), 2 + sw); ctx.lineTo(i * (14 + j * 5), 17); ctx.stroke();
+                    ctx.strokeStyle = c1; ctx.lineWidth = 2.5; ctx.stroke(); ctx.strokeStyle = c2; ctx.lineWidth = 5;
+                }
+                ctx.beginPath(); ctx.ellipse(0, -2, 14, 10, 0, 0, Math.PI * 2); ctx.fillStyle = c1; ctx.fill(); ctx.strokeStyle = c2; ctx.lineWidth = 2.5; ctx.stroke();
+                ctx.fillStyle = '#000'; ctx.fillRect(-6, -5, 4, 4); ctx.fillRect(2, -5, 4, 4);
+                break;
+            }
+            case 'swing':
+                ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fillStyle = c1; ctx.fill(); ctx.strokeStyle = c2; ctx.lineWidth = 2.5; ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-10, -10); ctx.lineTo(-22, -16); ctx.lineTo(-14, -2); ctx.closePath(); ctx.fillStyle = c3; ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-10, 10); ctx.lineTo(-22, 16); ctx.lineTo(-14, 2); ctx.closePath(); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.arc(2, 0, 6, 0, Math.PI * 2); ctx.fillStyle = c3; ctx.fill(); ctx.stroke();
+                break;
+            case 'airplane':
+                ctx.beginPath(); ctx.moveTo(-15, 10); ctx.lineTo(20, 0); ctx.lineTo(-15, -10); ctx.closePath();
+                ctx.fillStyle = c1; ctx.fill(); ctx.strokeStyle = c2; ctx.lineWidth = 2; ctx.stroke();
+                break;
+        }
+    }
+
+    function render() {
+        const W = canvas.width, H = canvas.height;
+        const cam = camera();
+        const t = G.frameT;
+        const lc = (G.mode === 'EDITOR' ? editorLevel.color : G.L && G.L.color) || '#2563eb';
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        const bg = ctx.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, shade(lc, -0.35)); bg.addColorStop(1, shade(lc, -0.82));
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+        // параллакс квадраты
+        ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 2 * SCALE;
+        const px = cam.x * 0.2 * SCALE;
+        for (let i = 0; i < 14; i++) {
+            const s = (60 + (i * 37) % 90) * SCALE;
+            const x = ((i * 211 * SCALE - px) % (W + 300 * SCALE) + W + 300 * SCALE) % (W + 300 * SCALE) - 150 * SCALE;
+            const y = ((i * 97) % 300) * SCALE + 20 * SCALE;
+            ctx.strokeRect(x, y, s, s);
+        }
+
+        // сетка в редакторе
+        if (G.mode === 'EDITOR') {
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1;
+            const x0 = Math.floor(cam.x / GRID) * GRID;
+            for (let x = x0; x < cam.x + VIEW_W + GRID; x += GRID) { const sx = (x - cam.x) * SCALE; ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, H); ctx.stroke(); }
+            const y0 = Math.floor(cam.y / GRID) * GRID;
+            for (let y = y0; y < cam.y + VIEW_H + GRID; y += GRID) { const sy = H - (y - cam.y) * SCALE; ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy); ctx.stroke(); }
+            // старт
+            at(cam, 0, 0);
+            ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fillRect(0, -40, 40, 40);
+            ctx.setLineDash([4, 4]); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(0, -40, 40, 40); ctx.setLineDash([]);
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 10px JetBrains Mono'; ctx.fillText(tr('СТАРТ', 'START'), 2, -46);
+        }
+
+        // Объекты
+        const objs = G.mode === 'EDITOR' ? editorLevel.objects : G.L.objs;
+        const vx0 = cam.x - 80, vx1 = cam.x + VIEW_W + 80;
+        for (const o of objs) if (o.x > vx0 && o.x < vx1) drawObject(o, t, cam);
+
+        if (G.mode !== 'EDITOR' && G.S) {
+            const S = G.S;
+            // границы коридора
+            if (S.ceil != null) {
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.fillStyle = 'rgba(0,0,0,.35)';
+                const cy = H - (S.ceil - cam.y) * SCALE;
+                ctx.fillRect(0, 0, W, Math.max(0, cy));
+                ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 2 * SCALE;
+                ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+                if (S.floor > 0) {
+                    const fy = H - (S.floor - cam.y) * SCALE;
+                    ctx.fillRect(0, fy, W, H - fy);
+                    ctx.beginPath(); ctx.moveTo(0, fy); ctx.lineTo(W, fy); ctx.stroke();
+                }
+            }
+            // финиш
+            at(cam, G.L.goalX, 0);
+            for (let i = 0; i < 14; i++) for (let j = 0; j < 2; j++) { ctx.fillStyle = (i + j) % 2 ? '#fff' : '#000'; ctx.fillRect(j * 10, -i * 40 - 40, 10, 40); }
+            ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(20, -600, 2000, 600);
+            // надпись попытки
+            at(cam, 160, 230);
+            ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.font = 'italic 900 34px Outfit, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+            ctx.fillText(tr('Попытка ', 'Attempt ') + G.attempts, 0, 0);
+            // чекпоинты
+            G.checkpoints.forEach(c => { at(cam, c.x + 17, c.y + 17); ctx.rotate(Math.PI / 4); ctx.fillStyle = '#3dff6e'; ctx.fillRect(-7, -7, 14, 14); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.strokeRect(-7, -7, 14, 14); });
+            // след
+            G.trail.forEach(tr_ => { at(cam, tr_.x, tr_.y); ctx.globalAlpha = tr_.a * 0.5; ctx.fillStyle = iconColor; ctx.fillRect(-tr_.s / 2, -tr_.s / 2, tr_.s, tr_.s); });
+            ctx.globalAlpha = 1;
+            if (G.waveTrail.length > 1) {
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.beginPath();
+                G.waveTrail.forEach(([x, y], i) => { const sx = (x - cam.x) * SCALE, sy = H - (y - cam.y) * SCALE; i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy); });
+                ctx.strokeStyle = iconColor; ctx.lineWidth = 6 * SCALE; ctx.globalAlpha = 0.5; ctx.stroke();
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2 * SCALE; ctx.globalAlpha = 0.9; ctx.stroke(); ctx.globalAlpha = 1;
+            }
+            if (G.deathTimer === 0) drawPlayer(S, cam);
+        }
+
+        // частицы
+        G.particles.forEach(p => {
+            at(cam, p.x, p.y); ctx.globalAlpha = Math.max(0, p.a);
+            if (p.ring) { ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI * 2); ctx.strokeStyle = p.c; ctx.lineWidth = 3; ctx.stroke(); }
+            else { ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s); }
+        });
+        ctx.globalAlpha = 1;
+
+        // земля
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        const gy = H - (0 - cam.y) * SCALE;
+        if (gy < H) {
+            const gg = ctx.createLinearGradient(0, gy, 0, H);
+            gg.addColorStop(0, shade(lc, -0.5)); gg.addColorStop(1, shade(lc, -0.9));
+            ctx.fillStyle = gg; ctx.fillRect(0, gy, W, H - gy);
+            ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 2 * SCALE;
+            const off = ((-cam.x * SCALE) % (80 * SCALE) + 80 * SCALE) % (80 * SCALE);
+            for (let x = off - 80 * SCALE; x < W; x += 80 * SCALE) ctx.strokeRect(x, gy + 4 * SCALE, 80 * SCALE, 80 * SCALE);
+            const lg = ctx.createLinearGradient(0, 0, W, 0);
+            lg.addColorStop(0, 'rgba(255,255,255,0)'); lg.addColorStop(0.5, 'rgba(255,255,255,1)'); lg.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.strokeStyle = lg; ctx.lineWidth = 3 * SCALE;
+            ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+        }
+
+        // предпросмотр в редакторе
+        if (G.mode === 'EDITOR' && hoverCell && activeTool !== 'ERASER') {
+            ctx.globalAlpha = 0.45;
+            drawObject({ type: activeTool, x: hoverCell.x, y: hoverCell.y, rotation: currentRotation }, t, cam);
+            ctx.globalAlpha = 1;
+        }
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    // ---------- Редактор ----------
+    const TABS = {
+        MODES: { icon: '🌀', ru: 'Режимы', en: 'Modes', tools: [
+            ['CUBE_PORTAL', '■', 'Куб', 'Cube'], ['SHIP_PORTAL', '➤', 'Корабль', 'Ship'], ['BALL_PORTAL', '●', 'Шар', 'Ball'],
+            ['UFO_PORTAL', '🛸', 'НЛО', 'UFO'], ['WAVE_PORTAL', '◢', 'Волна', 'Wave'], ['ROBOT_PORTAL', '🤖', 'Робот', 'Robot'],
+            ['SPIDER_PORTAL', '🕷', 'Паук', 'Spider'], ['SWING_PORTAL', '⇅', 'Качели', 'Swing'], ['AIRPLANE_PORTAL', '✈️', 'Самолётик (v1.2)', 'Plane (v1.2)']] },
+        PORTALS: { icon: '🔀', ru: 'Гравитация / Размер / Скорость', en: 'Gravity / Size / Speed', tools: [
+            ['GRAV_DOWN_PORTAL', '⬇️', 'Гравитация вниз', 'Gravity down'], ['GRAV_UP_PORTAL', '⬆️', 'Гравитация вверх', 'Gravity up'],
+            ['MINI_PORTAL', '🔹', 'Мини', 'Mini'], ['BIG_PORTAL', '🔷', 'Обычный размер', 'Normal size'],
+            ['SPEED_05', '🐢', 'Скорость 0.5x', 'Speed 0.5x'], ['SPEED_1', '▶', 'Скорость 1x', 'Speed 1x'], ['SPEED_2', '⏩', 'Скорость 2x', 'Speed 2x'],
+            ['SPEED_3', '🚀', 'Скорость 3x', 'Speed 3x'], ['SPEED_4', '⚡', 'Скорость 4x', 'Speed 4x']] },
+        ORBS: { icon: '⚪', ru: 'Орбы', en: 'Orbs', tools: [
+            ['ORB', '🟡', 'Жёлтый орб', 'Yellow orb'], ['PINK_ORB', '🩷', 'Розовый орб', 'Pink orb'], ['RED_ORB', '🔴', 'Красный орб', 'Red orb'],
+            ['GRAVITY_ORB', '🔵', 'Синий (гравитация)', 'Blue (gravity)'], ['GREEN_ORB', '🟢', 'Зелёный (грав.+прыжок)', 'Green (grav+jump)'], ['BLACK_ORB', '⚫', 'Чёрный (вниз)', 'Black (down)']] },
+        PADS: { icon: '🟨', ru: 'Батуты', en: 'Pads', tools: [
+            ['PAD', '🟨', 'Жёлтый батут', 'Yellow pad'], ['PINK_PAD', '🟪', 'Розовый батут', 'Pink pad'], ['RED_PAD', '🟥', 'Красный батут', 'Red pad'], ['BLUE_PAD', '🟦', 'Синий (гравитация)', 'Blue (gravity)']] },
+        SPIKES: { icon: '🔺', ru: 'Шипы и пилы', en: 'Hazards', tools: [
+            ['SPIKE', '🔺', 'Шип', 'Spike'], ['SMALL_SPIKE', '▴', 'Маленький шип', 'Small spike'], ['GROUND_SPIKES', '〰️', 'Колючки', 'Ground spikes'], ['SAW', '⚙️', 'Пила', 'Saw']] },
+        BLOCKS: { icon: '⬛', ru: 'Блоки', en: 'Blocks', tools: [['BLOCK', '⬛', 'Блок', 'Block'], ['SLAB', '▬', 'Полублок', 'Slab']] },
+        OTHER: { icon: '🏁', ru: 'Монеты и финиш', en: 'Coins & Goal', tools: [['COIN', '🪙', 'Монета', 'Coin'], ['GOAL', '🏁', 'Финиш', 'Goal']] },
+        DELETE: { icon: '❌', ru: 'Удалитель', en: 'Eraser', tools: [['ERASER', '❌', 'Удалитель', 'Eraser']] }
+    };
+    let activeTab = 'MODES', activeTool = 'CUBE_PORTAL', currentRotation = 0, hoverCell = null;
+
+    function renderTabs() {
+        const row = $('tabsRow'); row.innerHTML = '';
+        Object.entries(TABS).forEach(([k, tab]) => {
+            const b = document.createElement('button');
+            b.className = 'tab-btn px-3 py-1.5 rounded-xl bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-white transition shrink-0' + (k === activeTab ? ' tab-active' : '');
+            b.innerText = `${tab.icon} ${tr(tab.ru, tab.en)}`;
+            b.addEventListener('click', () => { activeTab = k; activeTool = tab.tools[0][0]; renderTabs(); renderToolBar(); });
+            row.appendChild(b);
+        });
+    }
+    function renderToolBar() {
+        const c = $('tabContentContainer'); c.innerHTML = '';
+        TABS[activeTab].tools.forEach(([id, icon, ru, en]) => {
+            const b = document.createElement('button');
+            b.className = `tool-btn px-3 py-2 rounded-xl border border-zinc-700 bg-zinc-800 text-xs font-bold flex items-center gap-2 transition shrink-0 ${activeTool === id ? 'tool-active' : 'text-zinc-300 hover:bg-zinc-700'}`;
+            b.innerHTML = `<span class="text-base">${icon}</span><span>${tr(ru, en)}</span>`;
+            b.addEventListener('click', () => { activeTool = id; renderToolBar(); });
+            c.appendChild(b);
+        });
+    }
+    SONGS.forEach((s, i) => { const o = document.createElement('option'); o.value = i; o.textContent = s.name; $('edLevelSong').appendChild(o); });
+
+    function openEditor() {
+        G.mode = 'EDITOR'; G.source = { kind: 'editor' }; G.running = false; G.attempts = 1;
+        G.L = prepareLevel(editorLevel); G.S = null; G.particles = [];
+        showScreen('GAME');
+        $('bottomEditorBar').classList.remove('hidden');
+        $('editorScrollControls').classList.remove('hidden');
+        $('playControlsOverlay').classList.add('hidden');
+        $('aiLogContainer').classList.add('hidden');
+        $('pauseModal').classList.add('hidden'); $('winModal').classList.add('hidden');
+        $('edLevelName').value = editorLevel.name;
+        $('edLevelColor').value = editorLevel.color;
+        $('edLevelSong').value = editorLevel.song;
+        music.restart(editorLevel.song);
+        updateHud(true);
+    }
+    $('edLevelName').addEventListener('input', e => { editorLevel.name = e.target.value; saveEditor(); updateHud(true); });
+    $('edLevelColor').addEventListener('input', e => { editorLevel.color = e.target.value; saveEditor(); });
+    $('edLevelSong').addEventListener('change', e => { editorLevel.song = +e.target.value; saveEditor(); music.restart(editorLevel.song); });
+    $('btnEdTest').addEventListener('click', () => startLevel({ kind: 'editor' }, 'PLAY'));
+    $('btnEdTestAI').addEventListener('click', () => startLevel({ kind: 'editor' }, 'AI'));
+
+    function screenToWorld(e) {
+        const rect = canvas.getBoundingClientRect();
+        const sx = (e.clientX - rect.left) / rect.width * canvas.width;
+        const sy = (e.clientY - rect.top) / rect.height * canvas.height;
+        return { x: sx / SCALE + G.edCamX, y: (canvas.height - sy) / SCALE + G.edCamY };
+    }
+    function objAtPoint(w) {
+        for (let i = editorLevel.objects.length - 1; i >= 0; i--) {
+            const o = editorLevel.objects[i];
+            if (w.x >= o.x && w.x < o.x + 40 && w.y >= o.y && w.y < o.y + 40) return i;
+        }
+        return -1;
+    }
+    function editorPlace(e) {
+        const w = screenToWorld(e);
+        const cx = Math.floor(w.x / GRID) * GRID, cy = Math.floor(w.y / GRID) * GRID;
+        if (activeTool === 'ERASER') { const i = objAtPoint(w); if (i >= 0) editorLevel.objects.splice(i, 1); }
+        else if (cx >= 0 && cy >= 0) {
+            editorLevel.objects = editorLevel.objects.filter(o => !(o.x === cx && o.y === cy));
+            if (activeTool === 'GOAL') editorLevel.objects = editorLevel.objects.filter(o => o.type !== 'GOAL');
+            editorLevel.objects.push({ type: activeTool, x: cx, y: cy, rotation: currentRotation });
+        }
+        saveEditor();
+    }
+    let painting = false;
+    canvas.addEventListener('pointerdown', e => {
+        music.ensure();
+        if (G.mode === 'EDITOR') {
+            if (e.button === 2) { const i = objAtPoint(screenToWorld(e)); if (i >= 0) { editorLevel.objects.splice(i, 1); saveEditor(); } return; }
+            if (e.button === 0) { painting = true; editorPlace(e); }
+        } else { e.preventDefault(); pressDown(); }
+    });
+    canvas.addEventListener('pointermove', e => {
+        if (G.mode !== 'EDITOR') return;
+        const w = screenToWorld(e);
+        const nc = { x: Math.floor(w.x / GRID) * GRID, y: Math.floor(w.y / GRID) * GRID };
+        const changed = !hoverCell || nc.x !== hoverCell.x || nc.y !== hoverCell.y;
+        hoverCell = nc.x >= 0 && nc.y >= 0 ? nc : null;
+        if (painting && changed && ['BLOCK', 'SLAB', 'SPIKE', 'SMALL_SPIKE', 'GROUND_SPIKES', 'ERASER'].includes(activeTool)) editorPlace(e);
+    });
+    canvas.addEventListener('pointerleave', () => { hoverCell = null; });
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+    canvas.addEventListener('wheel', e => {
+        if (G.mode !== 'EDITOR') return;
+        e.preventDefault();
+        if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) moveEditorCam((e.deltaX || e.deltaY) * 0.8, 0);
+        else moveEditorCam(e.deltaY * 0.8, 0);
+    }, { passive: false });
+    function moveEditorCam(dx, dy) {
+        G.edCamX = Math.max(-200, G.edCamX + dx);
+        G.edCamY = Math.max(-80, G.edCamY + dy);
+        $('scrollPosText').innerText = 'x:' + Math.max(0, Math.round(G.edCamX / GRID));
+    }
+    $('btnScrollLeft').addEventListener('click', () => moveEditorCam(-400, 0));
+    $('btnScrollRight').addEventListener('click', () => moveEditorCam(400, 0));
+    $('btnScrollUp').addEventListener('click', () => moveEditorCam(0, 120));
+    $('btnScrollDown').addEventListener('click', () => moveEditorCam(0, -120));
+    $('btnRotateObject').addEventListener('click', () => { currentRotation = (currentRotation + 90) % 360; $('rotValText').innerText = currentRotation + '°'; });
+    $('btnClearAll').addEventListener('click', () => {
+        if (!confirm(tr('Удалить все объекты?', 'Delete all objects?'))) return;
+        editorLevel.objects = []; saveEditor();
+    });
+    $('btnExportLevel').addEventListener('click', () => {
+        const data = { format: 'geometry-ai', version: '1.3', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, objects: editorLevel.objects };
+        const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = (editorLevel.name || 'my_level').replace(/[^\wа-яё -]/gi, '_') + '.json';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    });
+    $('btnImportLevel').addEventListener('change', e => {
+        const file = e.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            try {
+                editorLevel = normalizeLevel(JSON.parse(ev.target.result));
+                saveEditor(); openEditor();
+                alert(tr('Уровень загружен!', 'Level loaded!'));
+            } catch (err) { alert(tr('Ошибка загрузки JSON-файла!', 'Error loading JSON file!')); }
+            e.target.value = '';
+        };
+        reader.readAsText(file);
+    });
+
+    // ---------- Управление ----------
+    function pressDown() {
+        if (G.screen !== 'GAME' || G.mode !== 'PLAY' || G.paused) return;
+        G.held = true;
+    }
+    window.addEventListener('pointerup', () => { G.held = false; painting = false; });
+    window.addEventListener('pointercancel', () => { G.held = false; painting = false; });
+    window.addEventListener('keydown', e => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+        if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) {
+            if (G.screen === 'GAME' && G.mode !== 'EDITOR') e.preventDefault();
+            music.ensure(); pressDown();
+        }
+        if (e.code === 'Escape' && G.screen === 'GAME' && G.mode !== 'EDITOR') {
+            if (!$('winModal').classList.contains('hidden')) exitLevel(); else setPaused(!G.paused);
+        }
+        if (e.code === 'KeyR' && G.screen === 'GAME' && G.mode !== 'EDITOR') { G.attempts++; resetRun(true); }
+        if (G.mode === 'EDITOR' && G.screen === 'GAME') {
+            if (e.code === 'ArrowRight') moveEditorCam(120, 0);
+            if (e.code === 'ArrowLeft') moveEditorCam(-120, 0);
+            if (e.code === 'ArrowUp') moveEditorCam(0, 80);
+            if (e.code === 'ArrowDown') moveEditorCam(0, -80);
+            if (e.code === 'KeyR') $('btnRotateObject').click();
+        }
+    });
+    window.addEventListener('keyup', e => { if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) G.held = false; });
+    window.addEventListener('blur', () => { G.held = false; if (G.screen === 'GAME' && G.mode !== 'EDITOR' && G.running) setPaused(true); });
+
+    // ---------- Старт ----------
+    applyLang();
+    showScreen('MENU');
+    requestAnimationFrame(loop);
+</script>
 </body>
 </html>
