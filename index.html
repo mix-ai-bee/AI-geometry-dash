@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Geometry AI v1.3</title>
+    <title>Geometry AI v1.4</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
@@ -45,9 +45,9 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v1.3</span>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v1.4</span>
                 </div>
-                <p class="text-[11px] text-zinc-400 font-mono" data-ru="9 режимов • Официальные уровни • Редактор" data-en="9 modes • Official levels • Editor">9 режимов • Официальные уровни • Редактор</p>
+                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Гараж • Онлайн уровни • Настройка порталов" data-en="Garage • Online levels • Portal settings">Гараж • Онлайн уровни • Настройка порталов</p>
             </div>
         </button>
         <div class="flex items-center gap-2 flex-wrap">
@@ -63,7 +63,7 @@
         <div id="menuBgSquares" class="absolute inset-0 pointer-events-none"></div>
         <div class="relative text-center">
             <div class="text-5xl md:text-7xl font-black italic tracking-wider text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.45)]" data-ru="ГЕОМЕТРИЯ ИИ" data-en="GEOMETRY AI">ГЕОМЕТРИЯ ИИ</div>
-            <div class="mt-2 font-mono text-zinc-400 text-sm" data-ru="Обновление 1.3 — все режимы!" data-en="Update 1.3 — all game modes!">Обновление 1.3 — все режимы!</div>
+            <div class="mt-2 font-mono text-zinc-400 text-sm" data-ru="Обновление 1.4 — гараж, достижения и онлайн уровни!" data-en="Update 1.4 — garage, achievements and online levels!">Обновление 1.4 — гараж, достижения и онлайн уровни!</div>
         </div>
         <div class="relative flex flex-col md:flex-row gap-4 w-full max-w-3xl">
             <button id="btnOfficial" class="menu-btn flex-1 rounded-3xl bg-white text-black p-6 flex flex-col items-center gap-2 shadow-2xl">
@@ -76,15 +76,18 @@
                 <span class="text-xl font-black uppercase text-white" data-ru="Создать уровень" data-en="Create Level">Создать уровень</span>
                 <span class="text-xs font-mono text-zinc-400" data-ru="Редактор со всеми объектами" data-en="Editor with every object">Редактор со всеми объектами</span>
             </button>
-            <button disabled class="menu-btn flex-1 rounded-3xl bg-zinc-950 border-2 border-dashed border-zinc-700 p-6 flex flex-col items-center gap-2 opacity-60 cursor-not-allowed">
+            <button id="btnOnline" class="menu-btn flex-1 rounded-3xl bg-zinc-900 border-2 border-sky-500 p-6 flex flex-col items-center gap-2 shadow-2xl">
                 <span class="text-5xl">🌐</span>
-                <span class="text-xl font-black uppercase text-zinc-300" data-ru="Онлайн уровни" data-en="Online Levels">Онлайн уровни</span>
-                <span class="text-xs font-mono text-zinc-500" data-ru="Скоро: загрузка на сайт" data-en="Soon: upload to the site">Скоро: загрузка на сайт</span>
+                <span class="text-xl font-black uppercase text-white" data-ru="Онлайн уровни" data-en="Online Levels">Онлайн уровни</span>
+                <span class="text-xs font-mono text-zinc-400" data-ru="Поделись кодом уровня с другом" data-en="Share a level code with a friend">Поделись кодом уровня с другом</span>
             </button>
         </div>
-        <div class="relative flex flex-col items-center gap-2">
-            <div class="text-xs font-mono text-zinc-400" data-ru="Цвет твоей иконки:" data-en="Your icon color:">Цвет твоей иконки:</div>
-            <div id="colorPicker" class="flex gap-2"></div>
+        <div class="relative flex flex-wrap items-center justify-center gap-3">
+            <button id="btnGarage" class="menu-btn rounded-2xl bg-zinc-900 border-2 border-yellow-400 px-6 py-3 flex items-center gap-3 shadow-2xl">
+                <canvas id="menuIconCanvas" width="96" height="96" class="w-12 h-12"></canvas>
+                <span class="text-left"><span class="block text-lg font-black uppercase text-white" data-ru="Гараж" data-en="Garage">Гараж</span>
+                <span class="block text-xs font-mono text-yellow-300" id="menuAchText"></span></span>
+            </button>
         </div>
     </section>
 
@@ -97,6 +100,60 @@
         </div>
         <div id="levelCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4"></div>
         <p class="text-center text-xs font-mono text-zinc-500" data-ru="Пробел / клик / тап — прыжок. Esc — пауза." data-en="Space / click / tap — jump. Esc — pause.">Пробел / клик / тап — прыжок. Esc — пауза.</p>
+    </section>
+
+    <!-- ================= ОНЛАЙН УРОВНИ ================= -->
+    <section id="screenOnline" class="hidden flex-1 p-4 md:p-6 max-w-6xl mx-auto w-full flex flex-col gap-5">
+        <div class="flex items-center justify-between gap-3">
+            <button data-back class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-sm font-bold">◀ <span data-ru="Назад" data-en="Back">Назад</span></button>
+            <h2 class="text-2xl md:text-3xl font-black italic uppercase" data-ru="Онлайн уровни" data-en="Online Levels">Онлайн уровни</h2>
+            <div class="w-24"></div>
+        </div>
+        <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-3xl bg-zinc-900 border border-zinc-700 p-5 flex flex-col gap-3">
+                <h3 class="text-lg font-black">📤 <span data-ru="Выложить свой уровень" data-en="Share your level">Выложить свой уровень</span></h3>
+                <p class="text-xs text-zinc-400" data-ru="Берём уровень из редактора. Напиши название, получи код и отправь его другу — он вставит код и сыграет." data-en="We take the level from the editor. Name it, get a code and send it to a friend — they paste the code and play.">Берём уровень из редактора. Напиши название, получи код и отправь его другу — он вставит код и сыграет.</p>
+                <input id="onName" maxlength="32" class="px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-700 text-sm font-bold">
+                <div id="onEditorInfo" class="text-xs font-mono text-zinc-400"></div>
+                <button id="btnMakeCode" class="py-2.5 rounded-xl bg-white text-black font-black text-sm">🔑 <span data-ru="Получить код" data-en="Get code">Получить код</span></button>
+                <textarea id="onCodeOut" readonly rows="4" class="hidden w-full px-3 py-2 rounded-xl bg-black border border-zinc-700 font-mono text-[11px] break-all"></textarea>
+                <div id="onCodeBtns" class="hidden flex flex-wrap gap-2">
+                    <button id="btnCopyCode" class="flex-1 py-2 rounded-xl bg-sky-500 text-black font-black text-sm">📋 <span data-ru="Копировать код" data-en="Copy code">Копировать код</span></button>
+                    <button id="btnCopyLink" class="flex-1 py-2 rounded-xl bg-zinc-800 border border-zinc-600 font-black text-sm">🔗 <span data-ru="Копировать ссылку" data-en="Copy link">Копировать ссылку</span></button>
+                </div>
+            </div>
+            <div class="rounded-3xl bg-zinc-900 border border-zinc-700 p-5 flex flex-col gap-3">
+                <h3 class="text-lg font-black">📥 <span data-ru="Загрузить уровень" data-en="Load a level">Загрузить уровень</span></h3>
+                <p class="text-xs text-zinc-400" data-ru="Вставь код, который тебе прислали." data-en="Paste the code you were sent.">Вставь код, который тебе прислали.</p>
+                <textarea id="onCodeIn" rows="4" class="w-full px-3 py-2 rounded-xl bg-black border border-zinc-700 font-mono text-[11px]" placeholder="GAI1-..."></textarea>
+                <button id="btnOpenCode" class="py-2.5 rounded-xl bg-white text-black font-black text-sm">📂 <span data-ru="Открыть уровень" data-en="Open level">Открыть уровень</span></button>
+                <div id="onLoaded"></div>
+            </div>
+        </div>
+        <div class="flex flex-col gap-3">
+            <h3 class="text-lg font-black">🕘 <span data-ru="Недавние онлайн уровни" data-en="Recent online levels">Недавние онлайн уровни</span></h3>
+            <div id="onRecent" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"></div>
+        </div>
+        <p class="text-center text-xs font-mono text-zinc-500" data-ru="Общий каталог уровней для всех игроков появится в следующих обновлениях." data-en="A shared level catalog for all players is coming in a later update.">Общий каталог уровней для всех игроков появится в следующих обновлениях.</p>
+    </section>
+
+    <!-- ================= ГАРАЖ ================= -->
+    <section id="screenGarage" class="hidden flex-1 p-4 md:p-6 max-w-6xl mx-auto w-full flex flex-col gap-5">
+        <div class="flex items-center justify-between gap-3">
+            <button data-back class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-sm font-bold">◀ <span data-ru="Назад" data-en="Back">Назад</span></button>
+            <h2 class="text-2xl md:text-3xl font-black italic uppercase" data-ru="Гараж" data-en="Garage">Гараж</h2>
+            <div class="w-24"></div>
+        </div>
+        <div class="grid md:grid-cols-[300px_1fr] gap-4">
+            <div class="rounded-3xl bg-zinc-900 border border-zinc-700 p-4 flex flex-col gap-3">
+                <canvas id="garageCanvas" width="560" height="560" class="w-full aspect-square rounded-2xl bg-black"></canvas>
+                <div id="garageStats" class="text-xs font-mono text-zinc-300 flex flex-col gap-1"></div>
+            </div>
+            <div class="rounded-3xl bg-zinc-900 border border-zinc-700 p-4 flex flex-col gap-3 min-w-0">
+                <div id="garageTabs" class="flex flex-wrap gap-1.5"></div>
+                <div id="garageItems" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2"></div>
+            </div>
+        </div>
     </section>
 
     <!-- ================= ИГРА / РЕДАКТОР ================= -->
@@ -174,13 +231,17 @@
                 <div class="flex-1"></div>
                 <button id="btnEdTest" class="px-3.5 py-2 bg-white text-black rounded-xl text-xs font-black">▶ <span data-ru="Тест" data-en="Test">Тест</span></button>
                 <button id="btnEdTestAI" class="px-3.5 py-2 bg-zinc-800 border border-zinc-600 rounded-xl text-xs font-black">🤖 <span data-ru="Тест ИИ" data-en="AI Test">Тест ИИ</span></button>
+                <button id="btnEdShare" class="px-3 py-2 rounded-xl bg-sky-500 text-black text-xs font-black">📤 <span data-ru="Поделиться" data-en="Share">Поделиться</span></button>
                 <button id="btnExportLevel" class="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold">💾 <span data-ru="Сохранить JSON" data-en="Save JSON">Сохранить JSON</span></button>
                 <label class="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold cursor-pointer">📂 <span data-ru="Загрузить JSON" data-en="Load JSON">Загрузить JSON</span><input type="file" id="btnImportLevel" accept=".json" class="hidden"></label>
             </div>
+            <div id="propsPanel" class="hidden rounded-xl border border-sky-500/60 bg-sky-500/10 p-2.5 flex flex-col gap-2 text-xs"></div>
             <div id="tabsRow" class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar border-b border-zinc-800 pb-2"></div>
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div id="tabContentContainer" class="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1 w-full md:w-auto"></div>
                 <div class="flex items-center gap-2">
+                    <button id="btnUndo" title="Ctrl+Z" class="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold shrink-0">↶ <span data-ru="Отмена" data-en="Undo">Отмена</span></button>
+                    <button id="btnRedo" title="Ctrl+Y" class="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold shrink-0">↷</button>
                     <button id="btnRotateObject" class="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 rounded-xl text-xs font-bold shrink-0">🔄 <span data-ru="Поворот" data-en="Rotate">Поворот</span>: <span id="rotValText">0°</span></button>
                     <button id="btnClearAll" class="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 rounded-xl text-xs font-bold shrink-0">🗑️ <span data-ru="Очистить" data-en="Clear">Очистить</span></button>
                 </div>
@@ -255,16 +316,22 @@ function normalizeLevel(data) {
         name: data.name || 'Мой уровень',
         color: data.color || '#2563eb',
         song: data.song || 0,
-        objects: (data.objects || []).filter(o => o && OBJ[o.type]).map(o => ({
-            type: o.type, x: Math.round(o.x / GRID) * GRID, y: Math.round(o.y / GRID) * GRID, rotation: o.rotation || 0
-        }))
+        objects: (data.objects || []).filter(o => o && OBJ[o.type]).map(o => {
+            const r = { type: o.type, x: Math.round(o.x / GRID) * GRID, y: Math.round(o.y / GRID) * GRID, rotation: o.rotation || 0 };
+            if (MODE_PORTALS[o.type]) {
+                if (typeof o.floor === 'number') r.floor = o.floor;
+                if (typeof o.ceil === 'number') r.ceil = o.ceil;
+                if (Array.isArray(o.lanes) && o.lanes.length) r.lanes = o.lanes.filter(v => typeof v === 'number').slice(0, 8);
+            }
+            return r;
+        })
     };
 }
 function prepareLevel(data) {
     const lv = normalizeLevel(data);
     const objs = lv.objects.map((o, i) => {
         const d = OBJ[o.type];
-        return { id: i, type: o.type, x: o.x, y: o.y, rotation: o.rotation, cat: d.cat, kind: d.kind, circle: d.circle, rect: objRect(o) };
+        return { id: i, type: o.type, x: o.x, y: o.y, rotation: o.rotation, cat: d.cat, kind: d.kind, circle: d.circle, rect: objRect(o), floor: o.floor, ceil: o.ceil, lanes: o.lanes };
     }).sort((a, b) => a.rect.x0 - b.rect.x0);
     const goal = objs.find(o => o.type === 'GOAL');
     const maxX = objs.reduce((m, o) => Math.max(m, o.rect.x1), 600);
@@ -277,6 +344,22 @@ function prepareLevel(data) {
         topY: Math.max(800, objs.reduce((m, o) => Math.max(m, o.rect.y1), 0) + 400),
         startY
     };
+}
+const DEFAULT_LANES = [20, 120, 240];
+// Границы, которые задаёт портал режима: пол, потолок и дорожки самолётика (их можно менять в редакторе)
+function portalBounds(o) {
+    const nm = MODE_PORTALS[o.type];
+    if (!nm) return null;
+    let floor = 0, ceil = null;
+    if (CORRIDOR_MODES[nm]) {
+        floor = Math.max(0, Math.round((o.y + 20 - CORRIDOR / 2) / GRID) * GRID);
+        ceil = floor + CORRIDOR;
+    }
+    if (typeof o.floor === 'number') floor = Math.max(0, o.floor);
+    if (typeof o.ceil === 'number') ceil = o.ceil;
+    if (ceil != null && ceil < floor + 80) ceil = floor + 80;
+    const lanes = nm === 'airplane' ? (o.lanes && o.lanes.length ? o.lanes : DEFAULT_LANES) : null;
+    return { mode: nm, floor, ceil, lanes };
 }
 function queryNear(L, x0, x1) {
     const a = L.objs; let lo = 0, hi = a.length;
@@ -294,7 +377,7 @@ function pSize(s) {
 function initState(L) {
     return {
         x: 3, y: L.startY, vy: 0, mode: 'cube', g: 1, mini: false, speed: 1,
-        grounded: true, prevHeld: false, buf: 0, robotT: 0, lane: 0,
+        grounded: true, prevHeld: false, buf: 0, robotT: 0, lane: 0, lanes: DEFAULT_LANES,
         floor: 0, ceil: null, used: [], coins: [], dead: false, won: false, rot: 0, frame: 0, fx: null
     };
 }
@@ -424,8 +507,9 @@ function step(p, held, L) {
             break;
         }
         case 'airplane': {
-            if (press) { s.lane = (s.lane + 1) % 3; s.fx = { t: 'jump' }; }
-            const target = s.floor + [20, 120, 240][s.lane];
+            const lanes = s.lanes || DEFAULT_LANES;
+            if (press) { s.lane = (s.lane + 1) % lanes.length; s.fx = { t: 'jump' }; }
+            const target = s.floor + lanes[Math.min(s.lane, lanes.length - 1)];
             s.vy = (target - s.y) * 0.25;
             break;
         }
@@ -485,12 +569,11 @@ function step(p, held, L) {
                     s.robotT = 0; s.lane = 0; s.rot = 0;
                     if (nm !== 'cube' && nm !== 'robot') s.vy *= 0.5;
                 }
-                if (CORRIDOR_MODES[nm]) {
-                    s.floor = Math.max(0, Math.round((o.y + 20 - CORRIDOR / 2) / GRID) * GRID);
-                    s.ceil = s.floor + CORRIDOR;
-                    if (s.y < s.floor) s.y = s.floor;
-                    if (s.y + pSize(s) > s.ceil) s.y = s.ceil - pSize(s);
-                } else { s.floor = 0; s.ceil = null; }
+                const b = portalBounds(o);
+                s.floor = b.floor; s.ceil = b.ceil;
+                if (b.lanes) { s.lanes = b.lanes; s.lane = Math.min(s.lane, b.lanes.length - 1); }
+                if (s.y < s.floor) s.y = s.floor;
+                if (s.ceil != null && s.y + pSize(s) > s.ceil) s.y = s.ceil - pSize(s);
             } else if (t === 'GRAV_DOWN_PORTAL' || t === 'GRAV_UP_PORTAL') {
                 const ng = t === 'GRAV_UP_PORTAL' ? -1 : 1;
                 if (ng !== s.g) { s.g = ng; s.vy *= 0.5; s.grounded = false; }
@@ -616,7 +699,212 @@ const OFFICIAL_LEVELS = [
         { ru: 'Безумно', en: 'Insane', face: '😡', color: '#f472b6' },
         { ru: 'Экстрим', en: 'Extreme', face: '👿', color: '#ef4444' }];
     const ICON_COLORS = ['#ffffff', '#ffe600', '#3dff6e', '#33ccff', '#ff5fd2', '#ff8c1a', '#b266ff'];
-    let iconColor = store.get('iconColor', '#ffe600');
+
+    // ---------- Гараж: внешний вид и достижения ----------
+    const COSMETICS = {
+        icon: [['classic', 'Классика', 'Classic'], ['smile', 'Улыбка', 'Smile'], ['cool', 'Очки', 'Shades'], ['angry', 'Злюка', 'Angry'], ['x', 'Крестики', 'X eyes'],
+               ['robo', 'Робо', 'Robo'], ['star', 'Звезда', 'Star'], ['diamond', 'Ромб', 'Diamond'], ['skull', 'Череп', 'Skull'], ['ai', 'Чип ИИ', 'AI chip']],
+        trail: [['squares', 'Квадраты', 'Squares'], ['none', 'Без следа', 'None'], ['line', 'Линия', 'Line'], ['sparkle', 'Искры', 'Sparkles'], ['rainbow', 'Радуга', 'Rainbow'], ['fire', 'Огонь', 'Fire']],
+        wall: [['classic', 'Классика', 'Classic'], ['neon', 'Неон', 'Neon'], ['brick', 'Кирпич', 'Brick'], ['glass', 'Стекло', 'Glass'], ['pixel', 'Пиксели', 'Pixel'], ['gold', 'Золото', 'Gold']]
+    };
+    const EXTRA_COLORS = ['#ffd700', '#7fffd4', '#ff3b3b', '#1f1f1f'];
+    const FREE = new Set(['icon:classic', 'trail:squares', 'trail:none', 'wall:classic', 'color2:auto',
+        ...ICON_COLORS.map(c => 'color:' + c), ...ICON_COLORS.map(c => 'color2:' + c)]);
+    let cos = Object.assign({ icon: 'classic', color: store.get('iconColor', '#ffe600'), color2: 'auto', trail: 'squares', wall: 'classic' }, store.get('cos', {}));
+    let iconColor = cos.color;
+    function iconColor2() { return cos.color2 === 'auto' ? shade(iconColor, -0.45) : cos.color2; }
+    function saveCos() { store.set('cos', cos); iconColor = cos.color; refreshMenuIcon(); }
+
+    let stats = Object.assign({ jumps: 0, attempts: 0, wins: 0, practiceWins: 0, aiWins: 0, shared: 0, placed: 0, onlinePlays: 0, modes: [], speed4: false, lv: {} }, store.get('stats', {}));
+    let unlockedAch = store.get('unlocked', []);
+    let statsDirty = false;
+    function saveStats() { store.set('stats', stats); statsDirty = false; }
+    function coinStats() {
+        let got = 0, total = 0;
+        OFFICIAL_LEVELS.forEach((lv, i) => { total += lv.objects.filter(o => o.type === 'COIN').length; got += store.get('prog_' + i, { coins: [] }).coins.length; });
+        return { got, total };
+    }
+    const ACH = [
+        { id: 'jump1', ru: 'Первый прыжок', en: 'First jump', dru: 'Прыгни 1 раз', den: 'Jump once', v: () => stats.jumps, n: 1, reward: 'icon:smile' },
+        { id: 'jump100', ru: 'Попрыгунчик', en: 'Bouncer', dru: 'Сделай 100 прыжков', den: 'Jump 100 times', v: () => stats.jumps, n: 100, reward: 'trail:line' },
+        { id: 'jump1000', ru: 'Пружина', en: 'Spring', dru: 'Сделай 1000 прыжков', den: 'Jump 1000 times', v: () => stats.jumps, n: 1000, reward: 'icon:cool' },
+        { id: 'att50', ru: 'Упорство', en: 'Persistence', dru: '50 попыток', den: '50 attempts', v: () => stats.attempts, n: 50, reward: 'icon:x' },
+        { id: 'att100', ru: 'Ни шагу назад', en: 'No retreat', dru: '100 попыток', den: '100 attempts', v: () => stats.attempts, n: 100, reward: 'color:#1f1f1f' },
+        { id: 'att500', ru: 'Железные нервы', en: 'Nerves of steel', dru: '500 попыток', den: '500 attempts', v: () => stats.attempts, n: 500, reward: 'icon:skull' },
+        ...OFFICIAL_LEVELS.map((lv, i) => ({
+            id: 'lv' + i,
+            ru: i === OFFICIAL_LEVELS.length - 1 ? 'Умнее ИИ' : 'Пройти «' + lv.name + '»',
+            en: i === OFFICIAL_LEVELS.length - 1 ? 'Smarter than AI' : 'Beat "' + (lv.nameEn || lv.name) + '"',
+            dru: 'Пройди официальный уровень ' + (i + 1) + (lv.aiProof ? ' — его не может пройти ИИ' : ''),
+            den: 'Beat official level ' + (i + 1) + (lv.aiProof ? ' — the AI can\'t' : ''),
+            v: () => stats.lv[i] ? 1 : 0, n: 1, reward: ['wall:neon', 'icon:angry', 'trail:sparkle', 'wall:brick', 'icon:ai'][i] || 'icon:star'
+        })),
+        { id: 'all', ru: 'Чемпион', en: 'Champion', dru: 'Пройди все официальные уровни', den: 'Beat every official level', v: () => OFFICIAL_LEVELS.filter((_, i) => stats.lv[i]).length, n: OFFICIAL_LEVELS.length, reward: 'wall:gold' },
+        { id: 'coin1', ru: 'Первая монета', en: 'First coin', dru: 'Собери монету в официальном уровне', den: 'Collect a coin in an official level', v: () => coinStats().got, n: 1, reward: 'color:#ffd700' },
+        { id: 'coinAll', ru: 'Коллекционер', en: 'Collector', dru: 'Собери все монеты официальных уровней', den: 'Collect every official coin', v: () => coinStats().got, n: () => coinStats().total, reward: 'trail:rainbow' },
+        { id: 'practice', ru: 'Ученик', en: 'Student', dru: 'Пройди уровень в тренировке', den: 'Beat a level in practice', v: () => stats.practiceWins, n: 1, reward: 'wall:glass' },
+        { id: 'wins10', ru: 'Ветеран', en: 'Veteran', dru: 'Пройди уровни 10 раз', den: 'Beat levels 10 times', v: () => stats.wins, n: 10, reward: 'trail:fire' },
+        { id: 'modes', ru: 'Мастер режимов', en: 'Mode master', dru: 'Побывай во всех 9 режимах', den: 'Play all 9 modes', v: () => stats.modes.length, n: 9, reward: 'icon:diamond' },
+        { id: 'speed4', ru: 'Сверхзвук', en: 'Supersonic', dru: 'Разгонись до скорости 4x', den: 'Reach 4x speed', v: () => stats.speed4 ? 1 : 0, n: 1, reward: 'color:#ff3b3b' },
+        { id: 'ai', ru: 'Наблюдатель', en: 'Observer', dru: 'Посмотри, как ИИ проходит уровень до конца', den: 'Watch the AI beat a level', v: () => stats.aiWins, n: 1, reward: 'icon:robo' },
+        { id: 'builder', ru: 'Строитель', en: 'Builder', dru: 'Поставь 100 объектов в редакторе', den: 'Place 100 objects in the editor', v: () => stats.placed, n: 100, reward: 'wall:pixel' },
+        { id: 'share', ru: 'Автор', en: 'Author', dru: 'Получи код своего уровня', den: 'Get a code for your level', v: () => stats.shared, n: 1, reward: 'icon:star' },
+        { id: 'online', ru: 'Гость', en: 'Guest', dru: 'Сыграй в онлайн уровень по коду', den: 'Play an online level from a code', v: () => stats.onlinePlays, n: 1, reward: 'color:#7fffd4' }
+    ];
+    function achTarget(a) { return typeof a.n === 'function' ? a.n() : a.n; }
+    function isUnlocked(key) {
+        if (FREE.has(key)) return true;
+        const [k, id] = key.split(':');
+        const want = k === 'color2' ? 'color:' + id : key;
+        return ACH.some(a => a.reward === want && unlockedAch.includes(a.id));
+    }
+    function achForReward(key) {
+        const [k, id] = key.split(':');
+        const want = k === 'color2' ? 'color:' + id : key;
+        return ACH.find(a => a.reward === want);
+    }
+    function rewardName(r) {
+        const [k, id] = r.split(':');
+        if (k === 'color') return tr('новый цвет', 'new color');
+        const it = (COSMETICS[k] || []).find(x => x[0] === id);
+        const kind = { icon: tr('кубик', 'icon'), trail: tr('след', 'trail'), wall: tr('стены', 'walls') }[k];
+        return kind + ' «' + (it ? tr(it[1], it[2]) : id) + '»';
+    }
+    const achQueue = [];
+    function achToast(a) {
+        achQueue.push(a);
+        if (achQueue.length === 1) showNextAch();
+    }
+    function showNextAch() {
+        const a = achQueue[0]; if (!a) return;
+        let t = $('achBox');
+        if (!t) {
+            t = document.createElement('div'); t.id = 'achBox';
+            t.className = 'fixed top-20 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl bg-yellow-300 text-black shadow-2xl border-2 border-black flex flex-col items-center text-center';
+            document.body.appendChild(t);
+        }
+        t.innerHTML = `<div class="text-xs font-black uppercase">🏆 ${tr('Достижение', 'Achievement')}</div><div class="text-lg font-black">${tr(a.ru, a.en)}</div><div class="text-xs font-bold">${tr('Открыто', 'Unlocked')}: ${rewardName(a.reward)}</div>`;
+        t.hidden = false;
+        sound.coin();
+        setTimeout(() => { t.hidden = true; achQueue.shift(); setTimeout(showNextAch, 250); }, 2600);
+    }
+    function checkAchievements() {
+        let any = false;
+        ACH.forEach(a => {
+            if (unlockedAch.includes(a.id)) return;
+            const t = achTarget(a);
+            if (t > 0 && a.v() >= t) { unlockedAch.push(a.id); any = true; achToast(a); }
+        });
+        if (any) { store.set('unlocked', unlockedAch); refreshMenuIcon(); }
+        if (statsDirty) saveStats();
+    }
+
+    // Рисование кубика: лицо, цвета. Используется в игре, в меню и в гараже.
+    function drawFace(g, face, s) {
+        g.fillStyle = '#000'; g.strokeStyle = '#000'; g.lineCap = 'round';
+        const eye = (x, y) => g.fillRect(x, y, s * 0.22, s * 0.22);
+        switch (face) {
+            case 'smile':
+                eye(-s * 0.35, -s * 0.32); eye(s * 0.13, -s * 0.32);
+                g.lineWidth = s * 0.1; g.beginPath(); g.arc(0, -s * 0.02, s * 0.3, 0.2 * Math.PI, 0.8 * Math.PI); g.stroke(); break;
+            case 'cool':
+                g.fillRect(-s * 0.48, -s * 0.36, s * 0.96, s * 0.2); g.fillRect(-s * 0.4, -s * 0.2, s * 0.3, s * 0.14); g.fillRect(s * 0.1, -s * 0.2, s * 0.3, s * 0.14);
+                g.lineWidth = s * 0.08; g.beginPath(); g.moveTo(-s * 0.2, s * 0.28); g.lineTo(s * 0.25, s * 0.2); g.stroke(); break;
+            case 'angry':
+                g.lineWidth = s * 0.1;
+                g.beginPath(); g.moveTo(-s * 0.42, -s * 0.45); g.lineTo(-s * 0.1, -s * 0.3); g.moveTo(s * 0.42, -s * 0.45); g.lineTo(s * 0.1, -s * 0.3); g.stroke();
+                eye(-s * 0.33, -s * 0.24); eye(s * 0.11, -s * 0.24);
+                g.beginPath(); g.arc(0, s * 0.42, s * 0.22, 1.2 * Math.PI, 1.8 * Math.PI); g.stroke(); break;
+            case 'x':
+                g.lineWidth = s * 0.08;
+                [-1, 1].forEach(d => { const cx = d * s * 0.24, cy = -s * 0.2, r = s * 0.12; g.beginPath(); g.moveTo(cx - r, cy - r); g.lineTo(cx + r, cy + r); g.moveTo(cx + r, cy - r); g.lineTo(cx - r, cy + r); g.stroke(); });
+                g.beginPath(); g.moveTo(-s * 0.2, s * 0.25); g.lineTo(s * 0.2, s * 0.25); g.stroke(); break;
+            case 'robo':
+                g.fillRect(-s * 0.46, -s * 0.36, s * 0.92, s * 0.26);
+                g.fillStyle = '#33ccff'; g.fillRect(-s * 0.36, -s * 0.29, s * 0.72, s * 0.1);
+                g.fillStyle = '#000'; for (let i = -2; i <= 2; i++) g.fillRect(i * s * 0.14 - s * 0.03, s * 0.12, s * 0.06, s * 0.22); break;
+            case 'star': {
+                g.beginPath();
+                for (let i = 0; i < 10; i++) { const r = i % 2 ? s * 0.18 : s * 0.42, a = -Math.PI / 2 + i * Math.PI / 5; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+                g.closePath(); g.fill(); break;
+            }
+            case 'diamond':
+                g.beginPath(); g.moveTo(0, -s * 0.45); g.lineTo(s * 0.4, 0); g.lineTo(0, s * 0.45); g.lineTo(-s * 0.4, 0); g.closePath(); g.fill();
+                g.fillStyle = 'rgba(255,255,255,.6)'; g.beginPath(); g.moveTo(0, -s * 0.25); g.lineTo(s * 0.2, 0); g.lineTo(0, s * 0.05); g.closePath(); g.fill(); break;
+            case 'skull':
+                g.beginPath(); g.arc(-s * 0.22, -s * 0.15, s * 0.14, 0, Math.PI * 2); g.arc(s * 0.22, -s * 0.15, s * 0.14, 0, Math.PI * 2); g.fill();
+                g.beginPath(); g.moveTo(0, s * 0.02); g.lineTo(s * 0.08, s * 0.16); g.lineTo(-s * 0.08, s * 0.16); g.closePath(); g.fill();
+                for (let i = -2; i <= 1; i++) g.fillRect(i * s * 0.12 + s * 0.01, s * 0.26, s * 0.08, s * 0.14); break;
+            case 'ai':
+                g.lineWidth = s * 0.07;
+                g.beginPath(); g.arc(0, 0, s * 0.14, 0, Math.PI * 2); g.fill();
+                [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([dx, dy]) => {
+                    g.beginPath(); g.moveTo(dx * s * 0.12, dy * s * 0.12); g.lineTo(dx * s * 0.3, dy * s * 0.12); g.lineTo(dx * s * 0.3, dy * s * 0.4); g.stroke();
+                    g.beginPath(); g.arc(dx * s * 0.3, dy * s * 0.42, s * 0.06, 0, Math.PI * 2); g.fill();
+                });
+                break;
+            default:
+                eye(-s * 0.35, -s * 0.3); eye(s * 0.13, -s * 0.3);
+        }
+    }
+    function drawCubeIcon(g, s, c1, c3, face) {
+        g.fillStyle = c1; g.fillRect(-s, -s, s * 2, s * 2);
+        g.strokeStyle = '#000'; g.lineWidth = 2.5; g.strokeRect(-s, -s, s * 2, s * 2);
+        g.fillStyle = c3; g.fillRect(-s * 0.55, -s * 0.55, s * 1.1, s * 1.1);
+        g.strokeRect(-s * 0.55, -s * 0.55, s * 1.1, s * 1.1);
+        drawFace(g, face, s);
+    }
+    // Блок (стена) в выбранном стиле, координаты -20..20
+    function drawWall(g, style, lc) {
+        switch (style) {
+            case 'neon':
+                g.fillStyle = '#050507'; g.fillRect(-20, -20, 40, 40);
+                g.shadowColor = shade(lc, 0.4); g.shadowBlur = 10;
+                g.strokeStyle = shade(lc, 0.5); g.lineWidth = 2.5; g.strokeRect(-18, -18, 36, 36);
+                g.shadowBlur = 0; g.strokeStyle = shade(lc, 0.2); g.lineWidth = 1; g.strokeRect(-11, -11, 22, 22);
+                break;
+            case 'brick':
+                g.fillStyle = shade(lc, -0.45); g.fillRect(-20, -20, 40, 40);
+                g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = 1.5;
+                g.beginPath();
+                [-7, 6].forEach(y => { g.moveTo(-20, y); g.lineTo(20, y); });
+                g.moveTo(0, -20); g.lineTo(0, -7); g.moveTo(-10, -7); g.lineTo(-10, 6); g.moveTo(10, -7); g.lineTo(10, 6); g.moveTo(0, 6); g.lineTo(0, 20);
+                g.stroke();
+                g.strokeStyle = '#fff'; g.lineWidth = 2; g.strokeRect(-19, -19, 38, 38);
+                break;
+            case 'glass':
+                g.fillStyle = 'rgba(255,255,255,.13)'; g.fillRect(-20, -20, 40, 40);
+                g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 2; g.strokeRect(-19, -19, 38, 38);
+                g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.moveTo(-16, 4); g.lineTo(4, -16); g.lineTo(10, -16); g.lineTo(-16, 10); g.closePath(); g.fill();
+                break;
+            case 'pixel':
+                for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { g.fillStyle = shade(lc, -0.35 - ((i * 7 + j * 3) % 4) * 0.12); g.fillRect(-20 + i * 10, -20 + j * 10, 10, 10); }
+                g.strokeStyle = '#fff'; g.lineWidth = 2; g.strokeRect(-19, -19, 38, 38);
+                break;
+            case 'gold': {
+                const gr = g.createLinearGradient(-20, -20, 20, 20);
+                gr.addColorStop(0, '#fff2a8'); gr.addColorStop(0.5, '#ffcc33'); gr.addColorStop(1, '#a06d00');
+                g.fillStyle = gr; g.fillRect(-20, -20, 40, 40);
+                g.strokeStyle = '#5c3d00'; g.lineWidth = 2; g.strokeRect(-19, -19, 38, 38); g.strokeRect(-11, -11, 22, 22);
+                break;
+            }
+            default: {
+                const gr = g.createLinearGradient(0, -20, 0, 20);
+                gr.addColorStop(0, shade(lc, -0.55)); gr.addColorStop(1, '#050507');
+                g.fillStyle = gr; g.fillRect(-20, -20, 40, 40);
+                g.strokeStyle = '#fff'; g.lineWidth = 2; g.strokeRect(-19, -19, 38, 38);
+                g.strokeStyle = 'rgba(255,255,255,.18)'; g.strokeRect(-12, -12, 24, 24);
+            }
+        }
+    }
+    function refreshMenuIcon() {
+        const c = $('menuIconCanvas'); if (!c) return;
+        const g = c.getContext('2d');
+        g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height);
+        g.translate(48, 48); g.scale(2.2, 2.2);
+        drawCubeIcon(g, 17, iconColor, iconColor2(), cos.icon);
+        const t = $('menuAchText'); if (t) t.innerText = `🏆 ${unlockedAch.length}/${ACH.length}`;
+    }
 
     // ---------- Музыка ----------
     const SONGS = [
@@ -697,7 +985,9 @@ const OFFICIAL_LEVELS = [
     function applyLang() {
         document.querySelectorAll('[data-ru]').forEach(el => { const t = el.getAttribute('data-' + currentLang); if (t) el.innerText = t; });
         $('edLevelName').placeholder = tr('Название уровня', 'Level name');
-        refreshAudioButtons(); renderTabs(); renderToolBar(); renderLevelCards(); updatePracticeBtn();
+        refreshAudioButtons(); renderTabs(); renderToolBar(); renderLevelCards(); updatePracticeBtn(); renderProps(); refreshMenuIcon();
+        if (G.screen === 'ONLINE') renderOnline();
+        if (G.screen === 'GARAGE') renderGarage();
         if (G.L) updateHud(true);
     }
     $('btnLangToggle').addEventListener('click', () => { currentLang = currentLang === 'ru' ? 'en' : 'ru'; store.set('lang', currentLang); applyLang(); });
@@ -717,9 +1007,14 @@ const OFFICIAL_LEVELS = [
         $('screenMenu').classList.toggle('hidden', name !== 'MENU');
         $('screenLevels').classList.toggle('hidden', name !== 'LEVELS');
         $('screenGame').classList.toggle('hidden', name !== 'GAME');
+        $('screenOnline').classList.toggle('hidden', name !== 'ONLINE');
+        $('screenGarage').classList.toggle('hidden', name !== 'GARAGE');
         $('btnMenu').classList.toggle('hidden', name === 'MENU');
         if (name !== 'GAME') { G.running = false; music.restart(0); }
         if (name === 'LEVELS') renderLevelCards();
+        if (name === 'ONLINE') renderOnline();
+        if (name === 'GARAGE') { renderGarage(); garageLoop(); }
+        if (name === 'MENU') refreshMenuIcon();
         if (name === 'GAME') setTimeout(resizeCanvas, 0);
     }
     $('btnMenu').addEventListener('click', () => showScreen('MENU'));
@@ -727,6 +1022,9 @@ const OFFICIAL_LEVELS = [
     $('btnOfficial').addEventListener('click', () => { music.play(); showScreen('LEVELS'); });
     $('btnCreate').addEventListener('click', () => { music.play(); openEditor(); });
     $('btnLevelsBack').addEventListener('click', () => showScreen('MENU'));
+    $('btnOnline').addEventListener('click', () => { music.play(); showScreen('ONLINE'); });
+    $('btnGarage').addEventListener('click', () => { music.play(); showScreen('GARAGE'); });
+    document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => showScreen('MENU')));
 
     // Фон меню
     (function () {
@@ -738,14 +1036,6 @@ const OFFICIAL_LEVELS = [
             d.style.cssText = `left:${Math.random() * 100}%;width:${s}px;height:${s}px;animation-duration:${8 + Math.random() * 12}s;animation-delay:${-Math.random() * 15}s`;
             bg.appendChild(d);
         }
-        const cp = $('colorPicker');
-        ICON_COLORS.forEach(c => {
-            const d = document.createElement('div');
-            d.className = 'color-dot' + (c === iconColor ? ' sel' : '');
-            d.style.background = c;
-            d.addEventListener('click', () => { iconColor = c; store.set('iconColor', c); cp.querySelectorAll('.color-dot').forEach(x => x.classList.remove('sel')); d.classList.add('sel'); });
-            cp.appendChild(d);
-        });
     })();
 
     // ---------- Карточки уровней ----------
@@ -810,6 +1100,7 @@ const OFFICIAL_LEVELS = [
     // ---------- Запуск уровня ----------
     function levelData(src) {
         if (src.kind === 'official') return OFFICIAL_LEVELS[src.index];
+        if (src.kind === 'online') return src.data;
         return editorLevel;
     }
     function startLevel(src, mode) {
@@ -846,6 +1137,7 @@ const OFFICIAL_LEVELS = [
         burst(G.S.x + pSize(G.S) / 2, G.S.y + pSize(G.S) / 2, iconColor, 30, 7);
         burst(G.S.x + pSize(G.S) / 2, G.S.y + pSize(G.S) / 2, '#ffffff', 16, 5);
         saveProgress(false);
+        if (G.mode === 'PLAY') { stats.attempts++; statsDirty = true; checkAchievements(); }
         G.deathTimer = 40;
         if (G.mode === 'AI') aiLog(tr('💥 Не смог найти безопасный путь. Пробую снова!', '💥 No safe path found. Retrying!'));
     }
@@ -853,6 +1145,12 @@ const OFFICIAL_LEVELS = [
         G.running = false;
         sound.win();
         saveProgress(true);
+        if (G.mode === 'PLAY') {
+            stats.wins++;
+            if (G.practice) stats.practiceWins++;
+            else if (G.source.kind === 'official') stats.lv[G.source.index] = true;
+        } else if (G.mode === 'AI') stats.aiWins++;
+        statsDirty = true; checkAchievements();
         const coins = G.S.coins.length;
         $('winSubText').innerText = tr(`Попыток: ${G.attempts} • Монет: ${coins}/${G.L.coinTotal}`, `Attempts: ${G.attempts} • Coins: ${coins}/${G.L.coinTotal}`)
             + (G.practice ? tr(' • (тренировка)', ' • (practice)') : '');
@@ -908,7 +1206,9 @@ const OFFICIAL_LEVELS = [
     $('btnWinExit').addEventListener('click', exitLevel);
     function exitLevel() {
         $('pauseModal').classList.add('hidden'); $('winModal').classList.add('hidden');
-        if (G.fromEditor) openEditor(); else showScreen('LEVELS');
+        if (G.fromEditor) openEditor();
+        else if (G.source && G.source.kind === 'online') showScreen('ONLINE');
+        else showScreen('LEVELS');
     }
 
     // ---------- ИИ ----------
@@ -956,7 +1256,18 @@ const OFFICIAL_LEVELS = [
         handleFx(S, prev);
         if (S.mode === 'wave') { G.waveTrail.push([S.x + pSize(S) / 2, S.y + pSize(S) / 2]); if (G.waveTrail.length > 90) G.waveTrail.shift(); }
         else G.waveTrail = [];
-        if (S.frame % 2 === 0) G.trail.push({ x: S.x + pSize(S) / 2, y: S.y + pSize(S) / 2, a: 0.5, s: pSize(S) * 0.6 });
+        if (cos.trail !== 'none' && (cos.trail === 'line' || S.frame % 2 === 0)) {
+            const tc = cos.trail === 'rainbow' ? `hsl(${(S.frame * 6) % 360},100%,60%)` : cos.trail === 'fire' ? ['#ff3b00', '#ff9f1a', '#ffe600'][(S.frame / 2) % 3 | 0]
+                : cos.trail === 'sparkle' ? (Math.random() < 0.5 ? '#ffffff' : '#ffe600') : iconColor;
+            const spread = cos.trail === 'sparkle' || cos.trail === 'fire';
+            G.trail.push({ x: S.x + pSize(S) / 2, y: S.y + pSize(S) / 2, a: 0.5, s: cos.trail === 'sparkle' ? 5 : pSize(S) * 0.6, c: tc,
+                vx: spread ? (Math.random() - 0.5) * 2 : 0, vy: cos.trail === 'fire' ? 1.2 : spread ? (Math.random() - 0.5) * 2 : 0 });
+        }
+        if (G.mode === 'PLAY') {
+            if (!stats.modes.includes(S.mode)) { stats.modes.push(S.mode); statsDirty = true; }
+            if (S.speed >= 1.85 && !stats.speed4) { stats.speed4 = true; statsDirty = true; }
+            if (statsDirty && S.frame % 60 === 0) checkAchievements();
+        }
         if (S.mode !== prev.mode && G.mode === 'AI') aiLog(tr(`Новый режим: ${MODE_NAMES[S.mode][0]}. Перестраиваю модель физики.`, `New mode: ${MODE_NAMES[S.mode][1]}. Rebuilding physics model.`));
         if (S.dead) { onDeath(); return; }
         if (S.won) { onWin(); return; }
@@ -971,6 +1282,7 @@ const OFFICIAL_LEVELS = [
         if (!S.fx) return;
         const f = S.fx;
         const cx = S.x + pSize(S) / 2, cy = S.y + pSize(S) / 2;
+        if ((f.t === 'jump' || f.t === 'flip' || f.t === 'spider') && G.mode === 'PLAY') { stats.jumps++; statsDirty = true; if (stats.jumps <= 1000 && [1, 100, 1000].includes(stats.jumps)) checkAchievements(); }
         if (f.t === 'jump') { sound.jump(); burst(cx, S.g === 1 ? S.y : S.y + pSize(S), '#ffffff', 5, 2); }
         else if (f.t === 'flip') { sound.jump(); burst(cx, cy, iconColor, 8, 3); }
         else if (f.t === 'orb') { sound.orb(); burst(f.x, f.y, ORB_COLORS[f.kind], 16, 4); ring(f.x, f.y, ORB_COLORS[f.kind]); }
@@ -1002,7 +1314,7 @@ const OFFICIAL_LEVELS = [
             if (!G.paused) {
                 G.particles.forEach(p => { if (p.ring) { p.r += 3; p.a -= 0.05; } else { p.x += p.vx; p.y += p.vy; p.vy -= 0.08; p.a -= 0.025; } });
                 G.particles = G.particles.filter(p => p.a > 0);
-                G.trail.forEach(t => t.a -= 0.04); G.trail = G.trail.filter(t => t.a > 0);
+                G.trail.forEach(t => { t.a -= cos.trail === 'line' ? 0.02 : 0.04; t.x += t.vx || 0; t.y += t.vy || 0; }); G.trail = G.trail.filter(t => t.a > 0);
             }
             render();
             updateHud(false);
@@ -1015,7 +1327,7 @@ const OFFICIAL_LEVELS = [
         if (!G.L) return;
         const S = G.S;
         const pct = G.mode === 'EDITOR' ? 0 : progressPct();
-        const name = G.mode === 'EDITOR' ? tr('🛠 Редактор', '🛠 Editor') + (editorLevel.name ? ': ' + editorLevel.name : '') : (G.source.kind === 'official' ? (currentLang === 'ru' ? OFFICIAL_LEVELS[G.source.index].name : OFFICIAL_LEVELS[G.source.index].nameEn) : (editorLevel.name || tr('Мой уровень', 'My level')));
+        const name = G.mode === 'EDITOR' ? tr('🛠 Редактор', '🛠 Editor') + (editorLevel.name ? ': ' + editorLevel.name : '') : (G.source.kind === 'official' ? (currentLang === 'ru' ? OFFICIAL_LEVELS[G.source.index].name : OFFICIAL_LEVELS[G.source.index].nameEn) : G.source.kind === 'online' ? '🌐 ' + G.L.name : (editorLevel.name || tr('Мой уровень', 'My level')));
         const mode = S ? MODE_NAMES[S.mode][currentLang === 'ru' ? 0 : 1] + (S.mini ? tr(' (мини)', ' (mini)') : '') + (S.speed !== 1 ? ' ×' + S.speed : '') : '—';
         const coins = S && G.L.coinTotal ? `★ ${S.coins.length}/${G.L.coinTotal}` : '';
         const key = [pct, name, mode, coins, G.attempts, G.mode].join('|');
@@ -1051,19 +1363,13 @@ const OFFICIAL_LEVELS = [
         const fixed = OBJ[o.type].fixed;
         if (!fixed) ctx.rotate((o.rotation || 0) * Math.PI / 180);
         const used = G.S && G.mode !== 'EDITOR' && G.S.used.includes(o.id);
-        const lc = G.L ? G.L.color : '#2563eb';
+        const lc = (G.mode === 'EDITOR' ? editorLevel.color : G.L && G.L.color) || '#2563eb';
         switch (o.type) {
-            case 'BLOCK': {
-                const gr = ctx.createLinearGradient(0, -20, 0, 20);
-                gr.addColorStop(0, shade(lc, -0.55)); gr.addColorStop(1, '#050507');
-                ctx.fillStyle = gr; ctx.fillRect(-20, -20, 40, 40);
-                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(-19, -19, 38, 38);
-                ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.strokeRect(-12, -12, 24, 24);
-                break;
-            }
+            case 'BLOCK': drawWall(ctx, cos.wall, lc); break;
             case 'SLAB': {
-                ctx.fillStyle = shade(lc, -0.6); ctx.fillRect(-20, 0, 40, 20);
-                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(-19, 1, 38, 18);
+                ctx.save(); ctx.beginPath(); ctx.rect(-20, 0, 40, 20); ctx.clip();
+                drawWall(ctx, cos.wall, lc); ctx.restore();
+                ctx.strokeStyle = cos.wall === 'gold' ? '#5c3d00' : '#fff'; ctx.lineWidth = 2; ctx.strokeRect(-19, 1, 38, 18);
                 break;
             }
             case 'SPIKE': case 'SMALL_SPIKE': {
@@ -1152,14 +1458,8 @@ const OFFICIAL_LEVELS = [
         if (flip && S.mode !== 'cube' && S.mode !== 'ball') ctx.scale(1, -1);
         const k = size / 34;
         ctx.scale(k, k);
-        const c1 = iconColor, c2 = '#000', c3 = shade(iconColor, -0.45);
-        const cubeIcon = (s) => {
-            ctx.fillStyle = c1; ctx.fillRect(-s, -s, s * 2, s * 2);
-            ctx.strokeStyle = c2; ctx.lineWidth = 2.5; ctx.strokeRect(-s, -s, s * 2, s * 2);
-            ctx.fillStyle = c3; ctx.fillRect(-s * 0.55, -s * 0.55, s * 1.1, s * 1.1);
-            ctx.strokeRect(-s * 0.55, -s * 0.55, s * 1.1, s * 1.1);
-            ctx.fillStyle = '#000'; ctx.fillRect(-s * 0.35, -s * 0.3, s * 0.22, s * 0.22); ctx.fillRect(s * 0.13, -s * 0.3, s * 0.22, s * 0.22);
-        };
+        const c1 = iconColor, c2 = '#000', c3 = iconColor2();
+        const cubeIcon = (s) => drawCubeIcon(ctx, s, c1, c3, cos.icon);
         ctx.lineJoin = 'round';
         switch (S.mode) {
             case 'cube': cubeIcon(17); break;
@@ -1254,6 +1554,10 @@ const OFFICIAL_LEVELS = [
         const objs = G.mode === 'EDITOR' ? editorLevel.objects : G.L.objs;
         const vx0 = cam.x - 80, vx1 = cam.x + VIEW_W + 80;
         for (const o of objs) if (o.x > vx0 && o.x < vx1) drawObject(o, t, cam);
+        if (G.mode === 'EDITOR' && selObj && editorLevel.objects.includes(selObj)) {
+            at(cam, selObj.x, selObj.y + 40);
+            ctx.setLineDash([5, 4]); ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5; ctx.strokeRect(-3, -3, 46, 46); ctx.setLineDash([]);
+        }
 
         if (G.mode !== 'EDITOR' && G.S) {
             const S = G.S;
@@ -1282,7 +1586,18 @@ const OFFICIAL_LEVELS = [
             // чекпоинты
             G.checkpoints.forEach(c => { at(cam, c.x + 17, c.y + 17); ctx.rotate(Math.PI / 4); ctx.fillStyle = '#3dff6e'; ctx.fillRect(-7, -7, 14, 14); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.strokeRect(-7, -7, 14, 14); });
             // след
-            G.trail.forEach(tr_ => { at(cam, tr_.x, tr_.y); ctx.globalAlpha = tr_.a * 0.5; ctx.fillStyle = iconColor; ctx.fillRect(-tr_.s / 2, -tr_.s / 2, tr_.s, tr_.s); });
+            if (cos.trail === 'line' && G.trail.length > 1) {
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                for (let i = 1; i < G.trail.length; i++) {
+                    const a = G.trail[i - 1], b = G.trail[i];
+                    ctx.globalAlpha = b.a * 1.4; ctx.strokeStyle = iconColor; ctx.lineWidth = 8 * SCALE * b.a; ctx.lineCap = 'round';
+                    ctx.beginPath(); ctx.moveTo((a.x - cam.x) * SCALE, H - (a.y - cam.y) * SCALE); ctx.lineTo((b.x - cam.x) * SCALE, H - (b.y - cam.y) * SCALE); ctx.stroke();
+                }
+            } else G.trail.forEach(tr_ => {
+                at(cam, tr_.x, tr_.y); ctx.globalAlpha = tr_.a * (cos.trail === 'sparkle' ? 1.6 : 0.5); ctx.fillStyle = tr_.c || iconColor;
+                if (cos.trail === 'fire') { ctx.beginPath(); ctx.arc(0, 0, tr_.s * 0.45 * (tr_.a + 0.5), 0, Math.PI * 2); ctx.fill(); }
+                else ctx.fillRect(-tr_.s / 2, -tr_.s / 2, tr_.s, tr_.s);
+            });
             ctx.globalAlpha = 1;
             if (G.waveTrail.length > 1) {
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1290,6 +1605,12 @@ const OFFICIAL_LEVELS = [
                 G.waveTrail.forEach(([x, y], i) => { const sx = (x - cam.x) * SCALE, sy = H - (y - cam.y) * SCALE; i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy); });
                 ctx.strokeStyle = iconColor; ctx.lineWidth = 6 * SCALE; ctx.globalAlpha = 0.5; ctx.stroke();
                 ctx.strokeStyle = '#fff'; ctx.lineWidth = 2 * SCALE; ctx.globalAlpha = 0.9; ctx.stroke(); ctx.globalAlpha = 1;
+            }
+            if (S.mode === 'airplane') {
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.setLineDash([8 * SCALE, 8 * SCALE]); ctx.strokeStyle = 'rgba(255,140,0,.45)'; ctx.lineWidth = 2 * SCALE;
+                (S.lanes || DEFAULT_LANES).forEach(l => { const y = H - (S.floor + l + 17 - cam.y) * SCALE; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); });
+                ctx.setLineDash([]);
             }
             if (G.deathTimer === 0) drawPlayer(S, cam);
         }
@@ -1318,8 +1639,10 @@ const OFFICIAL_LEVELS = [
             ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
         }
 
+        if (G.mode === 'EDITOR') drawPortalZones(cam, W, H);
+
         // предпросмотр в редакторе
-        if (G.mode === 'EDITOR' && hoverCell && activeTool !== 'ERASER') {
+        if (G.mode === 'EDITOR' && hoverCell && activeTool !== 'ERASER' && activeTool !== 'SELECT' && !edDrag) {
             ctx.globalAlpha = 0.45;
             drawObject({ type: activeTool, x: hoverCell.x, y: hoverCell.y, rotation: currentRotation }, t, cam);
             ctx.globalAlpha = 1;
@@ -1329,6 +1652,7 @@ const OFFICIAL_LEVELS = [
 
     // ---------- Редактор ----------
     const TABS = {
+        SELECT: { icon: '👆', ru: 'Выбор', en: 'Select', tools: [['SELECT', '👆', 'Выбрать и двигать', 'Select & move']] },
         MODES: { icon: '🌀', ru: 'Режимы', en: 'Modes', tools: [
             ['CUBE_PORTAL', '■', 'Куб', 'Cube'], ['SHIP_PORTAL', '➤', 'Корабль', 'Ship'], ['BALL_PORTAL', '●', 'Шар', 'Ball'],
             ['UFO_PORTAL', '🛸', 'НЛО', 'UFO'], ['WAVE_PORTAL', '◢', 'Волна', 'Wave'], ['ROBOT_PORTAL', '🤖', 'Робот', 'Robot'],
@@ -1385,6 +1709,7 @@ const OFFICIAL_LEVELS = [
         $('edLevelName').value = editorLevel.name;
         $('edLevelColor').value = editorLevel.color;
         $('edLevelSong').value = editorLevel.song;
+        renderProps();
         music.restart(editorLevel.song);
         updateHud(true);
     }
@@ -1394,6 +1719,144 @@ const OFFICIAL_LEVELS = [
     $('btnEdTest').addEventListener('click', () => startLevel({ kind: 'editor' }, 'PLAY'));
     $('btnEdTestAI').addEventListener('click', () => startLevel({ kind: 'editor' }, 'AI'));
 
+
+    // ---------- Редактор 1.4: выбор, отмена, настройка порталов ----------
+    let selObj = null, edDrag = null, undoStack = [], redoStack = [];
+    function pushUndo() {
+        undoStack.push(JSON.stringify(editorLevel.objects));
+        if (undoStack.length > 150) undoStack.shift();
+        redoStack = [];
+    }
+    function undo() {
+        if (!undoStack.length) { toast(tr('Нечего отменять', 'Nothing to undo')); return; }
+        redoStack.push(JSON.stringify(editorLevel.objects));
+        editorLevel.objects = JSON.parse(undoStack.pop());
+        selObj = null; saveEditor(); renderProps();
+    }
+    function redo() {
+        if (!redoStack.length) return;
+        undoStack.push(JSON.stringify(editorLevel.objects));
+        editorLevel.objects = JSON.parse(redoStack.pop());
+        selObj = null; saveEditor(); renderProps();
+    }
+    $('btnUndo').addEventListener('click', undo);
+    $('btnRedo').addEventListener('click', redo);
+
+    function modePortalsSorted() { return editorLevel.objects.filter(o => MODE_PORTALS[o.type]).sort((a, b) => a.x - b.x); }
+    function zoneEnd(o) {
+        const next = modePortalsSorted().find(p => p.x > o.x);
+        return next ? next.x + 20 : o.x + 1600;
+    }
+    function drawPortalZones(cam, W, H) {
+        const ports = modePortalsSorted();
+        const Y = y => H - (y - cam.y) * SCALE;
+        ports.forEach(o => {
+            const b = portalBounds(o);
+            const x0 = o.x + 20, x1 = zoneEnd(o);
+            if (x1 < cam.x || x0 > cam.x + VIEW_W) return;
+            const X0 = (x0 - cam.x) * SCALE, X1 = (x1 - cam.x) * SCALE;
+            const c = portalColor(o.type), sel = o === selObj;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.fillStyle = sel ? 'rgba(0,0,0,.35)' : 'rgba(0,0,0,.2)';
+            if (b.ceil != null) ctx.fillRect(X0, 0, X1 - X0, Math.max(0, Y(b.ceil)));
+            if (b.floor > 0) ctx.fillRect(X0, Y(b.floor), X1 - X0, Y(0) - Y(b.floor));
+            ctx.strokeStyle = c; ctx.lineWidth = (sel ? 3 : 1.5) * SCALE;
+            ctx.setLineDash(sel ? [] : [10 * SCALE, 6 * SCALE]);
+            const lines = [];
+            if (b.ceil != null) lines.push([b.ceil, tr('потолок', 'ceiling')]);
+            if (b.floor > 0 || b.ceil != null) lines.push([b.floor, tr('пол', 'floor')]);
+            (b.lanes || []).forEach((l, i) => lines.push([b.floor + l + 17, '✈ ' + (i + 1), true]));
+            lines.forEach(([y, label, lane]) => {
+                ctx.globalAlpha = lane ? 0.75 : 1;
+                ctx.beginPath(); ctx.moveTo(X0, Y(y)); ctx.lineTo(X1, Y(y)); ctx.stroke();
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = c; ctx.font = `bold ${11 * SCALE}px JetBrains Mono, monospace`; ctx.textBaseline = 'bottom';
+                ctx.fillText(label, X0 + 26 * SCALE, Y(y) - 3 * SCALE);
+                if (sel) { ctx.fillStyle = '#fff'; ctx.fillRect(X0 + 6 * SCALE, Y(y) - 6 * SCALE, 12 * SCALE, 12 * SCALE); ctx.strokeRect(X0 + 6 * SCALE, Y(y) - 6 * SCALE, 12 * SCALE, 12 * SCALE); }
+            });
+            ctx.setLineDash([]);
+        });
+    }
+    // Попала ли мышка в линию пола/потолка/дорожки выбранного портала
+    function hitPortalLine(o, w) {
+        if (!o || !MODE_PORTALS[o.type] || !editorLevel.objects.includes(o)) return null;
+        const b = portalBounds(o);
+        if (w.x < o.x + 10 || w.x > zoneEnd(o)) return null;
+        const tol = 9;
+        if (b.lanes) for (let i = 0; i < b.lanes.length; i++) if (Math.abs(w.y - (b.floor + b.lanes[i] + 17)) < tol) return { kind: 'lane', i };
+        if (b.ceil != null && Math.abs(w.y - b.ceil) < tol) return { kind: 'ceil' };
+        if ((b.floor > 0 || b.ceil != null) && Math.abs(w.y - b.floor) < tol) return { kind: 'floor' };
+        return null;
+    }
+    function freezeBounds(o) {
+        const b = portalBounds(o);
+        o.floor = b.floor;
+        if (b.ceil != null) o.ceil = b.ceil; else delete o.ceil;
+        if (b.lanes) o.lanes = b.lanes.slice();
+        return b;
+    }
+    function dragPortalLine(o, kind, i, wy) {
+        const b = freezeBounds(o);
+        if (kind === 'floor') o.floor = Math.max(0, Math.min(Math.round(wy / GRID) * GRID, b.ceil != null ? b.ceil - 80 : 4000));
+        else if (kind === 'ceil') o.ceil = Math.max(o.floor + 80, Math.round(wy / GRID) * GRID);
+        else if (kind === 'lane') {
+            const top = (b.ceil != null ? b.ceil - o.floor : 600) - 34;
+            o.lanes[i] = Math.max(0, Math.min(top, Math.round((wy - o.floor - 17) / 10) * 10));
+        }
+    }
+    const blk = v => (Math.round(v / 40 * 4) / 4).toString().replace('.', ',');
+    function renderProps() {
+        const box = $('propsPanel');
+        if (!selObj || !editorLevel.objects.includes(selObj)) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+        const o = selObj;
+        const toolInfo = Object.values(TABS).flatMap(t => t.tools).find(t => t[0] === o.type);
+        const title = toolInfo ? `${toolInfo[1]} ${tr(toolInfo[2], toolInfo[3])}` : o.type;
+        let html = `<div class="flex flex-wrap items-center gap-2"><span class="font-black text-sm">${title}</span>
+            <span class="font-mono text-zinc-400">x:${o.x / 40} y:${o.y / 40}</span><span class="flex-1"></span>
+            <button data-a="del" class="px-2.5 py-1 rounded-lg bg-red-500/80 font-bold">🗑 ${tr('Удалить', 'Delete')}</button>
+            <button data-a="close" class="px-2.5 py-1 rounded-lg bg-zinc-800 font-bold">✕</button></div>`;
+        const b = portalBounds(o);
+        if (b) {
+            const stepper = (label, a, val) => `<div class="flex items-center gap-1.5"><span class="text-zinc-300 w-24">${label}</span>
+                <button data-a="${a}-" class="w-7 h-7 rounded-lg bg-zinc-800 font-black">−</button>
+                <span class="w-14 text-center font-mono font-bold">${val}</span>
+                <button data-a="${a}+" class="w-7 h-7 rounded-lg bg-zinc-800 font-black">+</button></div>`;
+            html += `<div class="text-zinc-400">${tr('Перетаскивай линии на поле мышкой или меняй кнопками. Высота — в блоках.', 'Drag the lines on the field or use the buttons. Heights are in blocks.')}</div><div class="flex flex-wrap gap-x-5 gap-y-1.5">`;
+            if (b.ceil != null) {
+                html += stepper(tr('Пол', 'Floor'), 'floor', blk(b.floor)) + stepper(tr('Потолок', 'Ceiling'), 'ceil', blk(b.ceil));
+                if (!CORRIDOR_MODES[b.mode]) html += `<button data-a="noceil" class="px-2.5 py-1 rounded-lg bg-zinc-800 font-bold">${tr('Убрать потолок', 'Remove ceiling')}</button>`;
+            } else {
+                html += `<button data-a="addceil" class="px-2.5 py-1 rounded-lg bg-zinc-800 font-bold">➕ ${tr('Добавить пол и потолок', 'Add floor & ceiling')}</button>`;
+            }
+            html += `<button data-a="reset" class="px-2.5 py-1 rounded-lg bg-zinc-800 font-bold">↺ ${tr('Как было', 'Reset')}</button></div>`;
+            if (b.lanes) {
+                html += `<div class="flex flex-wrap gap-x-5 gap-y-1.5">` + b.lanes.map((l, i) => `<div class="flex items-center gap-1.5">${stepper('✈ ' + tr('Дорожка ', 'Lane ') + (i + 1), 'lane' + i, blk(l))}
+                    ${b.lanes.length > 1 ? `<button data-a="rmlane${i}" class="w-7 h-7 rounded-lg bg-zinc-800">×</button>` : ''}</div>`).join('') +
+                    (b.lanes.length < 6 ? `<button data-a="addlane" class="px-2.5 py-1 rounded-lg bg-orange-500 text-black font-bold">➕ ${tr('Дорожка', 'Lane')}</button>` : '') + `</div>`;
+            }
+        }
+        box.innerHTML = html;
+        box.classList.remove('hidden');
+        box.querySelectorAll('[data-a]').forEach(btn => btn.addEventListener('click', () => propAction(btn.dataset.a)));
+    }
+    function propAction(a) {
+        const o = selObj; if (!o) return;
+        if (a === 'close') { selObj = null; renderProps(); return; }
+        pushUndo();
+        if (a === 'del') { editorLevel.objects = editorLevel.objects.filter(x => x !== o); selObj = null; }
+        else if (a === 'reset') { delete o.floor; delete o.ceil; delete o.lanes; }
+        else if (a === 'addceil') { const b = freezeBounds(o); o.ceil = b.floor + CORRIDOR; }
+        else if (a === 'noceil') { delete o.ceil; }
+        else if (a === 'floor-' || a === 'floor+') { const b = freezeBounds(o); dragPortalLine(o, 'floor', 0, b.floor + (a.endsWith('+') ? 40 : -40)); }
+        else if (a === 'ceil-' || a === 'ceil+') { const b = freezeBounds(o); dragPortalLine(o, 'ceil', 0, b.ceil + (a.endsWith('+') ? 40 : -40)); }
+        else if (a === 'addlane') { const b = freezeBounds(o); const last = b.lanes[b.lanes.length - 1]; o.lanes.push(last + 100); }
+        else if (a.startsWith('rmlane')) { freezeBounds(o); o.lanes.splice(+a.slice(6), 1); }
+        else if (a.startsWith('lane')) {
+            const i = parseInt(a.slice(4)); const b = freezeBounds(o);
+            dragPortalLine(o, 'lane', i, b.floor + b.lanes[i] + 17 + (a.endsWith('+') ? 10 : -10));
+        }
+        saveEditor(); renderProps();
+    }
     function screenToWorld(e) {
         const rect = canvas.getBoundingClientRect();
         const sx = (e.clientX - rect.left) / rect.width * canvas.width;
@@ -1414,21 +1877,42 @@ const OFFICIAL_LEVELS = [
         else if (cx >= 0 && cy >= 0) {
             editorLevel.objects = editorLevel.objects.filter(o => !(o.x === cx && o.y === cy));
             if (activeTool === 'GOAL') editorLevel.objects = editorLevel.objects.filter(o => o.type !== 'GOAL');
-            editorLevel.objects.push({ type: activeTool, x: cx, y: cy, rotation: currentRotation });
+            const obj = { type: activeTool, x: cx, y: cy, rotation: currentRotation };
+            editorLevel.objects.push(obj);
+            stats.placed++; statsDirty = true;
+            if (MODE_PORTALS[activeTool]) selObj = obj;
         }
-        saveEditor();
+        if (selObj && !editorLevel.objects.includes(selObj)) selObj = null;
+        saveEditor(); renderProps();
     }
     let painting = false;
     canvas.addEventListener('pointerdown', e => {
         music.ensure();
         if (G.mode === 'EDITOR') {
-            if (e.button === 2) { const i = objAtPoint(screenToWorld(e)); if (i >= 0) { editorLevel.objects.splice(i, 1); saveEditor(); } return; }
-            if (e.button === 0) { painting = true; editorPlace(e); }
+            if (e.button === 2) { const i = objAtPoint(screenToWorld(e)); if (i >= 0) { pushUndo(); editorLevel.objects.splice(i, 1); saveEditor(); renderProps(); } return; }
+            if (e.button !== 0) return;
+            const w = screenToWorld(e);
+            const hit = activeTool !== 'ERASER' ? hitPortalLine(selObj, w) : null;
+            if (hit) { pushUndo(); edDrag = Object.assign({ type: 'line', o: selObj }, hit); return; }
+            if (activeTool === 'SELECT') {
+                const i = objAtPoint(w);
+                selObj = i >= 0 ? editorLevel.objects[i] : null;
+                if (selObj) { pushUndo(); edDrag = { type: 'move', o: selObj, dx: w.x - selObj.x, dy: w.y - selObj.y }; }
+                renderProps();
+                return;
+            }
+            pushUndo(); painting = true; editorPlace(e);
         } else { e.preventDefault(); pressDown(); }
     });
     canvas.addEventListener('pointermove', e => {
         if (G.mode !== 'EDITOR') return;
         const w = screenToWorld(e);
+        if (edDrag) {
+            if (edDrag.type === 'line') dragPortalLine(edDrag.o, edDrag.kind, edDrag.i, w.y);
+            else { edDrag.o.x = Math.max(0, Math.round((w.x - edDrag.dx) / GRID) * GRID); edDrag.o.y = Math.max(0, Math.round((w.y - edDrag.dy) / GRID) * GRID); }
+            return;
+        }
+        canvas.style.cursor = hitPortalLine(selObj, w) ? 'ns-resize' : (activeTool === 'SELECT' ? 'default' : 'crosshair');
         const nc = { x: Math.floor(w.x / GRID) * GRID, y: Math.floor(w.y / GRID) * GRID };
         const changed = !hoverCell || nc.x !== hoverCell.x || nc.y !== hoverCell.y;
         hoverCell = nc.x >= 0 && nc.y >= 0 ? nc : null;
@@ -1458,10 +1942,10 @@ const OFFICIAL_LEVELS = [
             b.dataset.armed = '1'; toast(tr('Нажми ещё раз, чтобы удалить всё', 'Click again to delete everything'));
             setTimeout(() => { delete b.dataset.armed; }, 3000); return;
         }
-        delete b.dataset.armed; editorLevel.objects = []; saveEditor(); toast(tr('Карта очищена', 'Map cleared'));
+        delete b.dataset.armed; pushUndo(); editorLevel.objects = []; selObj = null; saveEditor(); renderProps(); toast(tr('Карта очищена. Вернуть можно кнопкой «Отмена».', 'Map cleared. Undo brings it back.'));
     });
     $('btnExportLevel').addEventListener('click', () => {
-        const data = { format: 'geometry-ai', version: '1.3', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, objects: editorLevel.objects };
+        const data = { format: 'geometry-ai', version: '1.4', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, objects: editorLevel.objects };
         const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -1474,6 +1958,7 @@ const OFFICIAL_LEVELS = [
         const reader = new FileReader();
         reader.onload = ev => {
             try {
+                pushUndo();
                 editorLevel = normalizeLevel(JSON.parse(ev.target.result));
                 saveEditor(); openEditor();
                 toast(tr('Уровень загружен!', 'Level loaded!'));
@@ -1490,15 +1975,264 @@ const OFFICIAL_LEVELS = [
         clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 2200);
     }
 
+    // ---------- Онлайн уровни: коды ----------
+    function b64uEncode(bytes) {
+        let bin = '';
+        for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+        return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+    function b64uDecode(str) {
+        str = str.replace(/-/g, '+').replace(/_/g, '/');
+        while (str.length % 4) str += '=';
+        const bin = atob(str), out = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+        return out;
+    }
+    async function encodeLevelCode(lv) {
+        const compact = {
+            n: lv.name, c: lv.color, s: lv.song,
+            o: lv.objects.map(o => {
+                const a = [o.type, o.x / GRID, o.y / GRID, o.rotation || 0];
+                if (o.floor != null || o.ceil != null || o.lanes) a.push({ f: o.floor, c: o.ceil, l: o.lanes });
+                return a;
+            })
+        };
+        const bytes = new TextEncoder().encode(JSON.stringify(compact));
+        if (window.CompressionStream) {
+            try {
+                const st = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+                return 'GAI1-' + b64uEncode(new Uint8Array(await new Response(st).arrayBuffer()));
+            } catch (e) {}
+        }
+        return 'GAI0-' + b64uEncode(bytes);
+    }
+    async function decodeLevelCode(code) {
+        const m = String(code).replace(/\s+/g, '').match(/GAI([01])-([A-Za-z0-9_-]+)/);
+        if (!m) throw new Error('bad code');
+        let bytes = b64uDecode(m[2]);
+        if (m[1] === '1') {
+            const st = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+            bytes = new Uint8Array(await new Response(st).arrayBuffer());
+        }
+        const d = JSON.parse(new TextDecoder().decode(bytes));
+        const lv = normalizeLevel({
+            name: d.n, color: d.c, song: d.s,
+            objects: (d.o || []).map(a => Object.assign({ type: a[0], x: a[1] * GRID, y: a[2] * GRID, rotation: a[3] || 0 },
+                a[4] ? { floor: a[4].f, ceil: a[4].c, lanes: a[4].l } : {}))
+        });
+        if (!lv.objects.length) throw new Error('empty');
+        return lv;
+    }
+    let onlineLoaded = null;
+    function renderOnline() {
+        if (!$('onName').value) $('onName').value = editorLevel.name || '';
+        $('onName').placeholder = tr('Название уровня', 'Level name');
+        $('onEditorInfo').innerText = tr(`В редакторе сейчас ${editorLevel.objects.length} объектов.`, `The editor has ${editorLevel.objects.length} objects.`);
+        renderOnlineLoaded();
+        const box = $('onRecent'); box.innerHTML = '';
+        const recent = store.get('recentOnline', []);
+        if (!recent.length) {
+            box.innerHTML = `<div class="col-span-full text-sm text-zinc-500">${tr('Пока пусто. Открой уровень по коду, и он появится здесь.', 'Nothing yet. Open a level from a code and it shows up here.')}</div>`;
+        }
+        recent.forEach(r => {
+            const d = document.createElement('div');
+            d.className = 'rounded-2xl p-3 border-2 flex flex-col gap-2';
+            d.style.borderColor = r.color; d.style.background = `linear-gradient(160deg, ${r.color}99, #09090b 80%)`;
+            d.innerHTML = `<div class="font-black italic truncate"></div><div class="text-[11px] font-mono text-zinc-300">${r.count} ${tr('объектов', 'objects')}</div>
+                <div class="flex gap-2"><button class="flex-1 py-1.5 rounded-lg bg-white text-black font-black text-xs" data-k="play">▶ ${tr('Играть', 'Play')}</button>
+                <button class="px-2.5 py-1.5 rounded-lg bg-black/50 border border-white/30 text-xs" data-k="ai">🤖</button></div>`;
+            d.firstChild.textContent = r.name;
+            d.querySelectorAll('button').forEach(b => b.addEventListener('click', async () => {
+                try { const lv = await decodeLevelCode(r.code); playOnline(lv, b.dataset.k === 'ai' ? 'AI' : 'PLAY'); }
+                catch (e) { toast(tr('Не получилось открыть уровень', 'Could not open the level')); }
+            }));
+            box.appendChild(d);
+        });
+    }
+    function renderOnlineLoaded() {
+        const box = $('onLoaded'); box.innerHTML = '';
+        if (!onlineLoaded) return;
+        const lv = onlineLoaded.level;
+        const d = document.createElement('div');
+        d.className = 'rounded-2xl p-3 border-2 flex flex-col gap-2';
+        d.style.borderColor = lv.color; d.style.background = `linear-gradient(160deg, ${lv.color}99, #09090b 80%)`;
+        d.innerHTML = `<div class="text-lg font-black italic"></div><div class="text-xs font-mono text-zinc-300">${lv.objects.length} ${tr('объектов', 'objects')}</div>
+            <div class="flex flex-wrap gap-2">
+                <button data-k="play" class="flex-1 py-2 rounded-xl bg-white text-black font-black text-sm">▶ ${tr('Играть', 'Play')}</button>
+                <button data-k="ai" class="px-3 py-2 rounded-xl bg-black/50 border border-white/30 font-black text-sm">🤖</button>
+                <button data-k="edit" class="px-3 py-2 rounded-xl bg-black/50 border border-white/30 font-black text-sm">🛠 ${tr('В редактор', 'To editor')}</button>
+            </div>`;
+        d.firstChild.textContent = lv.name;
+        d.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+            if (b.dataset.k === 'edit') {
+                pushUndo();
+                editorLevel = normalizeLevel(JSON.parse(JSON.stringify(lv))); saveEditor(); openEditor();
+                toast(tr('Уровень открыт в редакторе. Прошлый можно вернуть кнопкой «Отмена».', 'Level opened in the editor. Undo brings the previous one back.'));
+            } else playOnline(lv, b.dataset.k === 'ai' ? 'AI' : 'PLAY');
+        }));
+        box.appendChild(d);
+    }
+    function playOnline(lv, mode) {
+        stats.onlinePlays++; statsDirty = true; checkAchievements();
+        startLevel({ kind: 'online', data: lv }, mode);
+    }
+    function rememberOnline(lv, code) {
+        const recent = store.get('recentOnline', []).filter(r => r.code !== code);
+        recent.unshift({ name: lv.name, color: lv.color, count: lv.objects.length, code });
+        store.set('recentOnline', recent.slice(0, 12));
+    }
+    async function openCode(code) {
+        try {
+            const lv = await decodeLevelCode(code);
+            onlineLoaded = { level: lv, code };
+            rememberOnline(lv, code);
+            renderOnline();
+            return true;
+        } catch (e) {
+            toast(tr('Это не похоже на код уровня. Проверь, что скопирован весь код.', 'That does not look like a level code. Check that you copied all of it.'));
+            return false;
+        }
+    }
+    $('btnOpenCode').addEventListener('click', () => openCode($('onCodeIn').value));
+    $('btnMakeCode').addEventListener('click', async () => {
+        if (!editorLevel.objects.length) { toast(tr('Уровень в редакторе пустой — сначала построй что-нибудь', 'The editor level is empty — build something first')); return; }
+        const name = $('onName').value.trim() || editorLevel.name || tr('Мой уровень', 'My level');
+        editorLevel.name = name; saveEditor();
+        const code = await encodeLevelCode(editorLevel);
+        $('onCodeOut').value = code;
+        $('onCodeOut').classList.remove('hidden'); $('onCodeBtns').classList.remove('hidden');
+        stats.shared++; statsDirty = true; checkAchievements();
+        toast(tr('Код готов! Скопируй его и отправь другу.', 'Code ready! Copy it and send it to a friend.'));
+    });
+    function copyText(text, okMsg) {
+        const fallback = () => { const ta = $('onCodeOut'); ta.classList.remove('hidden'); ta.focus(); ta.select(); toast(tr('Код выделен — нажми Ctrl+C', 'Code selected — press Ctrl+C')); };
+        try { navigator.clipboard.writeText(text).then(() => toast(okMsg), fallback); } catch (e) { fallback(); }
+    }
+    $('btnCopyCode').addEventListener('click', () => copyText($('onCodeOut').value, tr('Код скопирован!', 'Code copied!')));
+    $('btnCopyLink').addEventListener('click', () => copyText(location.href.split('#')[0] + '#' + $('onCodeOut').value, tr('Ссылка скопирована! Она откроет уровень на сайте.', 'Link copied! It opens the level on the site.')));
+    $('btnEdShare').addEventListener('click', () => { $('onName').value = editorLevel.name || ''; $('onCodeOut').classList.add('hidden'); $('onCodeBtns').classList.add('hidden'); showScreen('ONLINE'); });
+
+    // ---------- Экран гаража ----------
+    let garageTab = 'icon';
+    const GARAGE_TABS = [['icon', 'Кубики', 'Icons'], ['color', 'Цвет 1', 'Color 1'], ['color2', 'Цвет 2', 'Color 2'], ['trail', 'Следы', 'Trails'], ['wall', 'Стены', 'Walls'], ['ach', 'Достижения', 'Achievements']];
+    function renderGarage() {
+        const tabs = $('garageTabs'); tabs.innerHTML = '';
+        GARAGE_TABS.forEach(([k, ru, en]) => {
+            const b = document.createElement('button');
+            b.className = 'px-3 py-1.5 rounded-xl bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-white' + (k === garageTab ? ' tab-active' : '');
+            b.innerText = tr(ru, en) + (k === 'ach' ? ` ${unlockedAch.length}/${ACH.length}` : '');
+            b.addEventListener('click', () => { garageTab = k; renderGarage(); });
+            tabs.appendChild(b);
+        });
+        const box = $('garageItems'); box.innerHTML = '';
+        box.className = garageTab === 'ach' ? 'grid grid-cols-1 sm:grid-cols-2 gap-2' : 'grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2';
+        if (garageTab === 'ach') {
+            ACH.forEach(a => {
+                const done = unlockedAch.includes(a.id);
+                const tgt = achTarget(a), val = Math.min(a.v(), tgt);
+                const d = document.createElement('div');
+                d.className = 'rounded-xl p-3 border flex flex-col gap-1 ' + (done ? 'border-yellow-400 bg-yellow-400/10' : 'border-zinc-700 bg-zinc-950');
+                d.innerHTML = `<div class="flex justify-between gap-2"><span class="font-black text-sm">${done ? '🏆' : '🔒'} ${tr(a.ru, a.en)}</span><span class="font-mono text-[11px] text-zinc-400">${val}/${tgt}</span></div>
+                    <div class="text-[11px] text-zinc-400">${tr(a.dru, a.den)}</div>
+                    <div class="w-full h-1.5 bg-black rounded-full overflow-hidden"><div class="h-full ${done ? 'bg-yellow-400' : 'bg-zinc-500'}" style="width:${tgt ? val / tgt * 100 : 0}%"></div></div>
+                    <div class="text-[11px] font-bold ${done ? 'text-yellow-300' : 'text-zinc-500'}">🎁 ${rewardName(a.reward)}</div>`;
+                box.appendChild(d);
+            });
+        } else {
+            let items;
+            if (garageTab === 'color') items = [...ICON_COLORS, ...EXTRA_COLORS].map(c => [c]);
+            else if (garageTab === 'color2') items = [['auto'], ...[...ICON_COLORS, ...EXTRA_COLORS].map(c => [c])];
+            else items = COSMETICS[garageTab];
+            items.forEach(([id, ru, en]) => {
+                const key = garageTab + ':' + id, open = isUnlocked(key), sel = cos[garageTab] === id;
+                const b = document.createElement('button');
+                b.className = 'rounded-xl p-2 border-2 flex flex-col items-center gap-1 ' + (sel ? 'border-white bg-white/15' : 'border-zinc-700 bg-zinc-950 hover:border-zinc-400') + (open ? '' : ' opacity-60');
+                const cv = document.createElement('canvas'); cv.width = 80; cv.height = 80; cv.className = 'w-12 h-12';
+                drawGarageThumb(cv.getContext('2d'), garageTab, id);
+                b.appendChild(cv);
+                const label = document.createElement('div');
+                label.className = 'text-[10px] font-bold leading-tight text-center';
+                const ach = open ? null : achForReward(key);
+                label.textContent = open ? (ru ? tr(ru, en) : (id === 'auto' ? tr('Авто', 'Auto') : '')) : '🔒 ' + (ach ? tr(ach.ru, ach.en) : '');
+                b.appendChild(label);
+                b.addEventListener('click', () => {
+                    if (!open) { toast('🔒 ' + (ach ? tr(ach.dru, ach.den) : tr('Пока закрыто', 'Locked'))); return; }
+                    cos[garageTab] = id; saveCos(); renderGarage();
+                });
+                box.appendChild(b);
+            });
+        }
+        const cs = coinStats();
+        $('garageStats').innerHTML = [
+            [tr('Прыжков', 'Jumps'), stats.jumps], [tr('Попыток', 'Attempts'), stats.attempts], [tr('Пройдено уровней', 'Levels beaten'), stats.wins],
+            [tr('Монет', 'Coins'), cs.got + '/' + cs.total], [tr('Достижений', 'Achievements'), unlockedAch.length + '/' + ACH.length]
+        ].map(([k, v]) => `<div class="flex justify-between"><span class="text-zinc-400">${k}</span><span class="font-bold">${v}</span></div>`).join('');
+    }
+    function drawGarageThumb(g, kind, id) {
+        g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, 80, 80); g.translate(40, 40);
+        if (kind === 'icon') drawCubeIcon(g, 26, iconColor, iconColor2(), id);
+        else if (kind === 'color') { g.scale(1.5, 1.5); drawCubeIcon(g, 17, id, cos.color2 === 'auto' ? shade(id, -0.45) : cos.color2, cos.icon); }
+        else if (kind === 'color2') { g.scale(1.5, 1.5); drawCubeIcon(g, 17, iconColor, id === 'auto' ? shade(iconColor, -0.45) : id, cos.icon); }
+        else if (kind === 'wall') { g.scale(1.7, 1.7); drawWall(g, id, '#2563eb'); }
+        else if (kind === 'trail') {
+            for (let i = 0; i < 6; i++) {
+                const x = -30 + i * 8, a = 0.2 + i * 0.13;
+                g.globalAlpha = a;
+                const c = id === 'rainbow' ? `hsl(${i * 55},100%,60%)` : id === 'fire' ? ['#ff3b00', '#ff9f1a', '#ffe600'][i % 3] : id === 'sparkle' ? (i % 2 ? '#fff' : '#ffe600') : iconColor;
+                g.fillStyle = c; g.strokeStyle = c;
+                if (id === 'none') break;
+                if (id === 'line') { g.lineWidth = 2 + i; g.beginPath(); g.moveTo(x - 8, 6); g.lineTo(x, 6); g.stroke(); }
+                else if (id === 'fire') { g.beginPath(); g.arc(x, 6 - i, 3 + i * 0.6, 0, Math.PI * 2); g.fill(); }
+                else if (id === 'sparkle') g.fillRect(x, (i % 2 ? -4 : 12), 4, 4);
+                else g.fillRect(x - 5, 1, 10, 10);
+            }
+            g.globalAlpha = 1; g.translate(22, 6); g.scale(0.5, 0.5); drawCubeIcon(g, 17, iconColor, iconColor2(), cos.icon);
+        }
+    }
+    let garageRAF = 0;
+    function garageLoop() {
+        cancelAnimationFrame(garageRAF);
+        const cv = $('garageCanvas'), g = cv.getContext('2d');
+        const trail = [];
+        const frame = (now) => {
+            if (G.screen !== 'GARAGE') return;
+            const t = now / 1000;
+            g.setTransform(1, 0, 0, 1, 0, 0);
+            const bg = g.createLinearGradient(0, 0, 0, 560); bg.addColorStop(0, '#1e3a8a'); bg.addColorStop(1, '#020617');
+            g.fillStyle = bg; g.fillRect(0, 0, 560, 560);
+            const ground = 400;
+            for (let i = -1; i < 9; i++) { g.setTransform(1.6, 0, 0, 1.6, ((i * 64 - (t * 120) % 64)) + 32, ground + 32); drawWall(g, cos.wall, '#2563eb'); }
+            const ph = (t * 1.3) % 1, jump = Math.sin(ph * Math.PI) * 150, x = 220, y = ground - 28 - jump;
+            if (cos.trail !== 'none') {
+                trail.push({ x, y, a: 0.6, c: cos.trail === 'rainbow' ? `hsl(${(now / 8) % 360},100%,60%)` : cos.trail === 'fire' ? ['#ff3b00', '#ff9f1a', '#ffe600'][(now / 50 | 0) % 3] : cos.trail === 'sparkle' ? (Math.random() < 0.5 ? '#fff' : '#ffe600') : iconColor });
+            }
+            trail.forEach(p => { p.x -= 4; p.a -= 0.025; if (cos.trail === 'fire') p.y -= 1; if (cos.trail === 'sparkle') p.y += (Math.random() - 0.5) * 4; });
+            while (trail.length && trail[0].a <= 0) trail.shift();
+            g.setTransform(1, 0, 0, 1, 0, 0);
+            if (cos.trail === 'line') {
+                for (let i = 1; i < trail.length; i++) { g.globalAlpha = trail[i].a; g.strokeStyle = iconColor; g.lineWidth = 16 * trail[i].a; g.lineCap = 'round'; g.beginPath(); g.moveTo(trail[i - 1].x, trail[i - 1].y); g.lineTo(trail[i].x, trail[i].y); g.stroke(); }
+            } else trail.forEach(p => { g.globalAlpha = p.a * 0.7; g.fillStyle = p.c; if (cos.trail === 'fire') { g.beginPath(); g.arc(p.x, p.y, 14 * p.a + 4, 0, Math.PI * 2); g.fill(); } else { const sz = cos.trail === 'sparkle' ? 8 : 34; g.fillRect(p.x - sz / 2, p.y - sz / 2, sz, sz); } });
+            g.globalAlpha = 1;
+            g.setTransform(1.65, 0, 0, 1.65, x, y); g.rotate(ph * Math.PI);
+            drawCubeIcon(g, 17, iconColor, iconColor2(), cos.icon);
+            garageRAF = requestAnimationFrame(frame);
+        };
+        garageRAF = requestAnimationFrame(frame);
+    }
+
     // ---------- Управление ----------
     function pressDown() {
         if (G.screen !== 'GAME' || G.mode !== 'PLAY' || G.paused) return;
         G.held = true;
     }
-    window.addEventListener('pointerup', () => { G.held = false; painting = false; });
+    window.addEventListener('pointerup', () => {
+        G.held = false; painting = false;
+        if (edDrag) { edDrag = null; saveEditor(); renderProps(); }
+        if (G.mode === 'EDITOR' && statsDirty) checkAchievements();
+    });
     window.addEventListener('pointercancel', () => { G.held = false; painting = false; });
     window.addEventListener('keydown', e => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
         if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) {
             if (G.screen === 'GAME' && G.mode !== 'EDITOR') e.preventDefault();
             music.ensure(); pressDown();
@@ -1512,7 +2246,10 @@ const OFFICIAL_LEVELS = [
             if (e.code === 'ArrowLeft') moveEditorCam(-120, 0);
             if (e.code === 'ArrowUp') moveEditorCam(0, 80);
             if (e.code === 'ArrowDown') moveEditorCam(0, -80);
-            if (e.code === 'KeyR') $('btnRotateObject').click();
+            if (e.code === 'KeyR' && !e.ctrlKey && !e.metaKey) $('btnRotateObject').click();
+            if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+            if ((e.ctrlKey || e.metaKey) && e.code === 'KeyY') { e.preventDefault(); redo(); }
+            if ((e.code === 'Delete' || e.code === 'Backspace') && selObj) { e.preventDefault(); propAction('del'); renderProps(); }
         }
     });
     window.addEventListener('keyup', e => { if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) G.held = false; });
@@ -1521,6 +2258,11 @@ const OFFICIAL_LEVELS = [
     // ---------- Старт ----------
     applyLang();
     showScreen('MENU');
+    checkAchievements();
+    // Ссылка вида сайт#GAI1-... сразу открывает уровень
+    if (/^#GAI[01]-/.test(location.hash)) {
+        openCode(location.hash.slice(1)).then(ok => { if (ok) showScreen('ONLINE'); });
+    }
     requestAnimationFrame(loop);
 </script>
 </body>
