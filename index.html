@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Geometry AI v1.6</title>
+    <title>Geometry AI v1.7</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
@@ -45,9 +45,9 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v1.6</span>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v1.7</span>
                 </div>
-                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Триггеры: движение, тряска, зум и другие" data-en="Triggers: move, shake, zoom and more">Триггеры: движение, тряска, зум и другие</p>
+                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Смайлики и удобные надписи" data-en="Emoji and easy text">Смайлики и удобные надписи</p>
             </div>
         </button>
         <div class="flex items-center gap-2 flex-wrap">
@@ -63,7 +63,7 @@
         <div id="menuBgSquares" class="absolute inset-0 pointer-events-none"></div>
         <div class="relative text-center">
             <div class="text-5xl md:text-7xl font-black italic tracking-wider text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.45)]" data-ru="ГЕОМЕТРИЯ ИИ" data-en="GEOMETRY AI">ГЕОМЕТРИЯ ИИ</div>
-            <div class="mt-2 font-mono text-zinc-400 text-sm" data-ru="Обновление 1.6 — триггеры!" data-en="Update 1.6 — triggers!">Обновление 1.6 — триггеры!</div>
+            <div class="mt-2 font-mono text-zinc-400 text-sm" data-ru="Обновление 1.7 — смайлики и надписи!" data-en="Update 1.7 — emoji and text!">Обновление 1.7 — смайлики и надписи!</div>
         </div>
         <div class="relative flex flex-col md:flex-row gap-4 w-full max-w-3xl">
             <button id="btnOfficial" class="menu-btn flex-1 rounded-3xl bg-white text-black p-6 flex flex-col items-center gap-2 shadow-2xl">
@@ -324,6 +324,7 @@ const OBJ = {
     MUSIC_TRIGGER: { cat: 'trigger', rect: [0, 0, 40, 40], fixed: 1 },
     MESSAGE_TRIGGER: { cat: 'trigger', rect: [0, 0, 40, 40], fixed: 1 },
     TEXT: { cat: 'deco', rect: [0, 0, 40, 40], fixed: 1 },
+    EMOJI: { cat: 'deco', rect: [0, 0, 40, 40] },
     ARROW: { cat: 'deco', rect: [0, 0, 40, 40] },
     DECO_STAR: { cat: 'deco', rect: [0, 0, 40, 40], fixed: 1 },
     DECO_LIGHT: { cat: 'deco', rect: [0, 0, 40, 40], fixed: 1 },
@@ -361,7 +362,16 @@ function normalizeLevel(data) {
         song: data.song || 0,
         objects: (data.objects || []).filter(o => o && OBJ[o.type]).map(o => {
             const r = { type: o.type, x: Math.round(o.x / GRID) * GRID, y: Math.round(o.y / GRID) * GRID, rotation: o.rotation || 0 };
-            if (o.type === 'TEXT') r.text = String(o.text == null ? 'Текст' : o.text).slice(0, 40);
+            if (o.type === 'TEXT') {
+                r.text = String(o.text == null ? 'Текст' : o.text).slice(0, 60);
+                r.size = [1, 2, 3].includes(o.size) ? o.size : 2;
+                r.tcolor = /^#[0-9a-f]{6}$/i.test(o.tcolor) ? o.tcolor : '#ffffff';
+            }
+            if (o.type === 'EMOJI') {
+                const em = String(o.emoji || '😀');
+                r.emoji = [...em].slice(0, 3).join('') || '😀';
+                r.size = [1, 2, 3].includes(o.size) ? o.size : 2;
+            }
             const num = (v, d, lo, hi) => { v = Number(v); return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; };
             const col = (v, d) => /^#[0-9a-f]{6}$/i.test(v) ? v : d;
             if (o.type === 'COLOR_TRIGGER') r.color = col(o.color, '#9333ea');
@@ -1618,10 +1628,18 @@ const OFFICIAL_LEVELS = [
             }
             case 'TEXT': {
                 const txt = o.text == null ? tr('Текст', 'Text') : o.text;
-                ctx.font = 'italic 900 22px Outfit, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,.75)'; ctx.strokeText(txt, 0, 0);
-                ctx.fillStyle = '#fff'; ctx.fillText(txt, 0, 0);
+                const fs = [15, 22, 36][(o.size || 2) - 1];
+                ctx.font = `italic 900 ${fs}px Outfit, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.lineWidth = fs / 4; ctx.strokeStyle = 'rgba(0,0,0,.75)'; ctx.strokeText(txt, 0, 0);
+                ctx.fillStyle = o.tcolor || '#fff'; ctx.fillText(txt, 0, 0);
                 if (G.mode === 'EDITOR' && !txt) { ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1; ctx.strokeRect(-18, -18, 36, 36); }
+                break;
+            }
+            case 'EMOJI': {
+                const fs = [24, 36, 60][(o.size || 2) - 1];
+                ctx.font = `${fs}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(o.emoji || '😀', 0, 2);
                 break;
             }
             case 'ARROW': {
@@ -1933,7 +1951,7 @@ const OFFICIAL_LEVELS = [
         // предпросмотр в редакторе
         if (G.mode === 'EDITOR' && hoverCell && activeTool !== 'ERASER' && activeTool !== 'SELECT' && !edDrag) {
             ctx.globalAlpha = 0.45;
-            drawObject({ type: activeTool, x: hoverCell.x, y: hoverCell.y, rotation: currentRotation, text: tr('Текст', 'Text'), color: '#9333ea', sMode: 'cube' }, t, cam);
+            drawObject(Object.assign({ text: tr('Текст', 'Text'), color: '#9333ea', sMode: 'cube' }, toolObject(activeTool, hoverCell.x, hoverCell.y)), t, cam);
             ctx.globalAlpha = 1;
         }
         if (G.mode === 'EDITOR') drawMinimap(cam, W, H);
@@ -2082,6 +2100,7 @@ const OFFICIAL_LEVELS = [
         BLOCKS: { icon: '⬛', ru: 'Блоки', en: 'Blocks', tools: [['BLOCK', '⬛', 'Блок', 'Block'], ['SLAB', '▬', 'Полублок', 'Slab']] },
         OTHER: { icon: '🏁', ru: 'Старт, монеты, финиш', en: 'Start, coins, goal', tools: [['START_POS', '🚩', 'Стартовая позиция', 'Start position'], ['COIN', '🪙', 'Монета', 'Coin'], ['GOAL', '🏁', 'Финиш', 'Goal']] },
         TRIGGERS: { icon: '⚙️', ru: 'Триггеры', en: 'Triggers', tools: Object.entries(TRIG).map(([k, v]) => [k, v.icon, v.ru, v.en]) },
+        EMOJI: { icon: '😀', ru: 'Смайлики', en: 'Emoji', tools: [...["💀", "😀", "🙂", "😐", "😢", "😭", "😡", "😎", "😱", "🤔", "😴", "🥳", "😈", "🤡", "👻", "🤖", "👍", "👎", "❤️", "💔", "🔥", "⭐", "⚡", "💎", "👑", "🎉", "⚠️", "❗", "❓", "👀", "➡️", "⬆️", "⬇️", "⬅️", "🏁", "🎵"].map(e => ['EMOJI:' + e, e, '', '']), ['EMOJI:custom', '✏️', 'Свой смайлик', 'Custom']] },
         DECO: { icon: '✨', ru: 'Декор', en: 'Decor', tools: [['TEXT', '🔤', 'Надпись', 'Text'], ['ARROW', '➡️', 'Стрелка', 'Arrow'], ['DECO_STAR', '⭐', 'Звёздочка', 'Star'], ['DECO_LIGHT', '💡', 'Огонёк', 'Light'], ['DECO_CHAIN', '⛓️', 'Цепь', 'Chain']] },
         DELETE: { icon: '❌', ru: 'Удалитель', en: 'Eraser', tools: [['ERASER', '❌', 'Удалитель', 'Eraser']] }
     };
@@ -2102,11 +2121,22 @@ const OFFICIAL_LEVELS = [
         TABS[activeTab].tools.forEach(([id, icon, ru, en]) => {
             const b = document.createElement('button');
             b.className = `tool-btn px-3 py-2 rounded-xl border border-zinc-700 bg-zinc-800 text-xs font-bold flex items-center gap-2 transition shrink-0 ${activeTool === id ? 'tool-active' : 'text-zinc-300 hover:bg-zinc-700'}`;
-            b.innerHTML = `<span class="text-base">${icon}</span><span>${tr(ru, en)}</span>`;
+            b.innerHTML = id.startsWith('EMOJI:') && !ru ? `<span class="text-2xl leading-none">${icon}</span>` : `<span class="text-base">${icon}</span><span>${tr(ru, en)}</span>`;
             if (TRIG[id]) b.title = tr(TRIG[id].what[0], TRIG[id].what[1]);
             b.addEventListener('click', () => { activeTool = id; renderToolBar(); });
             c.appendChild(b);
         });
+        if (activeTab === 'EMOJI') {
+            const info = document.createElement('div');
+            info.className = 'w-full flex flex-wrap items-center gap-2 text-xs text-zinc-300 mt-1';
+            info.innerHTML = `<span>${tr('Размер новых смайликов:', 'New emoji size:')}</span>` + [[1, 'Маленький', 'Small'], [2, 'Средний', 'Medium'], [3, 'Большой', 'Large']].map(([v, r2, e2]) =>
+                `<button data-es="${v}" class="px-2.5 py-1 rounded-lg ${emojiSize === v ? 'bg-white text-black' : 'bg-zinc-800'} font-bold">${tr(r2, e2)}</button>`).join('') +
+                `<span class="text-zinc-500">${tr('Смайлики — украшение: сквозь них можно проходить. Можно рисовать ими, зажав мышку.', 'Emoji are decoration: you pass through them. Hold the mouse to paint.')}</span>`;
+            info.querySelectorAll('[data-es]').forEach(b => b.addEventListener('click', () => { emojiSize = +b.dataset.es; renderToolBar(); }));
+            c.classList.add('flex-wrap');
+            c.appendChild(info);
+            return;
+        }
         if (activeTab === 'TRIGGERS') {
             const info = document.createElement('div');
             info.className = 'w-full text-xs text-zinc-300 bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 mt-1';
@@ -2259,9 +2289,20 @@ const OFFICIAL_LEVELS = [
             const title = toolInfo ? `${toolInfo[1]} ${tr(toolInfo[2], toolInfo[3])}` : o.type;
             let html = `<div class="flex flex-wrap items-center gap-2"><span class="font-black text-sm">${title}</span>
                 <span class="font-mono text-zinc-400">x:${o.x / 40} y:${o.y / 40}</span><span class="flex-1"></span>${common}</div>`;
+            const sizeBtns = (cur) => [[1, 'Маленький', 'Small'], [2, 'Средний', 'Medium'], [3, 'Большой', 'Large']].map(([v, r2, e2]) =>
+                `<button data-a="size${v}" class="px-2.5 py-1 rounded-lg ${cur === v ? 'bg-white text-black' : 'bg-zinc-800'} font-bold">${tr(r2, e2)}</button>`).join('');
             if (o.type === 'TEXT') {
-                html += `<div class="flex items-center gap-2"><span class="text-zinc-300">${tr('Текст надписи', 'Text')}</span>
-                    <input id="propText" maxlength="40" value="${escAttr(o.text == null ? tr('Текст', 'Text') : o.text)}" class="flex-1 max-w-sm px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-700 font-bold"></div>`;
+                html += `<div class="flex flex-wrap items-center gap-2"><span class="text-zinc-300">✏️ ${tr('Пиши прямо здесь — текст сразу появится на поле', 'Type here — the text shows up on the field right away')}</span></div>
+                    <div class="flex flex-wrap items-center gap-2">
+                    <input id="propText" maxlength="60" value="${escAttr(o.text == null ? tr('Текст', 'Text') : o.text)}" class="flex-1 min-w-[200px] px-3 py-1.5 rounded-lg bg-zinc-950 border-2 border-sky-500 font-bold text-sm">
+                    <span class="text-zinc-300">${tr('Размер', 'Size')}</span>${sizeBtns(o.size || 2)}
+                    <label class="flex items-center gap-1.5 text-zinc-300">${tr('Цвет', 'Color')} <input id="propTColor" type="color" value="${o.tcolor || '#ffffff'}" class="w-9 h-8 bg-transparent"></label></div>`;
+            }
+            if (o.type === 'EMOJI') {
+                html += `<div class="flex flex-wrap items-center gap-1">` + ["💀", "😀", "🙂", "😐", "😢", "😭", "😡", "😎", "😱", "🤔", "😴", "🥳", "😈", "🤡", "👻", "🤖", "👍", "👎", "❤️", "💔", "🔥", "⭐", "⚡", "💎", "👑", "🎉", "⚠️", "❗", "❓", "👀", "➡️", "⬆️", "⬇️", "⬅️", "🏁", "🎵"].map(e => `<button data-emo="${e}" class="w-9 h-9 rounded-lg text-xl ${o.emoji === e ? 'bg-white' : 'bg-zinc-800 hover:bg-zinc-700'}">${e}</button>`).join('') + `</div>
+                    <div class="flex flex-wrap items-center gap-2"><span class="text-zinc-300">${tr('Свой смайлик (вставь любой)', 'Your own emoji (paste any)')}</span>
+                    <input id="propEmoji" maxlength="8" value="${escAttr(o.emoji)}" class="w-20 px-2 py-1 rounded-lg bg-zinc-950 border-2 border-sky-500 text-xl text-center">
+                    <span class="text-zinc-300">${tr('Размер', 'Size')}</span>${sizeBtns(o.size || 2)}</div>`;
             }
             const fields = TRIG_FIELDS[o.type];
             if (fields) {
@@ -2314,7 +2355,12 @@ const OFFICIAL_LEVELS = [
             }
             box.innerHTML = html;
             const bindInput = (id, fn, ev = 'input') => { const el = $(id); if (el) { el.addEventListener('focus', () => pushUndo(), { once: true }); el.addEventListener(ev, () => { fn(el); saveEditor(); }); } };
-            bindInput('propText', el => { o.text = el.value; });
+            bindInput('propText', el => { o.text = el.value; freshTextObj = null; });
+            bindInput('propTColor', el => { o.tcolor = el.value; });
+            bindInput('propEmoji', el => { const v = [...el.value.trim()].slice(0, 3).join(''); if (v) { o.emoji = v; lastCustomEmoji = v; } });
+            box.querySelectorAll('[data-emo]').forEach(b => b.addEventListener('click', () => { pushUndo(); o.emoji = b.dataset.emo; saveEditor(); renderProps(); }));
+            const textInp = $('propText');
+            if (textInp) textInp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { textInp.blur(); setSelection([]); } });
             bindInput('propGroup', el => { const v = Math.round(+el.value); if (v >= 1 && v <= 99) o.group = v; else delete o.group; }, 'change');
             (TRIG_FIELDS[o.type] || []).forEach(([key, kind, , , lo, hi]) => {
                 const el = $('tf_' + key); if (!el) return;
@@ -2410,6 +2456,7 @@ const OFFICIAL_LEVELS = [
         if (a === 'copy') { copySelection(); toast(tr(`Скопировано: ${selSet.length}. Вставка — Ctrl+V туда, где мышка.`, `Copied: ${selSet.length}. Paste with Ctrl+V at the mouse.`)); return; }
         if (a === 'rot') { rotateSelection(); return; }
         if (a === 'flip') { flipSelection(); return; }
+        if (a.startsWith('size') && selObj) { pushUndo(); selObj.size = +a.slice(4); if (selObj.type === 'TEXT') textSize = selObj.size; else emojiSize = selObj.size; saveEditor(); renderProps(); return; }
         if (a === 'setgroup') {
             pushUndo();
             const v = Math.round(+$('propGroupAll').value);
@@ -2447,6 +2494,11 @@ const OFFICIAL_LEVELS = [
         }
         return -1;
     }
+    function toolObject(tool, x, y) {
+        if (tool.startsWith('EMOJI:')) { const e = tool.slice(6); return { type: 'EMOJI', x, y, rotation: 0, emoji: e === 'custom' ? (lastCustomEmoji || '🙂') : e, size: emojiSize }; }
+        return { type: tool, x, y, rotation: currentRotation, size: tool === 'TEXT' ? textSize : undefined };
+    }
+    let lastCustomEmoji = '🙂', emojiSize = 2, textSize = 2, freshTextObj = null;
     function editorPlace(e) {
         const w = screenToWorld(e);
         const cx = Math.floor(w.x / GRID) * GRID, cy = Math.floor(w.y / GRID) * GRID;
@@ -2454,10 +2506,17 @@ const OFFICIAL_LEVELS = [
         else if (cx >= 0 && cy >= 0) {
             editorLevel.objects = editorLevel.objects.filter(o => !(o.x === cx && o.y === cy));
             if (activeTool === 'GOAL' || activeTool === 'START_POS') editorLevel.objects = editorLevel.objects.filter(o => o.type !== activeTool);
-            const obj = normalizeLevel({ objects: [{ type: activeTool, x: cx, y: cy, rotation: currentRotation }] }).objects[0];
+            const obj = normalizeLevel({ objects: [toolObject(activeTool, cx, cy)] }).objects[0];
             editorLevel.objects.push(obj);
             stats.placed++; statsDirty = true;
-            if (MODE_PORTALS[activeTool] || TRIG[activeTool] || ['TEXT', 'START_POS'].includes(activeTool)) { setSelection([obj]); saveEditor(); return; }
+            if (MODE_PORTALS[activeTool] || TRIG[activeTool] || ['TEXT', 'START_POS', 'EMOJI:custom'].includes(activeTool)) {
+                setSelection([obj]); saveEditor();
+                // надпись: сразу можно печатать
+                const focusId = activeTool === 'TEXT' ? 'propText' : activeTool === 'EMOJI:custom' ? 'propEmoji' : null;
+                if (activeTool === 'TEXT') freshTextObj = obj;
+                if (focusId) setTimeout(() => { const el = $(focusId); if (el) { el.focus(); el.select(); } }, 0);
+                return;
+            }
         }
         cleanSelection();
         saveEditor(); renderProps();
@@ -2509,7 +2568,7 @@ const OFFICIAL_LEVELS = [
         const nc = { x: Math.floor(w.x / GRID) * GRID, y: Math.floor(w.y / GRID) * GRID };
         const changed = !hoverCell || nc.x !== hoverCell.x || nc.y !== hoverCell.y;
         hoverCell = nc.x >= 0 && nc.y >= 0 && !inMinimap(w) ? nc : null;
-        if (painting && changed && ['BLOCK', 'SLAB', 'SPIKE', 'SMALL_SPIKE', 'GROUND_SPIKES', 'ERASER', 'DECO_STAR', 'DECO_CHAIN'].includes(activeTool)) editorPlace(e);
+        if (painting && changed && ['BLOCK', 'SLAB', 'SPIKE', 'SMALL_SPIKE', 'GROUND_SPIKES', 'ERASER', 'DECO_STAR', 'DECO_CHAIN'].includes(activeTool) || (activeTool.startsWith('EMOJI:') && activeTool !== 'EMOJI:custom')) editorPlace(e);
     });
     function finishBoxSelect() {
         const d = edDrag;
@@ -2556,7 +2615,7 @@ const OFFICIAL_LEVELS = [
         delete b.dataset.armed; pushUndo(); editorLevel.objects = []; saveEditor(); setSelection([]); toast(tr('Карта очищена. Вернуть можно кнопкой «Отмена».', 'Map cleared. Undo brings it back.'));
     });
     $('btnExportLevel').addEventListener('click', () => {
-        const data = { format: 'geometry-ai', version: '1.6', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, objects: editorLevel.objects };
+        const data = { format: 'geometry-ai', version: '1.7', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, objects: editorLevel.objects };
         const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -2915,6 +2974,20 @@ const OFFICIAL_LEVELS = [
     window.addEventListener('pointercancel', () => { G.held = false; painting = false; });
     window.addEventListener('keydown', e => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+        // выбрана надпись: буквы сразу идут в её текст, даже если поле ещё не в фокусе
+        if (G.mode === 'EDITOR' && G.screen === 'GAME' && selObj && selObj.type === 'TEXT' && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            const el = $('propText');
+            if (el) {
+                e.preventDefault();
+                const all = selObj === freshTextObj || (document.activeElement === el && el.selectionStart === 0 && el.selectionEnd === el.value.length);
+                freshTextObj = null;
+                el.focus();
+                el.value = (all ? '' : el.value) + e.key;
+                el.setSelectionRange(el.value.length, el.value.length);
+                el.dispatchEvent(new Event('input'));
+                return;
+            }
+        }
         if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) {
             if (G.screen === 'GAME' && G.mode !== 'EDITOR') e.preventDefault();
             music.ensure(); pressDown();
