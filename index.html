@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Geometry AI v2.5</title>
+    <title>Geometry AI v2.6</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
@@ -45,9 +45,9 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.5</span>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.6</span>
                 </div>
-                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Телепорт на блок и «за игроком»" data-en="Teleport onto a block and follow the player">Телепорт на блок и «за игроком»</p>
+                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Триггерное обновление: стоп, случайность и ещё 20 триггеров" data-en="Trigger update: stop, random and 20 more triggers">Триггерное обновление: стоп, случайность и ещё 20 триггеров</p>
             </div>
         </button>
         <div class="flex items-center gap-2 flex-wrap">
@@ -293,7 +293,7 @@
                 <label class="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold cursor-pointer">📂 <span data-ru="Загрузить JSON" data-en="Load JSON">Загрузить JSON</span><input type="file" id="btnImportLevel" accept=".json" class="hidden"></label>
             </div>
             <div id="propsPanel" class="hidden rounded-xl border border-sky-500/60 bg-sky-500/10 p-2.5 flex flex-col gap-2 text-xs"></div>
-            <div id="tabsRow" class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar border-b border-zinc-800 pb-2"></div>
+            <div id="tabsRow" class="flex flex-wrap items-center gap-1.5 border-b border-zinc-800 pb-2"></div>
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div id="tabContentContainer" class="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1 w-full md:w-auto"></div>
                 <div class="flex items-center gap-2">
@@ -378,6 +378,14 @@ const OBJ = {
     SHAPE: { cat: 'deco', rect: [0, 0, 40, 40] },
     ROTATE_TRIGGER: { cat: 'trigger', rect: [0, 0, 40, 40], fixed: 1 }
 };
+// 2.6: триггерное обновление — логика, игрок, группы, экран и звук
+['STOP_TRIGGER', 'SPAWN_TRIGGER', 'RANDOM_TRIGGER', 'COUNTER_TRIGGER', 'PRESS_TRIGGER', 'WIN_TRIGGER', 'KILL_TRIGGER',
+ 'GRAVITY_TRIGGER', 'SPEED_TRIGGER', 'SIZE_TRIGGER', 'MODE_TRIGGER', 'HIDEP_TRIGGER', 'PCOLOR_TRIGGER',
+ 'SCALE_TRIGGER', 'TINT_TRIGGER', 'PULSE_TRIGGER',
+ 'CAMERA_TRIGGER', 'CAMROT_TRIGGER', 'MIRROR_TRIGGER', 'TIME_TRIGGER', 'DARK_TRIGGER', 'WEATHER_TRIGGER', 'RAINBOW_TRIGGER', 'SOUND_TRIGGER']
+    .forEach(t => OBJ[t] = { cat: 'trigger', rect: [0, 0, 40, 40], fixed: 1 });
+const WEATHER_KINDS = ['none', 'snow', 'rain', 'confetti', 'stars', 'hearts', 'embers', 'leaves', 'bubbles', 'fireworks'];
+const SOUND_KINDS = ['boom', 'laser', 'coin', 'bell', 'alarm', 'power', 'drum', 'whoosh', 'win', 'fail', 'jump', 'magic'];
 const SHAPE_IDS = ['circle', 'ring', 'square', 'triangle', 'diamond', 'hexagon', 'star', 'heart', 'plus', 'xmark', 'cloud', 'bush', 'tree', 'flower',
     'mushroom', 'moon', 'sun', 'bolt', 'crystal', 'flame', 'waves', 'gear', 'pillar', 'spiral', 'dots', 'rays', 'grass', 'eye', 'note', 'frame', 'stripe'];
 const TINTABLE = { BLOCK: 1, SLAB: 1, SPIKE: 1, SMALL_SPIKE: 1, GROUND_SPIKES: 1, SAW: 1, PLATFORM: 1 };
@@ -473,6 +481,35 @@ function normalizeLevel(data) {
             if (o.type === 'FADE_TRIGGER') { r.target = Math.round(num(o.target, 1, 1, 99)); r.opacity = Math.round(num(o.opacity, 0, 0, 100)); r.dur = num(o.dur, 1, 0, 10); r.keepHit = !!o.keepHit; }
             if (o.type === 'MUSIC_TRIGGER') r.song = songKey(o.song == null ? 1 : o.song);
             if (o.type === 'MESSAGE_TRIGGER') { r.text = String(o.text == null ? 'Вперёд!' : o.text).slice(0, 60); r.dur = num(o.dur, 2, 0.5, 10); }
+            if (OBJ[o.type].cat === 'trigger') {
+                // как срабатывает: линия (по умолчанию), касание зоны или только от другого триггера
+                if (o.act === 'touch' || o.act === 'spawn') r.act = o.act;
+                if (r.act === 'touch') { r.zw = num(o.zw, 1, 0.5, 30); r.zh = num(o.zh, 1, 0.5, 30); r.multi = !!o.multi; }
+            }
+            const tg = () => Math.round(num(o.target, 1, 1, 99)), g0 = v => Math.round(num(v, 0, 0, 99));
+            if (o.type === 'COLOR_TRIGGER' || o.type === 'GROUND_TRIGGER') r.dur = num(o.dur, 0.4, 0, 10);
+            if (o.type === 'STOP_TRIGGER') r.target = tg();
+            if (o.type === 'SPAWN_TRIGGER') { r.target = tg(); r.delay = num(o.delay, 0, 0, 60); r.times = Math.round(num(o.times, 1, 0, 999)); r.every = num(o.every, 1, 0.05, 60); }
+            if (o.type === 'RANDOM_TRIGGER') { r.rnd = o.rnd === 'one' ? 'one' : 'chance'; r.ga = g0(o.ga == null ? 1 : o.ga); r.gb = g0(o.gb); r.gc = g0(o.gc); r.gd = g0(o.gd); r.chance = num(o.chance, 50, 0, 100); }
+            if (o.type === 'COUNTER_TRIGGER') { r.cid = Math.round(num(o.cid, 1, 1, 9)); r.op = o.op === 'set' ? 'set' : 'add'; r.val = Math.round(num(o.val, 1, -999, 999)); r.need = Math.round(num(o.need, 5, -9999, 9999)); r.target = g0(o.target); r.show = o.show !== false; }
+            if (o.type === 'PRESS_TRIGGER') { r.target = tg(); r.dur = num(o.dur, 0, 0, 600); r.max = Math.round(num(o.max, 0, 0, 999)); }
+            if (o.type === 'GRAVITY_TRIGGER') r.gmode = ['up', 'down'].includes(o.gmode) ? o.gmode : 'flip';
+            if (o.type === 'SPEED_TRIGGER') r.spd = SPEEDS[o.spd] ? o.spd : 'SPEED_2';
+            if (o.type === 'SIZE_TRIGGER') r.smode = ['big', 'flip'].includes(o.smode) ? o.smode : 'mini';
+            if (o.type === 'MODE_TRIGGER') { r.mode = MODE_NAMES_CORE.includes(o.mode) ? o.mode : 'ship'; r.where = o.where === 'here' ? 'here' : 'player'; }
+            if (o.type === 'HIDEP_TRIGGER') r.show = !!o.show;
+            if (o.type === 'PCOLOR_TRIGGER') { r.color = col(o.color, '#ff3b3b'); r.reset = !!o.reset; }
+            if (o.type === 'SCALE_TRIGGER') { r.target = tg(); r.factor = num(o.factor, 2, 0.25, 4); r.dur = num(o.dur, 0.5, 0, 20); r.rmode = o.rmode === 'group' ? 'group' : 'self'; }
+            if (o.type === 'TINT_TRIGGER') { r.target = tg(); r.color = col(o.color, '#ff3b3b'); r.dur = num(o.dur, 0.5, 0, 10); }
+            if (o.type === 'PULSE_TRIGGER') { r.target = tg(); r.color = col(o.color, '#ffffff'); r.dur = num(o.dur, 0.6, 0.1, 10); }
+            if (o.type === 'CAMERA_TRIGGER') { r.dx = num(o.dx, 0, -20, 20); r.dy = num(o.dy, 2, -10, 10); r.dur = num(o.dur, 1, 0, 10); }
+            if (o.type === 'CAMROT_TRIGGER') { r.deg = num(o.deg, 15, -360, 360); r.dur = num(o.dur, 1, 0, 10); }
+            if (o.type === 'MIRROR_TRIGGER') { r.on = o.on !== false; r.dur = num(o.dur, 0.5, 0, 5); }
+            if (o.type === 'TIME_TRIGGER') r.tk = num(o.tk, 0.5, 0.25, 2);
+            if (o.type === 'DARK_TRIGGER') { r.power = Math.round(num(o.power, 80, 0, 100)); r.radius = num(o.radius, 5, 1, 20); r.dur = num(o.dur, 1, 0, 10); }
+            if (o.type === 'WEATHER_TRIGGER') r.weather = WEATHER_KINDS.includes(o.weather) ? o.weather : 'snow';
+            if (o.type === 'RAINBOW_TRIGGER') { r.on = o.on !== false; r.speed = num(o.speed, 1, 0.1, 5); }
+            if (o.type === 'SOUND_TRIGGER') r.snd = SOUND_KINDS.includes(o.snd) ? o.snd : 'boom';
             if (o.group != null && Number(o.group) >= 1) r.group = Math.round(num(o.group, 0, 1, 99));
             if (o.type === 'START_POS') {
                 r.sMode = MODE_NAMES_CORE.includes(o.sMode) ? o.sMode : 'cube';
@@ -496,7 +533,7 @@ function prepareLevel(data) {
         return Object.assign({}, o, { id: i, cat: d.cat, kind: d.kind, circle: circleOf(o), rect: objRect(o) });
     });
     // Объекты групп, которыми управляют триггеры движения/показа, живут отдельно: их место считается каждый кадр
-    const controlled = new Set(all.filter(o => ['MOVE_TRIGGER', 'TOGGLE_TRIGGER', 'FADE_TRIGGER', 'ROTATE_TRIGGER'].includes(o.type)).map(o => o.target));
+    const controlled = new Set(all.filter(o => ['MOVE_TRIGGER', 'TOGGLE_TRIGGER', 'FADE_TRIGGER', 'ROTATE_TRIGGER', 'SCALE_TRIGGER', 'TINT_TRIGGER', 'PULSE_TRIGGER'].includes(o.type)).map(o => o.target));
     const movers = all.filter(o => o.group && controlled.has(o.group) && o.cat !== 'trigger' && o.cat !== 'editor');
     const moverSet = new Set(movers);
     const objs = all.filter(o => !moverSet.has(o)).sort((a, b) => a.rect.x0 - b.rect.x0);
@@ -508,6 +545,13 @@ function prepareLevel(data) {
     for (const g in gb) groupCenters[g] = [(gb[g][0] + gb[g][2]) / 2, (gb[g][1] + gb[g][3]) / 2];
     const triggers = all.filter(o => o.cat === 'trigger').sort((a, b) => a.x - b.x || a.y - b.y);
     triggers.forEach((t, i) => { t.ti = i; });
+    // триггеры по своим группам (их запускают 🧨 и 🎲, останавливает ⛔) и триггеры-зоны касания
+    const trigByGroup = {};
+    triggers.forEach(t => { if (t.group) (trigByGroup[t.group] || (trigByGroup[t.group] = [])).push(t.ti); });
+    const touchTrigs = triggers.filter(t => t.act === 'touch');
+    touchTrigs.forEach(t => { t.zx0 = t.x + 20 - t.zw * 20; t.zx1 = t.x + 20 + t.zw * 20; t.zy0 = t.y + 20 - t.zh * 20; t.zy1 = t.y + 20 + t.zh * 20; });
+    const ctlGroups = {};
+    controlled.forEach(g => { ctlGroups[g] = 1; });
     const goal = objs.find(o => o.type === 'GOAL');
     const maxX = all.reduce((m, o) => NON_GAMEPLAY[o.cat] ? m : Math.max(m, o.rect.x1), 600);
     let startY = 0;
@@ -518,7 +562,7 @@ function prepareLevel(data) {
         coinTotal: objs.filter(o => o.cat === 'coin').length,
         colorTriggers: objs.filter(o => o.type === 'COLOR_TRIGGER').map(o => ({ x: o.x + 20, color: o.color })).sort((a, b) => a.x - b.x),
         groundTriggers: objs.filter(o => o.type === 'GROUND_TRIGGER').map(o => ({ x: o.x + 20, color: o.color })).sort((a, b) => a.x - b.x),
-        triggers, movers, maxW, groupCenters,
+        triggers, movers, maxW, groupCenters, trigByGroup, touchTrigs, ctlGroups,
         topY: Math.max(800, objs.reduce((m, o) => Math.max(m, o.rect.y1), 0) + 400),
         startY
     };
@@ -556,7 +600,9 @@ function initState(L) {
     return {
         x: 3, y: L.startY, vy: 0, mode: 'cube', g: 1, mini: false, speed: 1,
         grounded: true, prevHeld: false, buf: 0, robotT: 0, lane: 0, lanes: DEFAULT_LANES,
-        floor: 0, ceil: null, used: [], coins: [], dead: false, won: false, rot: 0, frame: 0, fx: null, tn: 0, acts: []
+        floor: 0, ceil: null, used: [], coins: [], dead: false, won: false, rot: 0, frame: 0, fx: null, tn: 0, acts: [],
+        // 2.6: случайность, отложенные запуски, счётчики, «нажатия», выключенные группы, зоны касания
+        rng: 12345, pend: [], cnt: {}, lis: [], hid: [], inz: []
     };
 }
 // Старт с позиции, которую поставили в редакторе (режим, гравитация, скорость, размер)
@@ -575,50 +621,135 @@ function initStateAt(L, sp) {
 // Где сейчас группы объектов: сдвиг от триггеров движения и видимость от триггеров показа/скрытия
 function easeInOut(p) { return p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; }
 function evalFade(fd, frame) { return fd.from + (fd.to - fd.from) * Math.min(1, Math.max(0, (frame - fd.f) / fd.frames)); }
-function groupState(L, s) {
-    const off = {}, hidden = {}, fades = {}, spin = {}, orbit = {};
-    const fol = {};
-    for (const act of s.acts) {
-        const ti = act[0], f = act[1];
-        const t = L.triggers[ti];
-        // следование за игроком: группа сдвигается на столько же, на сколько сдвинулся игрок (умножить на силу)
-        if (t.type === 'MOVE_TRIGGER' && t.follow && t.follow !== 'none') {
-            const F = fol[t.target] || (fol[t.target] = { base: [0, 0], cur: null });
-            const px = act[2] == null ? s.x : act[2], py = act[3] == null ? s.y : act[3];
-            if (F.cur) { F.base[0] += (px - F.cur.x0) * F.cur.kx; F.base[1] += (py - F.cur.y0) * F.cur.ky; F.cur = null; }
-            if (t.follow !== 'stop') F.cur = { x0: px, y0: py, kx: t.follow.includes('x') ? t.fk : 0, ky: t.follow.includes('y') ? t.fk : 0 };
-            continue;
-        }
-        if (t.type === 'FADE_TRIGGER') {
-            const prev = fades[t.target];
-            fades[t.target] = { from: prev ? evalFade(prev, f) : 1, to: t.opacity / 100, f, frames: Math.max(1, t.dur * 60), keep: t.keepHit };
-            continue;
-        }
-        if (t.type === 'MOVE_TRIGGER') {
-            const frames = Math.max(1, t.dur * 60), el = s.frame - f, loops = t.loops || 1;
-            const legs = loops * (t.pingpong ? 2 : 1);
-            let k;
-            if (el >= legs * frames) k = t.pingpong ? 0 : loops;
-            else {
-                const leg = Math.max(0, Math.floor(el / frames)), p = easeInOut(Math.max(0, el - leg * frames) / frames);
-                k = t.pingpong ? (leg % 2 === 0 ? p : 1 - p) : leg + p;
-            }
-            const g = off[t.target] || (off[t.target] = [0, 0]);
-            g[0] += t.dx * GRID * k; g[1] += t.dy * GRID * k;
-        } else if (t.type === 'ROTATE_TRIGGER') {
-            const k = easeInOut(Math.min(1, Math.max(0, (s.frame - f) / Math.max(1, t.dur * 60))));
-            const acc = t.rmode === 'group' ? orbit : spin;
-            acc[t.target] = (acc[t.target] || 0) + t.deg * k;
-        } else if (t.type === 'TOGGLE_TRIGGER') hidden[t.target] = !t.show;
+// цвет между двумя (#rrggbb), k от 0 до 1
+function mixCol(a, b, k) {
+    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+    const ch = sh => Math.round(((pa >> sh) & 255) + (((pb >> sh) & 255) - ((pa >> sh) & 255)) * k);
+    return '#' + ((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1);
+}
+// Прогресс триггера движения (с повторами и «туда-обратно») через el кадров после срабатывания
+function moveK(t, el) {
+    const frames = Math.max(1, t.dur * 60), loops = t.loops || 1, legs = loops * (t.pingpong ? 2 : 1);
+    if (el >= legs * frames) return t.pingpong ? 0 : loops;
+    const leg = Math.max(0, Math.floor(el / frames)), p = easeInOut(Math.max(0, el - leg * frames) / frames);
+    return t.pingpong ? (leg % 2 === 0 ? p : 1 - p) : leg + p;
+}
+function pulseEnv(t, el) {
+    const a = el / Math.max(1, t.dur * 60);
+    return a < 0 ? 0 : a < 0.15 ? a / 0.15 : a < 0.5 ? 1 : a < 1 ? (1 - a) / 0.5 : 0;
+}
+// Сработавшие триггеры «сворачиваются» один раз на каждый список: всё, что уже доехало/докрутилось
+// (или остановлено ⛔), складывается заранее; каждый кадр досчитываются только ещё идущие
+const GS_CACHE = new WeakMap();
+function compileActs(L, acts) {
+    const hit = GS_CACHE.get(acts);
+    if (hit) return hit;
+    const n = acts.length, fLast = n ? acts[n - 1][1] : 0;
+    const off = {}, hidden = {}, spin = {}, orbit = {}, sclS = {}, sclG = {}, fades = {}, tints = {}, fol = {}, live = [];
+    // ⛔ Стоп: какие записи остановили триггеры каждой группы
+    let stops = null;
+    for (let i = 0; i < n; i++) {
+        const t = L.triggers[acts[i][0]];
+        if (t.type === 'STOP_TRIGGER') { if (!stops) stops = {}; (stops[t.target] || (stops[t.target] = [])).push(i); }
     }
-    for (const g in fol) {
-        const F = fol[g], o = off[g] || (off[g] = [0, 0]);
-        o[0] += F.base[0] + (F.cur ? (s.x - F.cur.x0) * F.cur.kx : 0);
-        o[1] += F.base[1] + (F.cur ? (s.y - F.cur.y0) * F.cur.ky : 0);
+    for (let i = 0; i < n; i++) {
+        const act = acts[i], t = L.triggers[act[0]], f = act[1];
+        let stopIdx = -1;
+        if (stops && t.group && stops[t.group]) for (const j of stops[t.group]) if (j > i) { stopIdx = j; break; }
+        const stopF = stopIdx >= 0 ? acts[stopIdx][1] : Infinity;
+        const prog = (dur, now) => Math.min(1, Math.max(0, (now - f) / Math.max(1, dur * 60)));
+        switch (t.type) {
+            case 'MOVE_TRIGGER': {
+                if (t.follow && t.follow !== 'none') {
+                    // следование за игроком: группа сдвигается на столько же, на сколько сдвинулся игрок (умножить на силу)
+                    const F = fol[t.target] || (fol[t.target] = { base: [0, 0], cur: null });
+                    const px = act[2] == null ? 0 : act[2], py = act[3] == null ? 0 : act[3];
+                    if (F.cur) {
+                        const st = F.cur.stop >= 0 && F.cur.stop < i ? acts[F.cur.stop] : null;
+                        const ex = st ? st[2] : px, ey = st ? st[3] : py;
+                        F.base[0] += (ex - F.cur.x0) * F.cur.kx; F.base[1] += (ey - F.cur.y0) * F.cur.ky; F.cur = null;
+                    }
+                    if (t.follow !== 'stop') F.cur = { x0: px, y0: py, kx: t.follow.includes('x') ? t.fk : 0, ky: t.follow.includes('y') ? t.fk : 0, stop: stopIdx };
+                    break;
+                }
+                const total = Math.max(1, t.dur * 60) * (t.loops || 1) * (t.pingpong ? 2 : 1);
+                if (stopIdx >= 0 || fLast - f >= total) {
+                    const k = moveK(t, Math.min(stopF, f + total) - f);
+                    const g = off[t.target] || (off[t.target] = [0, 0]);
+                    g[0] += t.dx * GRID * k; g[1] += t.dy * GRID * k;
+                } else live.push(i);
+                break;
+            }
+            case 'ROTATE_TRIGGER': case 'SCALE_TRIGGER': {
+                if (stopIdx >= 0 || fLast - f >= Math.max(1, t.dur * 60)) {
+                    const k = easeInOut(prog(t.dur, stopF));
+                    if (t.type === 'ROTATE_TRIGGER') { const acc = t.rmode === 'group' ? orbit : spin; acc[t.target] = (acc[t.target] || 0) + t.deg * k; }
+                    else { const acc = t.rmode === 'group' ? sclG : sclS; acc[t.target] = (acc[t.target] || 1) * Math.pow(t.factor, k); }
+                } else live.push(i);
+                break;
+            }
+            case 'FADE_TRIGGER': {
+                const prev = fades[t.target];
+                fades[t.target] = { from: prev ? evalFade(prev, Math.min(f, prev.end)) : 1, to: t.opacity / 100, f, frames: Math.max(1, t.dur * 60), keep: t.keepHit, end: stopF };
+                break;
+            }
+            case 'TINT_TRIGGER': {
+                const arr = tints[t.target] || (tints[t.target] = []);
+                for (const l of arr) if (l.end > f) l.end = f; // новый цвет перекрывает прежний
+                arr.push({ c: t.color, f, frames: Math.max(1, t.dur * 60), end: stopF });
+                break;
+            }
+            case 'PULSE_TRIGGER': {
+                if (stopIdx < 0 && fLast - f < Math.max(1, t.dur * 60)) live.push(i); // остановленный или догоревший пульс ничего не делает
+                break;
+            }
+            case 'TOGGLE_TRIGGER': hidden[t.target] = !t.show; break;
+        }
+    }
+    // слои цвета, полностью закрашенные уже сейчас, перекрывают всё, что было до них
+    for (const g in tints) {
+        const arr = tints[g];
+        let lastFull = -1;
+        arr.forEach((l, i) => { if ((Math.min(fLast, l.end) - l.f) / l.frames >= 1) lastFull = i; });
+        if (lastFull > 0) tints[g] = arr.slice(lastFull);
+    }
+    const c = { off, hidden, spin, orbit, sclS, sclG, fades, tints, fol, live };
+    GS_CACHE.set(acts, c);
+    return c;
+}
+function groupState(L, s) {
+    const c = compileActs(L, s.acts), acts = s.acts;
+    const off = {}, spin = Object.assign({}, c.spin), orbit = Object.assign({}, c.orbit), sclS = Object.assign({}, c.sclS), sclG = Object.assign({}, c.sclG), pulses = {};
+    for (const g in c.off) off[g] = c.off[g].slice();
+    // ещё идущие движения, повороты, изменения размера и пульсы
+    for (const i of c.live) {
+        const act = acts[i], t = L.triggers[act[0]], el = s.frame - act[1];
+        if (t.type === 'MOVE_TRIGGER') { const k = moveK(t, el), g = off[t.target] || (off[t.target] = [0, 0]); g[0] += t.dx * GRID * k; g[1] += t.dy * GRID * k; }
+        else if (t.type === 'ROTATE_TRIGGER') { const k = easeInOut(Math.min(1, Math.max(0, el / Math.max(1, t.dur * 60)))); const acc = t.rmode === 'group' ? orbit : spin; acc[t.target] = (acc[t.target] || 0) + t.deg * k; }
+        else if (t.type === 'SCALE_TRIGGER') { const k = easeInOut(Math.min(1, Math.max(0, el / Math.max(1, t.dur * 60)))); const acc = t.rmode === 'group' ? sclG : sclS; acc[t.target] = (acc[t.target] || 1) * Math.pow(t.factor, k); }
+        else if (t.type === 'PULSE_TRIGGER') { const env = pulseEnv(t, el); if (env > 0.001) (pulses[t.target] || (pulses[t.target] = [])).push([t.color, env]); }
+    }
+    for (const g in c.fol) {
+        const F = c.fol[g], o = off[g] || (off[g] = [0, 0]);
+        let ex = s.x, ey = s.y;
+        if (F.cur && F.cur.stop >= 0) { ex = acts[F.cur.stop][2]; ey = acts[F.cur.stop][3]; }
+        o[0] += F.base[0] + (F.cur ? (ex - F.cur.x0) * F.cur.kx : 0);
+        o[1] += F.base[1] + (F.cur ? (ey - F.cur.y0) * F.cur.ky : 0);
     }
     const alpha = {}, keep = {};
-    for (const g in fades) { alpha[g] = evalFade(fades[g], s.frame); keep[g] = fades[g].keep; }
-    return { off, hidden, alpha, keep, spin, orbit };
+    for (const g in c.fades) { const fd = c.fades[g]; alpha[g] = evalFade(fd, Math.min(s.frame, fd.end)); keep[g] = fd.keep; }
+    // цвет группы: слои «перекрасить» и поверх — вспышки «пульса»
+    const tint = {};
+    for (const g in c.tints) {
+        let layers = c.tints[g].map(l => [l.c, Math.min(1, Math.max(0, (Math.min(s.frame, l.end) - l.f) / l.frames))]);
+        let lastFull = -1;
+        layers.forEach((l, i) => { if (l[1] >= 1) lastFull = i; });
+        if (lastFull > 0) layers = layers.slice(lastFull);
+        layers = layers.filter(l => l[1] > 0);
+        if (layers.length) tint[g] = layers;
+    }
+    for (const g in pulses) tint[g] = (tint[g] || []).concat(pulses[g]);
+    return { off, hidden: c.hidden, alpha, keep, spin, orbit, sclS, sclG, tint };
 }
 function activeMovers(L, s) {
     if (!L.movers || !L.movers.length) return [];
@@ -628,16 +759,27 @@ function activeMovers(L, s) {
         const a = gs.alpha[o.group];
         // полностью исчезнувший объект больше не мешает (если не выбрано «невидимый, но твёрдый»)
         if (a !== undefined && a <= 0.001 && !gs.keep[o.group]) continue;
-        const d = gs.off[o.group], sp = gs.spin[o.group], ob = gs.orbit[o.group];
-        if (!d && a === undefined && !sp && !ob) { out.push(o); continue; }
+        const d = gs.off[o.group], sp = gs.spin[o.group], ob = gs.orbit[o.group], ss = gs.sclS[o.group], sg = gs.sclG[o.group], tn = gs.tint[o.group];
+        if (!d && a === undefined && !sp && !ob && !ss && !sg && !tn) { out.push(o); continue; }
         const m = Object.assign({}, o, { alpha: a === undefined ? 1 : a });
         let cx = o.x + 20, cy = o.y + 20, rot = o.rotation || 0;
-        if (ob) { const pc = L.groupCenters[o.group]; const [u, v] = rotPt(cx - pc[0], cy - pc[1], ob); cx = pc[0] + u; cy = pc[1] + v; rot += ob; }
+        const pc = L.groupCenters[o.group];
+        // 📏 размер группы «вся группа»: объекты расходятся от центра группы
+        if (sg && sg !== 1 && pc) { cx = pc[0] + (cx - pc[0]) * sg; cy = pc[1] + (cy - pc[1]) * sg; }
+        if (ob && pc) { const [u, v] = rotPt(cx - pc[0], cy - pc[1], ob); cx = pc[0] + u; cy = pc[1] + v; rot += ob; }
         if (sp) rot += sp;
         if (d) { cx += d[0]; cy += d[1]; }
         m.x = cx - 20; m.y = cy - 20; m.rotation = rot;
-        // при вращении хитбокс пересчитывается, при простом сдвиге — сдвигается
-        m.rect = (ob || sp) ? objRect(m) : { x0: o.rect.x0 + m.x - o.x, x1: o.rect.x1 + m.x - o.x, y0: o.rect.y0 + m.y - o.y, y1: o.rect.y1 + m.y - o.y };
+        const scl = (ss || 1) * (sg || 1);
+        if (scl !== 1) {
+            if (OBJ[o.type].sized) { m.w = (o.w || 1) * scl; m.h = (o.h || 1) * scl; }
+            else if (o.type === 'HB_CIRCLE') m.r = (o.r || 0.5) * scl;
+            else m.scale = (o.scale || 1) * scl;
+            m.circle = circleOf(m);
+        }
+        if (tn) m.tint = tn;
+        // при вращении и изменении размера хитбокс пересчитывается, при простом сдвиге — сдвигается
+        m.rect = (ob || sp || scl !== 1) ? objRect(m) : { x0: o.rect.x0 + m.x - o.x, x1: o.rect.x1 + m.x - o.x, y0: o.rect.y0 + m.y - o.y, y1: o.rect.y1 + m.y - o.y };
         out.push(m);
     }
     return out;
@@ -649,6 +791,147 @@ function nearWithMovers(L, s, x0, x1) {
     return near;
 }
 function overlaps(a, x0, y0, x1, y1) { return x1 > a.x0 && x0 < a.x1 && y1 > a.y0 && y0 < a.y1; }
+
+// ===== 2.6: срабатывание триггеров (линия, касание, запуск другим триггером) =====
+let TRIG_BUDGET = 0; // защита от бесконечных цепочек «триггер запускает сам себя»
+// случайное число 0..1 из состояния: одинаковое при одинаковом состоянии (ИИ видит то же будущее), новое в каждой попытке
+function rnd(s) {
+    const x = ((s.rng >>> 0) + 0x9E3779B9) >>> 0;
+    s.rng = x;
+    let z = Math.imul(x ^ (x >>> 16), 0x85ebca6b);
+    z = Math.imul(z ^ (z >>> 13), 0xc2b2ae35);
+    z ^= z >>> 16;
+    return (z >>> 0) / 4294967296;
+}
+function addPend(s, p) { if (s.pend.length < 64) s.pend = s.pend.concat([p]); }
+// 🧨 запустить все триггеры с этим номером группы
+function launchGroup(s, L, g, depth) {
+    const list = L.trigByGroup && L.trigByGroup[g];
+    if (!list || depth > 12) return;
+    for (const ti of list) { if (s.dead || s.won) return; fireTrigger(s, L, ti, depth); }
+}
+// вход в режим (портал режима или триггер режима)
+function enterMode(s, o) {
+    const nm = MODE_PORTALS[o.type];
+    if (nm !== s.mode) {
+        setSizeKeepCenter(s, () => { s.mode = nm; });
+        s.robotT = 0; s.lane = 0; s.rot = 0;
+        if (nm !== 'cube' && nm !== 'robot') s.vy *= 0.5;
+    }
+    const b = portalBounds(o);
+    s.floor = b.floor; s.ceil = b.ceil;
+    if (b.lanes) { s.lanes = b.lanes; s.lane = Math.min(s.lane, b.lanes.length - 1); }
+    if (s.y < s.floor) s.y = s.floor;
+    if (s.ceil != null && s.y + pSize(s) > s.ceil) s.y = s.ceil - pSize(s);
+}
+function fireTrigger(s, L, ti, depth) {
+    const t = L.triggers[ti];
+    // триггер из спрятанной группы (👁 «Скрыть») выключен
+    if (t.group && s.hid.length && s.hid.includes(t.group)) return;
+    if (TRIG_BUDGET-- <= 0 || (depth > 0 && s.acts.length > 6000)) return;
+    s.acts = s.acts.concat([[ti, s.frame, s.x, s.y]]);
+    switch (t.type) {
+        case 'TOGGLE_TRIGGER':
+            s.hid = t.show ? s.hid.filter(g => g !== t.target) : s.hid.includes(t.target) ? s.hid : s.hid.concat(t.target);
+            break;
+        case 'SPAWN_TRIGGER': {
+            if (t.delay > 0) addPend(s, [s.frame + Math.max(1, Math.round(t.delay * 60)), ti, t.times]);
+            else {
+                if (t.times !== 1) addPend(s, [s.frame + Math.max(1, Math.round(t.every * 60)), ti, t.times === 0 ? 0 : t.times - 1]);
+                launchGroup(s, L, t.target, depth + 1);
+            }
+            break;
+        }
+        case 'RANDOM_TRIGGER': {
+            let g = 0;
+            if (t.rnd === 'one') { const opts = [t.ga, t.gb, t.gc, t.gd].filter(v => v > 0); if (opts.length) g = opts[Math.min(opts.length - 1, Math.floor(rnd(s) * opts.length))]; }
+            else g = rnd(s) * 100 < t.chance ? t.ga : t.gb;
+            if (g) launchGroup(s, L, g, depth + 1);
+            break;
+        }
+        case 'STOP_TRIGGER':
+            // останавливаются и повторы/нажатия, которые сами из этой группы, и те, что запускают эту группу
+            if (s.pend.length) s.pend = s.pend.filter(p => { const q = L.triggers[p[1]]; return q.group !== t.target && q.target !== t.target; });
+            if (s.lis.length) s.lis = s.lis.filter(p => { const q = L.triggers[p[0]]; return q.group !== t.target && q.target !== t.target; });
+            break;
+        case 'COUNTER_TRIGGER': {
+            const old = s.cnt[t.cid] || 0, v = t.op === 'set' ? t.val : old + t.val;
+            s.cnt = Object.assign({}, s.cnt, { [t.cid]: v });
+            if (t.target && ((old < t.need && v >= t.need) || (old > t.need && v <= t.need))) launchGroup(s, L, t.target, depth + 1);
+            break;
+        }
+        case 'PRESS_TRIGGER':
+            s.lis = s.lis.concat([[ti, t.dur > 0 ? s.frame + Math.round(t.dur * 60) : 1e9, t.max || 0]]);
+            break;
+        case 'GRAVITY_TRIGGER': {
+            const ng = t.gmode === 'up' ? -1 : t.gmode === 'down' ? 1 : -s.g;
+            if (ng !== s.g) { s.g = ng; s.vy *= 0.5; s.grounded = false; }
+            break;
+        }
+        case 'SPEED_TRIGGER': s.speed = SPEEDS[t.spd] || 1; break;
+        case 'SIZE_TRIGGER': {
+            const m = t.smode === 'flip' ? !s.mini : t.smode === 'mini';
+            if (m !== s.mini) setSizeKeepCenter(s, () => { s.mini = m; });
+            break;
+        }
+        case 'MODE_TRIGGER': {
+            const pt = Object.keys(MODE_PORTALS).find(k => MODE_PORTALS[k] === t.mode);
+            // коридор строится вокруг игрока или вокруг значка триггера
+            if (pt) enterMode(s, { type: pt, y: t.where === 'here' ? t.y : s.y + pSize(s) / 2 - 20 });
+            break;
+        }
+        case 'WIN_TRIGGER': s.won = true; break;
+        case 'KILL_TRIGGER': s.dead = true; break;
+    }
+}
+function runTriggers(s, L, size, press) {
+    TRIG_BUDGET = 300;
+    // отложенные и повторяющиеся запуски 🧨
+    if (s.pend.length) {
+        const due = s.pend.filter(p => p[0] <= s.frame);
+        if (due.length) {
+            s.pend = s.pend.filter(p => p[0] > s.frame);
+            for (const p of due) {
+                const src = L.triggers[p[1]];
+                if (src.group && s.hid.includes(src.group)) continue;
+                if (p[2] !== 1) addPend(s, [p[0] + Math.max(1, Math.round(src.every * 60)), p[1], p[2] === 0 ? 0 : p[2] - 1]);
+                launchGroup(s, L, src.target, 1);
+                if (s.dead || s.won) return;
+            }
+        }
+    }
+    // линии: срабатывают, когда центр игрока пересекает линию триггера
+    while (s.tn < L.triggers.length && s.x + size / 2 >= L.triggers[s.tn].x + 20) {
+        const t = L.triggers[s.tn++];
+        if (!t.act) { fireTrigger(s, L, t.ti, 0); if (s.dead || s.won) return; }
+    }
+    // зоны касания (двигаются вместе со своей группой)
+    if (L.touchTrigs && L.touchTrigs.length) {
+        let gs = null;
+        const px0 = s.x, py0 = s.y, px1 = s.x + size, py1 = s.y + size;
+        for (const t of L.touchTrigs) {
+            let ox = 0, oy = 0;
+            if (t.group && L.ctlGroups[t.group]) { gs = gs || groupState(L, s); const d = gs.off[t.group]; if (d) { ox = d[0]; oy = d[1]; } }
+            const inside = px1 > t.zx0 + ox && px0 < t.zx1 + ox && py1 > t.zy0 + oy && py0 < t.zy1 + oy;
+            const was = s.inz.includes(t.ti);
+            if (inside && !was) {
+                s.inz = s.inz.concat(t.ti);
+                if (t.multi || !s.used.includes(t.id)) {
+                    if (!t.multi) s.used = s.used.concat(t.id);
+                    fireTrigger(s, L, t.ti, 0);
+                    if (s.dead || s.won) return;
+                }
+            } else if (!inside && was) s.inz = s.inz.filter(v => v !== t.ti);
+        }
+    }
+    // 👆 нажатия: каждое нажатие запускает группу, пока триггер действует
+    if (s.lis.length) {
+        const live = s.lis.filter(l => s.frame <= l[1] && !(L.triggers[l[0]].group && s.hid.includes(L.triggers[l[0]].group)));
+        if (!press) { if (live.length !== s.lis.length) s.lis = live; return; }
+        s.lis = live.filter(l => l[2] !== 1).map(l => l[2] > 1 ? [l[0], l[1], l[2] - 1] : l);
+        for (const l of live) { launchGroup(s, L, L.triggers[l[0]].target, 1); if (s.dead || s.won) return; }
+    }
+}
 
 function setSizeKeepCenter(s, fn) {
     const before = pSize(s); fn(); const after = pSize(s);
@@ -706,10 +989,14 @@ function step(p, held, L) {
     if (press) s.buf = 6; else if (s.buf > 0) s.buf--;
     if (!held) s.buf = 0;
 
-    const vx = BASE_SPEED * s.speed;
     let size = pSize(s);
-    // --- Триггеры: срабатывают, когда центр игрока пересекает их линию ---
-    while (L.triggers && s.tn < L.triggers.length && s.x + size / 2 >= L.triggers[s.tn].x + 20) { s.acts = s.acts.concat([[s.tn, s.frame, s.x, s.y]]); s.tn++; }
+    // --- Триггеры: линии, зоны касания, отложенные запуски, нажатия ---
+    if (L.triggers && L.triggers.length) {
+        runTriggers(s, L, size, press);
+        if (s.dead || s.won) return s;
+        size = pSize(s);
+    }
+    const vx = BASE_SPEED * s.speed;
     let near = nearWithMovers(L, s, s.x - 20, s.x + size + 60);
     let acted = false;
 
@@ -843,17 +1130,7 @@ function step(p, held, L) {
             s.used = s.used.concat(o.id);
             const t = o.type;
             if (MODE_PORTALS[t]) {
-                const nm = MODE_PORTALS[t];
-                if (nm !== s.mode) {
-                    setSizeKeepCenter(s, () => { s.mode = nm; });
-                    s.robotT = 0; s.lane = 0; s.rot = 0;
-                    if (nm !== 'cube' && nm !== 'robot') s.vy *= 0.5;
-                }
-                const b = portalBounds(o);
-                s.floor = b.floor; s.ceil = b.ceil;
-                if (b.lanes) { s.lanes = b.lanes; s.lane = Math.min(s.lane, b.lanes.length - 1); }
-                if (s.y < s.floor) s.y = s.floor;
-                if (s.ceil != null && s.y + pSize(s) > s.ceil) s.y = s.ceil - pSize(s);
+                enterMode(s, o);
             } else if (t === 'GRAV_DOWN_PORTAL' || t === 'GRAV_UP_PORTAL') {
                 const ng = t === 'GRAV_UP_PORTAL' ? -1 : 1;
                 if (ng !== s.g) { s.g = ng; s.vy *= 0.5; s.grounded = false; }
@@ -914,7 +1191,7 @@ function aiSearch(s0, L, prevPlan, budgetMax) {
             for (let i = 0; i < n; i++) { t = step(t, a, L); if (t.dead) { ok = false; break; } }
             plan[depth] = a;
             if (!ok) continue;
-            const key = depth + '|' + Math.round(t.x) + '|' + Math.round(t.y) + '|' + Math.round(t.vy * 2) + '|' + t.mode + t.g + t.mini + t.speed + '|' + t.used.length + t.prevHeld;
+            const key = depth + '|' + Math.round(t.x) + '|' + Math.round(t.y) + '|' + Math.round(t.vy * 2) + '|' + t.mode + t.g + t.mini + t.speed + '|' + t.used.length + t.prevHeld + '|' + t.acts.length;
             if (seen.has(key)) continue;
             seen.add(key);
             if (depth + 1 > best.len) best = { len: depth + 1, plan: plan.slice(0, depth + 1) };
@@ -1395,6 +1672,24 @@ const SECRET_LEVELS = [
         coin() { this.tone(1200, 0.08, 'square', 0.06); setTimeout(() => this.tone(1600, 0.15, 'square', 0.06), 70); }
         explode() { this.tone(160, 0.4, 'sawtooth', 0.15, 40); }
         win() { [440, 554.37, 659.25, 880, 1108.7].forEach((f, i) => setTimeout(() => this.tone(f, 0.3, 'sine', 0.1), i * 110)); }
+        // 🔔 звуки для триггера «Звук»
+        play(kind) {
+            const seq = (notes, gap, dur, type, vol) => notes.forEach((f, i) => setTimeout(() => this.tone(f, dur, type, vol), i * gap));
+            switch (kind) {
+                case 'boom': this.tone(140, 0.6, 'sawtooth', 0.22, 30); this.tone(70, 0.7, 'square', 0.12, 25); break;
+                case 'laser': this.tone(1600, 0.25, 'square', 0.07, 180); break;
+                case 'coin': this.coin(); break;
+                case 'bell': this.tone(1320, 0.9, 'sine', 0.13); this.tone(1980, 0.6, 'sine', 0.05); break;
+                case 'alarm': seq([880, 660, 880, 660, 880, 660], 180, 0.17, 'square', 0.06); break;
+                case 'power': seq([392, 523, 659, 784, 1047, 1319], 60, 0.12, 'square', 0.06); break;
+                case 'drum': this.tone(160, 0.18, 'triangle', 0.3, 45); setTimeout(() => this.tone(120, 0.2, 'triangle', 0.25, 40), 220); break;
+                case 'whoosh': this.tone(180, 0.45, 'sawtooth', 0.04, 1400); break;
+                case 'win': this.win(); break;
+                case 'fail': seq([392, 370, 349, 262], 300, 0.35, 'sawtooth', 0.07); break;
+                case 'jump': this.jump(); break;
+                case 'magic': seq([1047, 1319, 1568, 2093, 1568, 2637], 70, 0.15, 'sine', 0.06); break;
+            }
+        }
     }
     const sound = new SoundFX();
 
@@ -1586,11 +1881,36 @@ const SECRET_LEVELS = [
 
     function camera() {
         if (G.mode === 'EDITOR') return { x: G.edCamX, y: G.edCamY };
-        return { x: G.camX, y: G.camY };
+        const o = camOffNow();
+        return { x: G.camX + o[0], y: G.camY + o[1] };
     }
+    // ---- 2.6: плавные эффекты экрана от триггеров ----
+    function animP(a) { return !a ? 1 : a.dur > 0 ? easeInOut(Math.min(1, Math.max(0, (G.frameT - a.t0) / a.dur))) : 1; }
+    function animVal(a, def) { if (!a) return def; return a.from + (a.to - a.from) * animP(a); }
+    function camOffNow() { const a = G.camOff; if (!a) return [0, 0]; const k = animP(a); return [a.fx + (a.tx - a.fx) * k, a.fy + (a.ty - a.fy) * k]; }
+    function darkNow() { const a = G.dark; if (!a) return { p: 0, r: 5 }; const k = animP(a); return { p: a.from + (a.to - a.from) * k, r: a.r0 + (a.r1 - a.r0) * k }; }
+    function hslHex(h, s2, l) {
+        s2 /= 100; l /= 100;
+        const k = n => (n + h / 30) % 12, a = s2 * Math.min(l, 1 - l), f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+        return '#' + [f(0), f(8), f(4)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join('');
+    }
+    function rainbowNow() { const r = G.rainbow; if (!r) return null; return r.frozen || hslHex(((G.frameT - r.t0) * 60 * r.speed) % 360, 75, 45); }
+    // поворот и зеркало экрана: общая матрица для всего, что рисуется «в мире»
+    let VIEW_M = null;
+    function computeViewM(W, H) {
+        VIEW_M = null;
+        if (G.mode === 'EDITOR') return;
+        const deg = animVal(G.camRot, 0), mx = animVal(G.mirror, 1);
+        if (Math.abs(deg) < 0.01 && Math.abs(mx - 1) < 0.001) return;
+        const r = deg * Math.PI / 180, c = Math.cos(r), sn = Math.sin(r);
+        const a = c * mx, b = sn, cc = -sn * mx, d = c;
+        VIEW_M = [a, b, cc, d, W / 2 - (a * W / 2 + cc * H / 2), H / 2 - (b * W / 2 + d * H / 2)];
+    }
+    function baseT() { if (VIEW_M) ctx.setTransform(VIEW_M[0], VIEW_M[1], VIEW_M[2], VIEW_M[3], VIEW_M[4], VIEW_M[5]); else ctx.setTransform(1, 0, 0, 1, 0, 0); }
     // мир -> экран: поставить начало координат в точку мира (wx, wy), y вниз
     function at(cam, wx, wy) {
-        ctx.setTransform(SCALE, 0, 0, SCALE, (wx - cam.x) * SCALE, canvas.height - (wy - cam.y) * SCALE);
+        if (VIEW_M) { baseT(); ctx.transform(SCALE, 0, 0, SCALE, (wx - cam.x) * SCALE, canvas.height - (wy - cam.y) * SCALE); }
+        else ctx.setTransform(SCALE, 0, 0, SCALE, (wx - cam.x) * SCALE, canvas.height - (wy - cam.y) * SCALE);
     }
 
     // ---------- Запуск уровня ----------
@@ -1631,6 +1951,13 @@ const SECRET_LEVELS = [
         if (G.S.prevHeld !== undefined) G.S.prevHeld = true; // не прыгать сразу после рестарта от старого нажатия
         G.aiPlan = []; G.aiTimer = 0; G.trail = []; G.waveTrail = [];
         G.gameZoom = 1; G.zoomAnim = null; G.shake = null; G.flash = null; G.msg = null;
+        G.camOff = null; G.camRot = null; G.mirror = null; G.dark = null; G.weather = null; G.wparts = []; G.rainbow = null;
+        G.timeK = 1; G.hideP = false; G.pColor = null;
+        // 🎲 новая случайность в каждой попытке
+        G.S.rng = (Math.random() * 4294967296) >>> 0;
+        // 🔢 какие счётчики показывать на экране (и до скольки считать)
+        G.cntInfo = {};
+        G.L.triggers.forEach(t => { if (t.type === 'COUNTER_TRIGGER' && t.show && (!(t.cid in G.cntInfo) || (t.target && !G.cntInfo[t.cid].t))) G.cntInfo[t.cid] = { need: t.need, t: !!t.target }; });
         if (G.S.acts && G.S.acts.length) G.S.acts.forEach(([ti]) => fireTriggerFx(G.L.triggers[ti], G.S, true));
         if (G.zoomAnim) { G.gameZoom = G.zoomAnim.to; G.zoomAnim = null; }
         G.camX = G.S.x - VIEW_W / (G.gameZoom || 1) * 0.3;
@@ -1765,9 +2092,9 @@ const SECRET_LEVELS = [
         const S = G.S;
         handleFx(S, prev);
         if (S.acts.length > prev.acts.length) for (let i = prev.acts.length; i < S.acts.length; i++) fireTriggerFx(G.L.triggers[S.acts[i][0]], S);
-        if (S.mode === 'wave') { G.waveTrail.push([S.x + pSize(S) / 2, S.y + pSize(S) / 2]); if (G.waveTrail.length > 90) G.waveTrail.shift(); }
+        if (S.mode === 'wave' && !G.hideP) { G.waveTrail.push([S.x + pSize(S) / 2, S.y + pSize(S) / 2]); if (G.waveTrail.length > 90) G.waveTrail.shift(); }
         else G.waveTrail = [];
-        if (cos.trail !== 'none' && (cos.trail === 'line' || S.frame % 2 === 0)) {
+        if (cos.trail !== 'none' && !G.hideP && (cos.trail === 'line' || S.frame % 2 === 0)) {
             const tc = cos.trail === 'rainbow' ? `hsl(${(S.frame * 6) % 360},100%,60%)` : cos.trail === 'fire' ? ['#ff3b00', '#ff9f1a', '#ffe600'][(S.frame / 2) % 3 | 0]
                 : cos.trail === 'sparkle' ? (Math.random() < 0.5 ? '#ffffff' : '#ffe600') : cos.trail === 'stars' ? '#ffe600' : cos.trail === 'bubbles' ? '#9be7ff' : iconColor;
             const spread = cos.trail === 'sparkle' || cos.trail === 'fire' || cos.trail === 'bubbles' || cos.trail === 'stars';
@@ -1813,17 +2140,109 @@ const SECRET_LEVELS = [
         else if (f.t === 'spider') { sound.jump(); for (let i = 0; i < 10; i++) G.particles.push({ x: cx, y: f.from + (S.y - f.from) * i / 10 + pSize(S) / 2, vx: 0, vy: 0, a: 0.8, c: iconColor, s: 8 }); }
     }
     function fireTriggerFx(tg, S, quiet) {
-        const far = tg.x + 20 < S.x - 300; // триггеры далеко позади (старт с позиции) не трясут и не мигают
-        if (tg.type === 'ZOOM_TRIGGER') G.zoomAnim = { from: G.gameZoom || 1, to: tg.zoom, t0: G.frameT, dur: far || quiet ? 0 : tg.dur };
-        else if (tg.type === 'MUSIC_TRIGGER') { if (!quiet) music.restart(tg.song); }
-        else if (far || quiet) return;
-        else if (tg.type === 'SHAKE_TRIGGER') G.shake = { power: tg.power, dur: tg.dur, until: G.frameT + tg.dur };
-        else if (tg.type === 'FLASH_TRIGGER') G.flash = { color: tg.color, t0: G.frameT, dur: tg.dur };
-        else if (tg.type === 'MESSAGE_TRIGGER') G.msg = { text: tg.text, t0: G.frameT, until: G.frameT + tg.dur };
+        // при старте с позиции триггеры далеко позади срабатывают «тихо»: без тряски, звуков и вспышек
+        const far = quiet || (S.frame <= 2 && tg.x + 20 < S.x - 300);
+        const t0 = G.frameT, src = tg;
+        switch (tg.type) {
+            case 'ZOOM_TRIGGER': G.zoomAnim = { from: G.gameZoom || 1, to: tg.zoom, t0, dur: far ? 0 : tg.dur, src }; return;
+            case 'MUSIC_TRIGGER': if (!quiet) music.restart(tg.song); return;
+            case 'CAMERA_TRIGGER': { const c = camOffNow(); G.camOff = { fx: c[0], fy: c[1], tx: tg.dx * GRID, ty: tg.dy * GRID, t0, dur: far ? 0 : tg.dur, src }; return; }
+            case 'CAMROT_TRIGGER': G.camRot = { from: animVal(G.camRot, 0), to: tg.deg, t0, dur: far ? 0 : tg.dur, src }; return;
+            case 'MIRROR_TRIGGER': G.mirror = { from: animVal(G.mirror, 1), to: tg.on ? -1 : 1, t0, dur: far ? 0 : tg.dur, src }; return;
+            case 'TIME_TRIGGER': G.timeK = tg.tk; return;
+            case 'DARK_TRIGGER': { const d = darkNow(); G.dark = { from: d.p, to: tg.power / 100, r0: G.dark ? d.r : tg.radius, r1: tg.radius, t0, dur: far ? 0 : tg.dur, src }; return; }
+            case 'WEATHER_TRIGGER':
+                if (tg.weather === 'fireworks') { if (!far) fireworks(); }
+                else G.weather = tg.weather === 'none' ? null : { kind: tg.weather, src };
+                return;
+            case 'RAINBOW_TRIGGER': G.rainbow = tg.on ? { speed: tg.speed, t0, src } : null; return;
+            case 'HIDEP_TRIGGER': G.hideP = !tg.show; if (!far && !tg.show) burst(S.x + pSize(S) / 2, S.y + pSize(S) / 2, '#ffffff', 14, 3); return;
+            case 'PCOLOR_TRIGGER': G.pColor = tg.reset ? null : tg.color; return;
+            case 'STOP_TRIGGER': stopFx(tg.target); return;
+        }
+        if (far) return;
+        if (tg.type === 'SHAKE_TRIGGER') G.shake = { power: tg.power, dur: tg.dur, until: G.frameT + tg.dur, src };
+        else if (tg.type === 'FLASH_TRIGGER') G.flash = { color: tg.color, t0, dur: tg.dur, src };
+        else if (tg.type === 'MESSAGE_TRIGGER') G.msg = { text: tg.text, t0, until: G.frameT + tg.dur, src };
+        else if (tg.type === 'SOUND_TRIGGER') sound.play(tg.snd);
+        else if (tg.type === 'COUNTER_TRIGGER' && tg.show) G.cntPop = { cid: tg.cid, t0 };
         else if (tg.type === 'EMOJI_TRIGGER') {
             const offs = groupState(G.L, S).off[tg.target] || [0, 0];
             [...G.L.objs, ...(G.L.movers || [])].forEach(o => { if (o.type === 'EMOJI' && o.group === tg.target) { burst(o.x + 20 + offs[0], o.y + 20 + offs[1], '#ffffff', 10, 3); ring(o.x + 20 + offs[0], o.y + 20 + offs[1], '#ffe600'); } });
         }
+    }
+    // ⛔ Стоп для эффектов экрана: всё, что запустили триггеры этой группы, замирает или выключается
+    function stopFx(g) {
+        const hit = a => a && a.src && a.src.group === g;
+        if (hit(G.shake)) G.shake = null;
+        if (hit(G.flash)) G.flash = null;
+        if (hit(G.msg)) G.msg = null;
+        if (hit(G.zoomAnim)) G.zoomAnim = null;
+        if (hit(G.camOff)) { const c = camOffNow(); G.camOff = { fx: c[0], fy: c[1], tx: c[0], ty: c[1], t0: 0, dur: 0 }; }
+        if (hit(G.camRot)) { const v = animVal(G.camRot, 0); G.camRot = { from: v, to: v, t0: 0, dur: 0 }; }
+        if (hit(G.mirror)) { const v = animVal(G.mirror, 1); G.mirror = { from: v, to: v, t0: 0, dur: 0 }; }
+        if (hit(G.dark)) { const d = darkNow(); G.dark = { from: d.p, to: d.p, r0: d.r, r1: d.r, t0: 0, dur: 0 }; }
+        if (hit(G.weather)) G.weather = null;
+        if (hit(G.rainbow)) G.rainbow = { frozen: rainbowNow() };
+    }
+    // ❄️ погода: частицы рисуются поверх экрана
+    function updateWeather() {
+        const W = canvas.width, H = canvas.height, P = G.wparts || (G.wparts = []);
+        const w = G.weather, k = SCALE;
+        if (w && P.length < 260) {
+            const n = w.kind === 'rain' ? 4 : w.kind === 'stars' ? 0.4 : 1;
+            for (let i = 0; i < n || (i === 0 && Math.random() < n); i++) {
+                const p = { x: Math.random() * W, y: -10 * k, a: 1, rot: Math.random() * 6, kind: w.kind, ph: Math.random() * 6 };
+                switch (w.kind) {
+                    case 'snow': Object.assign(p, { vx: 0, vy: (0.6 + Math.random()) * k, s: (1.5 + Math.random() * 2.5) * k }); break;
+                    case 'rain': Object.assign(p, { vx: -2 * k, vy: (10 + Math.random() * 4) * k, s: (12 + Math.random() * 8) * k }); break;
+                    case 'confetti': Object.assign(p, { vx: (Math.random() - 0.5) * k, vy: (1.5 + Math.random() * 1.5) * k, s: 5 * k, c: ['#ff3b3b', '#ffd500', '#3dff6e', '#33ccff', '#ff5fd2', '#ffffff'][Math.random() * 6 | 0] }); break;
+                    case 'stars': Object.assign(p, { vx: 0, vy: 0, y: Math.random() * H * 0.8, s: (1 + Math.random() * 2) * k, life: 1 }); break;
+                    case 'hearts': Object.assign(p, { vx: 0, vy: -(0.8 + Math.random()) * k, y: H + 10 * k, s: (10 + Math.random() * 8) * k }); break;
+                    case 'embers': Object.assign(p, { vx: (Math.random() - 0.5) * 0.6 * k, vy: -(0.8 + Math.random() * 1.5) * k, y: H + 5 * k, s: (2 + Math.random() * 2) * k, c: Math.random() < 0.5 ? '#ff9f1a' : '#ff3b00' }); break;
+                    case 'leaves': Object.assign(p, { vx: (Math.random() - 0.3) * k, vy: (0.8 + Math.random() * 0.8) * k, s: (5 + Math.random() * 3) * k, c: ['#f97316', '#eab308', '#84cc16', '#b45309'][Math.random() * 4 | 0] }); break;
+                    case 'bubbles': Object.assign(p, { vx: 0, vy: -(0.6 + Math.random() * 0.8) * k, y: H + 10 * k, s: (4 + Math.random() * 7) * k }); break;
+                }
+                P.push(p);
+            }
+        }
+        for (const p of P) {
+            if (p.kind === 'fw') { p.x += p.vx; p.y += p.vy; p.vy += 0.06 * k; p.vx *= 0.985; p.a -= 0.014; continue; }
+            p.ph += 0.05;
+            p.x += p.vx + (p.kind === 'snow' || p.kind === 'leaves' || p.kind === 'confetti' || p.kind === 'bubbles' ? Math.sin(p.ph) * 0.6 * k : 0);
+            p.y += p.vy; p.rot += 0.05;
+            if (p.kind === 'stars') { p.life -= 0.006; p.a = Math.max(0, Math.sin(p.ph * 2) * 0.5 + 0.5) * p.life; }
+            if (p.kind === 'embers') p.a -= 0.006;
+            if (!w || p.kind !== w.kind) p.a -= 0.03; // погоду выключили — частицы тают
+        }
+        G.wparts = P.filter(p => p.a > 0 && p.y < H + 30 * k && p.y > -40 * k && (p.kind !== 'stars' || p.life > 0));
+    }
+    function fireworks() {
+        const W = canvas.width, H = canvas.height, k = SCALE, P = G.wparts || (G.wparts = []);
+        for (let b = 0; b < 4; b++) {
+            const cx = W * (0.15 + Math.random() * 0.7), cy = H * (0.12 + Math.random() * 0.35), c = ['#ff3b3b', '#ffd500', '#3dff6e', '#33ccff', '#ff5fd2'][Math.random() * 5 | 0];
+            for (let i = 0; i < 36; i++) { const a = i / 36 * Math.PI * 2, v = (2 + Math.random() * 2.5) * k; P.push({ kind: 'fw', x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, a: 1, s: 3 * k, c }); }
+        }
+        sound.play('boom');
+    }
+    function drawWeather() {
+        if (!G.wparts || !G.wparts.length) return;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        for (const p of G.wparts) {
+            ctx.globalAlpha = Math.max(0, Math.min(1, p.a));
+            switch (p.kind) {
+                case 'snow': ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2); ctx.fill(); break;
+                case 'rain': ctx.strokeStyle = 'rgba(160,200,255,.8)'; ctx.lineWidth = 1.5 * SCALE; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.s * 0.2, p.y - p.s); ctx.stroke(); break;
+                case 'confetti': ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s, p.s, p.s * 2); ctx.restore(); break;
+                case 'stars': ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2); ctx.fill(); break;
+                case 'hearts': ctx.font = `${Math.round(p.s)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ff5fa2'; ctx.fillText('❤', p.x, p.y); break;
+                case 'embers': ctx.fillStyle = p.c; ctx.shadowColor = p.c; ctx.shadowBlur = 8; ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; break;
+                case 'leaves': ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.c; ctx.beginPath(); ctx.ellipse(0, 0, p.s, p.s * 0.45, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); break;
+                case 'bubbles': ctx.strokeStyle = 'rgba(190,240,255,.85)'; ctx.lineWidth = 1.5 * SCALE; ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI * 2); ctx.stroke(); break;
+                case 'fw': ctx.fillStyle = p.c; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); break;
+            }
+        }
+        ctx.globalAlpha = 1;
     }
     function drawStar(g, r) {
         g.beginPath();
@@ -1845,7 +2264,7 @@ const SECRET_LEVELS = [
         G.frameT += dt;
         if (G.screen === 'GAME') {
             if (G.mode !== 'EDITOR' && G.running && !G.paused) {
-                acc += dt;
+                acc += dt * (G.timeK || 1);
                 let n = 0;
                 while (acc >= 1 / 60 && n < 5) { gameStep(); acc -= 1 / 60; n++; if (!G.running) break; }
                 if (n >= 5) acc = 0;
@@ -1854,6 +2273,7 @@ const SECRET_LEVELS = [
                 G.particles.forEach(p => { if (p.ring) { p.r += 3; p.a -= 0.05; } else { p.x += p.vx; p.y += p.vy; p.vy -= 0.08; p.a -= 0.025; } });
                 G.particles = G.particles.filter(p => p.a > 0);
                 G.trail.forEach(t => { t.a -= cos.trail === 'line' ? 0.02 : 0.04; t.x += t.vx || 0; t.y += t.vy || 0; }); G.trail = G.trail.filter(t => t.a > 0);
+                if (G.mode !== 'EDITOR') updateWeather();
             }
             render();
             updateHud(false);
@@ -1957,8 +2377,57 @@ const SECRET_LEVELS = [
     }
 
     function levelWall() { return (G.mode === 'EDITOR' ? editorLevel.wall : G.L && G.L.wall) || 'classic'; }
+    // Значок триггера в редакторе: линия, зона касания или кружок «запускается другим триггером»
+    function drawTriggerIcon(o) {
+        const info = TRIG[o.type];
+        if (!info) return;
+        if (o.act === 'touch') {
+            const w = (o.zw || 1) * GRID, h = (o.zh || 1) * GRID;
+            ctx.fillStyle = 'rgba(167,139,250,.14)'; ctx.fillRect(-w / 2, -h / 2, w, h);
+            ctx.strokeStyle = '#a78bfa'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.strokeRect(-w / 2, -h / 2, w, h); ctx.setLineDash([]);
+        } else if (o.act === 'spawn') {
+            ctx.strokeStyle = '#fb923c'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+            ctx.beginPath(); ctx.arc(0, 0, 21, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+        } else {
+            ctx.globalAlpha *= 0.4; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 4]);
+            ctx.beginPath(); ctx.moveTo(0, 20); ctx.lineTo(0, 2000); ctx.moveTo(0, -20); ctx.lineTo(0, -2000); ctx.stroke(); ctx.setLineDash([]);
+            ctx.globalAlpha /= 0.4;
+        }
+        ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2);
+        ctx.fillStyle = (['COLOR_TRIGGER', 'GROUND_TRIGGER', 'FLASH_TRIGGER', 'TINT_TRIGGER', 'PULSE_TRIGGER', 'PCOLOR_TRIGGER'].includes(o.type) && o.color) ? o.color : info.bg; ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.font = '15px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(info.icon, 0, 1);
+        if (o.act === 'spawn' || o.act === 'touch') { ctx.font = '11px sans-serif'; ctx.fillText(o.act === 'spawn' ? '🧨' : '👆', 15, -15); }
+        const lab = String(info.label(o) || '').slice(0, 14);
+        if (lab) {
+            ctx.font = 'bold 9px JetBrains Mono, monospace'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.8)';
+            ctx.strokeText(lab, 0, 27); ctx.fillStyle = '#fff'; ctx.fillText(lab, 0, 27);
+        }
+    }
+    // 🖌 / 💓 цвет группы: смешиваем цвет объекта с цветами триггеров
+    function tintedObject(o) {
+        const base = o.type === 'TEXT' ? (o.tcolor || '#ffffff') : o.color ? o.color
+            : (o.type === 'BLOCK' || o.type === 'SLAB' || o.type === 'PLATFORM') ? (G.curColor || '#2563eb')
+            : o.type === 'SAW' ? '#111111' : o.type === 'GROUND_SPIKES' ? '#000000' : o.type === 'SHAPE' ? '#ffffff' : '#2a2a2a';
+        let c = /^#[0-9a-f]{6}$/i.test(base) ? base : '#2a2a2a';
+        for (const [tc, k] of o.tint) c = mixHex(c, tc, Math.min(1, k));
+        const r = Object.assign({}, o);
+        if (o.type === 'TEXT') r.tcolor = c; else r.color = c;
+        const last = o.tint[o.tint.length - 1];
+        r.glowC = last[0]; r.glowK = last[1];
+        r.tintK = Math.min(1, Math.max(...o.tint.map(l => l[1])));
+        return r;
+    }
     function drawObject(o, t, cam) {
+        if (!o.tint || !o.tint.length) { drawObjectInner(o, t, cam); return; }
+        drawObjectInner(tintedObject(o), t, cam);
+        ctx.shadowBlur = 0;
+    }
+    function drawObjectInner(o, t, cam) {
         at(cam, o.x + 20, o.y + 20);
+        // у объектов без своего цвета (смайлики, орбы, порталы) цвет группы — свечение
+        if (o.glowC && !TINTABLE[o.type] && o.type !== 'SHAPE' && o.type !== 'TEXT') { ctx.shadowColor = o.glowC; ctx.shadowBlur = 26 * o.glowK; }
+        if (OBJ[o.type].cat === 'trigger') { if (G.mode === 'EDITOR') drawTriggerIcon(o); return; }
         const od = OBJ[o.type], fixed = od.fixed;
         if (!fixed) ctx.rotate((o.rotation || 0) * Math.PI / 180);
         const sc = od.sized || od.radial ? 1 : (o.scale || 1);
@@ -1966,10 +2435,12 @@ const SECRET_LEVELS = [
         const used = G.S && G.mode !== 'EDITOR' && G.S.used.includes(o.id);
         const lc = (TINTABLE[o.type] && o.color) || G.curColor || (G.mode === 'EDITOR' ? editorLevel.color : G.L && G.L.color) || '#2563eb';
         switch (o.type) {
-            case 'BLOCK': drawWall(ctx, levelWall(), lc); break;
+            case 'BLOCK': drawWall(ctx, levelWall(), lc); if (o.tintK) { const a0 = ctx.globalAlpha; ctx.globalAlpha = a0 * 0.45 * o.tintK; ctx.fillStyle = o.color; ctx.fillRect(-20, -20, 40, 40); ctx.globalAlpha = a0; } break;
             case 'SLAB': {
                 ctx.save(); ctx.beginPath(); ctx.rect(-20, 0, 40, 20); ctx.clip();
-                drawWall(ctx, levelWall(), lc); ctx.restore();
+                drawWall(ctx, levelWall(), lc);
+                if (o.tintK) { ctx.globalAlpha *= 0.45 * o.tintK; ctx.fillStyle = o.color; ctx.fillRect(-20, 0, 40, 20); }
+                ctx.restore();
                 ctx.strokeStyle = levelWall() === 'gold' ? '#5c3d00' : '#fff'; ctx.lineWidth = 2; ctx.strokeRect(-19, 1, 38, 18);
                 break;
             }
@@ -2057,25 +2528,6 @@ const SECRET_LEVELS = [
                 ctx.fillText((MODE_NAMES[o.sMode] || MODE_NAMES.cube)[currentLang === 'ru' ? 0 : 1].slice(0, 6), 2, 11);
                 break;
             }
-            case 'COLOR_TRIGGER': case 'GROUND_TRIGGER': case 'SHAKE_TRIGGER': case 'FLASH_TRIGGER': case 'ZOOM_TRIGGER':
-            case 'MOVE_TRIGGER': case 'TOGGLE_TRIGGER': case 'MUSIC_TRIGGER': case 'MESSAGE_TRIGGER':
-            case 'FADE_TRIGGER': case 'EMOJI_TRIGGER': case 'ROTATE_TRIGGER': {
-                if (G.mode !== 'EDITOR') break;
-                const info = TRIG[o.type];
-                ctx.globalAlpha *= 0.4; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 4]);
-                ctx.beginPath(); ctx.moveTo(0, 20); ctx.lineTo(0, 2000); ctx.moveTo(0, -20); ctx.lineTo(0, -2000); ctx.stroke(); ctx.setLineDash([]);
-                ctx.globalAlpha /= 0.4;
-                ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2);
-                ctx.fillStyle = (o.type === 'COLOR_TRIGGER' || o.type === 'GROUND_TRIGGER' || o.type === 'FLASH_TRIGGER') ? (o.color || info.bg) : info.bg; ctx.fill();
-                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
-                ctx.font = '15px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(info.icon, 0, 1);
-                const lab = (o.text !== undefined && o.type !== 'MESSAGE_TRIGGER') ? '' : String(info.label(o) || '').slice(0, 14);
-                if (lab) {
-                    ctx.font = 'bold 9px JetBrains Mono, monospace'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.8)';
-                    ctx.strokeText(lab, 0, 27); ctx.fillStyle = '#fff'; ctx.fillText(lab, 0, 27);
-                }
-                break;
-            }
             case 'TEXT': {
                 const txt = o.text == null ? tr('Текст', 'Text') : o.text;
                 const fs = [15, 22, 36][(o.size || 2) - 1];
@@ -2159,7 +2611,7 @@ const SECRET_LEVELS = [
         if (flip && S.mode !== 'cube' && S.mode !== 'ball') ctx.scale(1, -1);
         const k = size / 34;
         ctx.scale(k, k);
-        const c1 = iconColor, c2 = '#000', c3 = iconColor2();
+        const c1 = G.pColor || iconColor, c2 = '#000', c3 = iconColor2();
         const cubeIcon = (s) => drawCubeIcon(ctx, s, c1, c3, cos.icon);
         ctx.lineJoin = 'round';
         switch (S.mode) {
@@ -2235,12 +2687,16 @@ const SECRET_LEVELS = [
         return m ? '#' + [m[1], m[2], m[3]].map(v => (+v).toString(16).padStart(2, '0')).join('') : rgb;
     }
     // Цвет фона или земли с учётом триггеров цвета, которые игрок уже пролетел
-    function levelColorAt(L, x, list) {
+    function levelColorAt(L, S, list) {
         const ground = list === 'ground';
         let c = ground ? rgbToHex(shade(L.color, -0.5)) : L.color;
-        for (const tg of (ground ? L.groundTriggers : L.colorTriggers) || []) {
-            if (tg.x > x) break;
-            const k = Math.min(1, (x - tg.x) / 160);
+        if (!S || !S.acts) return c;
+        const type = ground ? 'GROUND_TRIGGER' : 'COLOR_TRIGGER';
+        for (const [ti, f] of S.acts) {
+            const tg = L.triggers[ti];
+            if (tg.type !== type) continue;
+            // при старте с позиции цвета, оставшиеся позади, включаются сразу
+            const k = f <= 1 || !(tg.dur > 0) ? 1 : Math.min(1, Math.max(0, (S.frame - f) / (tg.dur * 60)));
             c = k >= 1 ? tg.color : mixHex(c, tg.color, k);
         }
         return c;
@@ -2256,8 +2712,10 @@ const SECRET_LEVELS = [
         const W = canvas.width, H = canvas.height;
         let cam = camera();
         const t = G.frameT;
-        const lc = (G.mode === 'EDITOR' ? editorLevel.color : G.L && levelColorAt(G.L, G.S ? G.S.x : 0)) || '#2563eb';
-        const groundC = G.mode !== 'EDITOR' && G.L && G.L.groundTriggers && G.L.groundTriggers.length && G.S ? levelColorAt(G.L, G.S.x, 'ground') : null;
+        const lc = (G.mode === 'EDITOR' ? editorLevel.color : (rainbowNow() || (G.L && levelColorAt(G.L, G.S)))) || '#2563eb';
+        const groundC = G.mode !== 'EDITOR' && G.L && G.L.groundTriggers && G.L.groundTriggers.length && G.S ? levelColorAt(G.L, G.S, 'ground') : null;
+        computeViewM(W, H);
+        const EX = VIEW_M ? W : 0, EY = VIEW_M ? H : 0; // при повороте экрана рисуем с запасом за края
         G.curColor = lc;
         G.emojiMap = G.mode !== 'EDITOR' && G.L ? emojiMapFor(G.L, G.S) : {};
         // тряска экрана от триггера
@@ -2296,7 +2754,7 @@ const SECRET_LEVELS = [
 
         // Объекты
         const objs = G.mode === 'EDITOR' ? editorLevel.objects : G.L.objs;
-        const vx0 = cam.x - 80, vx1 = cam.x + VIEW_W + 80;
+        const vx0 = cam.x - 80 - (VIEW_M ? VIEW_H : 0), vx1 = cam.x + VIEW_W + 80 + (VIEW_M ? VIEW_H : 0);
         for (const o of objs) if (o.layer === 'back' && o.x > vx0 && o.x < vx1) drawObject(o, t, cam);
         for (const o of objs) if (o.layer !== 'back' && o.layer !== 'front' && o.x > vx0 && o.x < vx1) drawObject(o, t, cam);
         if (G.mode !== 'EDITOR' && G.S && G.L.movers && G.L.movers.length) for (const o of activeMovers(G.L, G.S)) {
@@ -2335,16 +2793,16 @@ const SECRET_LEVELS = [
             const S = G.S;
             // границы коридора
             if (S.ceil != null) {
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                baseT();
                 ctx.fillStyle = 'rgba(0,0,0,.35)';
                 const cy = H - (S.ceil - cam.y) * SCALE;
-                ctx.fillRect(0, 0, W, Math.max(0, cy));
+                ctx.fillRect(-EX, -EY, W + 2 * EX, Math.max(0, cy + EY));
                 ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 2 * SCALE;
-                ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-EX, cy); ctx.lineTo(W + EX, cy); ctx.stroke();
                 if (S.floor > 0) {
                     const fy = H - (S.floor - cam.y) * SCALE;
-                    ctx.fillRect(0, fy, W, H - fy);
-                    ctx.beginPath(); ctx.moveTo(0, fy); ctx.lineTo(W, fy); ctx.stroke();
+                    ctx.fillRect(-EX, fy, W + 2 * EX, H - fy + EY);
+                    ctx.beginPath(); ctx.moveTo(-EX, fy); ctx.lineTo(W + EX, fy); ctx.stroke();
                 }
             }
             // финиш
@@ -2359,7 +2817,7 @@ const SECRET_LEVELS = [
             G.checkpoints.forEach(c => { at(cam, c.x + 17, c.y + 17); ctx.rotate(Math.PI / 4); ctx.fillStyle = '#3dff6e'; ctx.fillRect(-7, -7, 14, 14); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.strokeRect(-7, -7, 14, 14); });
             // след
             if (cos.trail === 'line' && G.trail.length > 1) {
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                baseT();
                 for (let i = 1; i < G.trail.length; i++) {
                     const a = G.trail[i - 1], b = G.trail[i];
                     ctx.globalAlpha = b.a * 1.4; ctx.strokeStyle = iconColor; ctx.lineWidth = 8 * SCALE * b.a; ctx.lineCap = 'round';
@@ -2374,19 +2832,19 @@ const SECRET_LEVELS = [
             });
             ctx.globalAlpha = 1;
             if (G.waveTrail.length > 1) {
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                baseT();
                 ctx.beginPath();
                 G.waveTrail.forEach(([x, y], i) => { const sx = (x - cam.x) * SCALE, sy = H - (y - cam.y) * SCALE; i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy); });
                 ctx.strokeStyle = iconColor; ctx.lineWidth = 6 * SCALE; ctx.globalAlpha = 0.5; ctx.stroke();
                 ctx.strokeStyle = '#fff'; ctx.lineWidth = 2 * SCALE; ctx.globalAlpha = 0.9; ctx.stroke(); ctx.globalAlpha = 1;
             }
             if (S.mode === 'airplane') {
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                baseT();
                 ctx.setLineDash([8 * SCALE, 8 * SCALE]); ctx.strokeStyle = 'rgba(255,140,0,.45)'; ctx.lineWidth = 2 * SCALE;
-                (S.lanes || DEFAULT_LANES).forEach(l => { const y = H - (S.floor + l + 17 - cam.y) * SCALE; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); });
+                (S.lanes || DEFAULT_LANES).forEach(l => { const y = H - (S.floor + l + 17 - cam.y) * SCALE; ctx.beginPath(); ctx.moveTo(-EX, y); ctx.lineTo(W + EX, y); ctx.stroke(); });
                 ctx.setLineDash([]);
             }
-            if (G.deathTimer === 0) drawPlayer(S, cam);
+            if (G.deathTimer === 0 && !G.hideP) drawPlayer(S, cam);
         }
         for (const o of objs) if (o.layer === 'front' && o.x > vx0 && o.x < vx1) drawObject(o, t, cam);
 
@@ -2399,19 +2857,30 @@ const SECRET_LEVELS = [
         ctx.globalAlpha = 1;
 
         // земля
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        baseT();
         const gy = H - (0 - cam.y) * SCALE;
-        if (gy < H) {
-            const gg = ctx.createLinearGradient(0, gy, 0, H);
+        if (gy < H + EY) {
+            const gg = ctx.createLinearGradient(0, gy, 0, H + EY);
             gg.addColorStop(0, groundC || shade(lc, -0.5)); gg.addColorStop(1, groundC ? shade(groundC, -0.6) : shade(lc, -0.9));
-            ctx.fillStyle = gg; ctx.fillRect(0, gy, W, H - gy);
+            ctx.fillStyle = gg; ctx.fillRect(-EX, gy, W + 2 * EX, H - gy + EY);
             ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 2 * SCALE;
             const off = ((-cam.x * SCALE) % (80 * SCALE) + 80 * SCALE) % (80 * SCALE);
-            for (let x = off - 80 * SCALE; x < W; x += 80 * SCALE) ctx.strokeRect(x, gy + 4 * SCALE, 80 * SCALE, 80 * SCALE);
-            const lg = ctx.createLinearGradient(0, 0, W, 0);
+            for (let x = off - 80 * SCALE - (EX ? Math.ceil(EX / (80 * SCALE)) * 80 * SCALE : 0); x < W + EX; x += 80 * SCALE) ctx.strokeRect(x, gy + 4 * SCALE, 80 * SCALE, 80 * SCALE);
+            const lg = ctx.createLinearGradient(-EX, 0, W + EX, 0);
             lg.addColorStop(0, 'rgba(255,255,255,0)'); lg.addColorStop(0.5, 'rgba(255,255,255,1)'); lg.addColorStop(1, 'rgba(255,255,255,0)');
             ctx.strokeStyle = lg; ctx.lineWidth = 3 * SCALE;
-            ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-EX, gy); ctx.lineTo(W + EX, gy); ctx.stroke();
+        }
+        // 🌑 темнота: светлый круг только вокруг игрока
+        if (G.mode !== 'EDITOR' && G.S) {
+            const dk = darkNow();
+            if (dk.p > 0.01) {
+                const S = G.S, R = dk.r * GRID;
+                at(cam, S.x + pSize(S) / 2, S.y + pSize(S) / 2);
+                const gr = ctx.createRadialGradient(0, 0, R * 0.3, 0, 0, R);
+                gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, `rgba(0,0,0,${Math.min(1, dk.p)})`);
+                ctx.fillStyle = gr; ctx.fillRect(-8000, -8000, 16000, 16000);
+            }
         }
 
         if (G.mode === 'EDITOR') {
@@ -2436,6 +2905,7 @@ const SECRET_LEVELS = [
         }
         if (G.mode === 'EDITOR') drawMinimap(cam, W, H);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
+        if (G.mode !== 'EDITOR') { drawWeather(); drawCounters(W, H); }
         if (G.mode !== 'EDITOR' && G.flash) {
             const p = (G.frameT - G.flash.t0) / G.flash.dur;
             if (p < 1) { ctx.globalAlpha = 0.85 * (1 - p); ctx.fillStyle = G.flash.color; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; } else G.flash = null;
@@ -2450,6 +2920,23 @@ const SECRET_LEVELS = [
         }
     }
 
+    // 🔢 счётчики на экране
+    function drawCounters(W, H) {
+        if (!G.S || !G.cntInfo) return;
+        let i = 0;
+        for (const cid in G.cntInfo) {
+            if (!(cid in G.S.cnt)) continue;
+            const need = G.cntInfo[cid].need, v = G.S.cnt[cid];
+            const txt = `🔢 ${v}${need != null ? ' / ' + need : ''}`;
+            const pop = G.cntPop && String(G.cntPop.cid) === String(cid) ? Math.max(0, 1 - (G.frameT - G.cntPop.t0) * 4) : 0;
+            const fs = Math.round(H * 0.045 * (1 + pop * 0.35));
+            ctx.font = `900 ${fs}px Outfit, sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+            const x = 14 * SCALE, y = 14 * SCALE + i * H * 0.07, tw = ctx.measureText(txt).width;
+            ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(x - 8 * SCALE, y - 6 * SCALE, tw + 16 * SCALE, fs + 12 * SCALE);
+            ctx.fillStyle = need != null && v >= need ? '#3dff6e' : '#fff'; ctx.fillText(txt, x, y);
+            i++;
+        }
+    }
     // Выход телепорта: оранжевый круг. В редакторе — с пунктиром от портала, у выбранного — «призрак» игрока
     function drawTeleportExits(cam, objs, t) {
         const ed = G.mode === 'EDITOR', vx0 = cam.x - 80, vx1 = cam.x + VIEW_W + 80;
@@ -2487,13 +2974,18 @@ const SECRET_LEVELS = [
     // Редактор: номера групп на объектах и «призрак» того, куда уедет группа выбранного триггера
     function drawGroupsInEditor(cam, t) {
         const vx0 = cam.x - 80, vx1 = cam.x + VIEW_W + 80;
-        const sel = selObj && ['MOVE_TRIGGER', 'TOGGLE_TRIGGER', 'FADE_TRIGGER', 'EMOJI_TRIGGER', 'ROTATE_TRIGGER'].includes(selObj.type) ? selObj : null;
+        const sel = selObj && (TRIG_CAT.group.includes(selObj.type) || LOGIC_T[selObj.type]) ? selObj : null;
+        // группы-цели выбранного триггера и их цвет подсветки
+        const targets = !sel ? [] : sel.type === 'RANDOM_TRIGGER' ? [[sel.ga, '#3dff6e'], [sel.gb, '#ff3b3b'], [sel.gc, '#facc15'], [sel.gd, '#38bdf8']].filter(t => t[0] > 0)
+            : sel.target ? [[sel.target, sel.type === 'TOGGLE_TRIGGER' ? (sel.show ? '#3dff6e' : '#ff3b3b') : sel.type === 'FADE_TRIGGER' ? '#a78bfa' : sel.type === 'EMOJI_TRIGGER' ? '#facc15' : sel.type === 'ROTATE_TRIGGER' || sel.type === 'SCALE_TRIGGER' ? '#22d3ee'
+                : sel.type === 'STOP_TRIGGER' ? '#ff3b3b' : sel.type === 'TINT_TRIGGER' || sel.type === 'PULSE_TRIGGER' ? (sel.color || '#f0abfc') : '#fb923c']] : [];
         for (const o of editorLevel.objects) {
             if (!o.group || o.x < vx0 || o.x > vx1) continue;
-            const hl = sel && sel.target === o.group;
+            const tg = targets.find(t => t[0] === o.group);
+            const hl = !!tg;
             if (hl) {
                 at(cam, o.x, o.y + 40);
-                ctx.strokeStyle = sel.type === 'TOGGLE_TRIGGER' ? (sel.show ? '#3dff6e' : '#ff3b3b') : sel.type === 'FADE_TRIGGER' ? '#a78bfa' : sel.type === 'EMOJI_TRIGGER' ? '#facc15' : sel.type === 'ROTATE_TRIGGER' ? '#22d3ee' : '#fb923c'; ctx.lineWidth = 3; ctx.strokeRect(-2, -2, 44, 44);
+                ctx.strokeStyle = tg[1]; ctx.lineWidth = 3; ctx.strokeRect(-2, -2, 44, 44);
                 if (sel.type === 'EMOJI_TRIGGER' && o.type === 'EMOJI') {
                     // показать, на что сменится смайлик
                     at(cam, o.x + 36, o.y + 44); ctx.font = '16px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -2508,6 +3000,17 @@ const SECRET_LEVELS = [
             ctx.fillStyle = hl ? '#fb923c' : 'rgba(0,0,0,.7)'; ctx.fillRect(0, 0, 20, 12);
             ctx.fillStyle = '#fff'; ctx.font = 'bold 9px JetBrains Mono, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
             ctx.fillText(tr('Г', 'G') + o.group, 2, 2);
+        }
+        // линии от логического триггера к триггерам, которые он запустит / остановит
+        if (sel && LOGIC_T[sel.type] && targets.length) {
+            for (const o of editorLevel.objects) {
+                if (o === sel || OBJ[o.type].cat !== 'trigger' || !o.group) continue;
+                const tg = targets.find(t => t[0] === o.group);
+                if (!tg) continue;
+                at(cam, 0, 0);
+                ctx.strokeStyle = tg[1]; ctx.lineWidth = 2; ctx.setLineDash([6, 5]); ctx.globalAlpha = 0.8;
+                ctx.beginPath(); ctx.moveTo(sel.x + 20, -(sel.y + 20)); ctx.lineTo(o.x + 20, -(o.y + 20)); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+            }
         }
         if (sel && sel.type === 'ROTATE_TRIGGER' && sel.deg % 360 !== 0) {
             // «призрак»: как будет стоять группа после поворота
@@ -2620,14 +3123,102 @@ const SECRET_LEVELS = [
         MUSIC_TRIGGER: { icon: '🎵', bg: '#db2777', ru: 'Смена музыки', en: 'Change music',
             what: ['С этого места играет другая песня.', 'Another song starts playing from here.'], label: o => songName(o.song) },
         MESSAGE_TRIGGER: { icon: '💬', bg: '#64748b', ru: 'Сообщение', en: 'Message',
-            what: ['Показывает надпись крупно вверху экрана на несколько секунд.', 'Shows big text at the top of the screen for a few seconds.'], label: o => o.text }
+            what: ['Показывает надпись крупно вверху экрана на несколько секунд.', 'Shows big text at the top of the screen for a few seconds.'], label: o => o.text },
+        // ---- 2.6: логика ----
+        STOP_TRIGGER: { icon: '⛔', bg: '#dc2626', ru: 'Стоп', en: 'Stop',
+            what: ['Останавливает триггеры с нужным номером группы. Сначала в настройках триггера (🚚 движение, 🔄 вращение, 🧨 повтор…) впиши ему «🏷 Номер этого триггера», потом поставь ⛔ Стоп с этим номером. Движение, вращение, исчезновение, повторы, тряска, камера — всё замрёт там, где было.', 'Stops the triggers with this group number. First give a trigger (🚚 move, 🔄 rotate, 🧨 repeat…) its own "🏷 number" in its settings, then place ⛔ Stop with that number. Movement, rotation, fading, repeats, shake and camera freeze where they are.'],
+            label: o => `⛔${tr('Г', 'G')}${o.target}` },
+        SPAWN_TRIGGER: { icon: '🧨', bg: '#ea580c', ru: 'Запуск группы', en: 'Spawn group',
+            what: ['Запускает все триггеры с нужным номером группы — где бы они ни стояли. Можно подождать и повторять: например, «каждую секунду, бесконечно». Тем, кого запускают, поставь «Как срабатывает: только от другого триггера».', 'Fires every trigger with this group number, wherever it is. It can wait and repeat, e.g. "every second, forever". Set the launched triggers to "only from another trigger".'],
+            label: o => `${tr('Г', 'G')}${o.target}${o.delay ? ' ⏱' + o.delay : ''}${o.times !== 1 ? ' 🔁' + (o.times || '∞') : ''}` },
+        RANDOM_TRIGGER: { icon: '🎲', bg: '#16a34a', ru: 'Случайность', en: 'Random',
+            what: ['Бросает кубик: с нужным шансом запускает группу A, а иначе — группу B (0 — ничего). Или выбирает одну из нескольких групп поровну. В каждой попытке выпадает по-новому!', 'Rolls a dice: with the chance it fires group A, otherwise group B (0 = nothing). Or it picks one of several groups equally. Every attempt is different!'],
+            label: o => o.rnd === 'one' ? '1/' + [o.ga, o.gb, o.gc, o.gd].filter(v => v > 0).length : `${o.chance}% ${tr('Г', 'G')}${o.ga}` },
+        COUNTER_TRIGGER: { icon: '🔢', bg: '#0d9488', ru: 'Счётчик', en: 'Counter',
+            what: ['Прибавляет число к счётчику (их 9). Когда счётчик дойдёт до нужного числа — запускает группу. Пример для босса: 10 зон касания по +1, на 10 — босс становится 💀. Счёт можно показать на экране.', 'Adds a number to a counter (there are 9). When it reaches the goal it fires a group. Boss example: 10 touch zones with +1, at 10 the boss turns 💀. The count can be shown on screen.'],
+            label: o => `#${o.cid} ${o.op === 'set' ? '=' : o.val >= 0 ? '+' : ''}${o.val}` },
+        PRESS_TRIGGER: { icon: '👆', bg: '#7c3aed', ru: 'Нажатие', en: 'Press',
+            what: ['После срабатывания каждое нажатие (прыжок) запускает группу: например, каждое нажатие — 🔔 выстрел или 💓 вспышка. Можно ограничить время или число нажатий.', 'After it fires, every press (jump) fires a group: e.g. every press plays 🔔 a shot or 💓 a pulse. You can limit the time or the number of presses.'],
+            label: o => `${tr('Г', 'G')}${o.target}` },
+        WIN_TRIGGER: { icon: '🏆', bg: '#ca8a04', ru: 'Победа', en: 'Win',
+            what: ['Уровень сразу пройден! Удобно для босса: победил босса — финиш.', 'The level is won right away! Handy for bosses: beat the boss — finish.'], label: o => '' },
+        KILL_TRIGGER: { icon: '💀', bg: '#3f3f46', ru: 'Проигрыш', en: 'Lose',
+            what: ['Игрок сразу разбивается. Осторожно! Пригодится с 🎲 случайностью или 🧨 таймером: не успел — проиграл.', 'The player crashes at once. Careful! Useful with 🎲 random or a 🧨 timer: too slow — you lose.'], label: o => '' },
+        // ---- 2.6: игрок ----
+        GRAVITY_TRIGGER: { icon: '🙃', bg: '#2563eb', ru: 'Гравитация игрока', en: 'Player gravity',
+            what: ['Переворачивает гравитацию игрока, как портал, только невидимо. Можно запускать 🧨 и 🎲.', 'Flips the player gravity like a portal, but invisible. Works with 🧨 and 🎲.'],
+            label: o => o.gmode === 'up' ? '↑' : o.gmode === 'down' ? '↓' : '⇅' },
+        SPEED_TRIGGER: { icon: '⏩', bg: '#059669', ru: 'Скорость игрока', en: 'Player speed',
+            what: ['Меняет скорость игрока, как портал скорости, только невидимо.', 'Changes the player speed like a speed portal, but invisible.'],
+            label: o => ({ SPEED_05: '0.5x', SPEED_1: '1x', SPEED_2: '2x', SPEED_3: '3x', SPEED_4: '4x' })[o.spd] || '' },
+        SIZE_TRIGGER: { icon: '🤏', bg: '#db2777', ru: 'Размер игрока', en: 'Player size',
+            what: ['Делает игрока маленьким, обычным или наоборот — как портал размера, только невидимо.', 'Makes the player mini, normal or the opposite — like a size portal, but invisible.'],
+            label: o => o.smode === 'mini' ? tr('мини', 'mini') : o.smode === 'big' ? tr('обычный', 'normal') : '⇄' },
+        MODE_TRIGGER: { icon: '🧬', bg: '#9333ea', ru: 'Режим игрока', en: 'Player mode',
+            what: ['Превращает игрока в другой режим (куб, корабль, шар, волну…) без портала. С 🎲 получится случайный режим!', 'Turns the player into another mode (cube, ship, ball, wave…) without a portal. With 🎲 you get a random mode!'],
+            label: o => MODE_NAMES[o.mode] ? MODE_NAMES[o.mode][currentLang === 'ru' ? 0 : 1] : '' },
+        HIDEP_TRIGGER: { icon: '👻', bg: '#52525b', ru: 'Невидимка', en: 'Invisible player',
+            what: ['Прячет игрока: его не видно, но он есть и может разбиться. «Показать» — вернуть.', 'Hides the player: invisible but still there and can crash. "Show" brings it back.'],
+            label: o => o.show ? tr('показать', 'show') : tr('скрыть', 'hide') },
+        PCOLOR_TRIGGER: { icon: '🖍', bg: '#e11d48', ru: 'Цвет игрока', en: 'Player color',
+            what: ['Перекрашивает иконку игрока. «Вернуть мой цвет» — снова цвет из гаража.', 'Recolors the player icon. "Back to my color" restores the garage color.'], label: o => o.reset ? tr('свой', 'own') : '' },
+        // ---- 2.6: группы ----
+        SCALE_TRIGGER: { icon: '📏', bg: '#0e7490', ru: 'Размер группы', en: 'Scale group',
+            what: ['Плавно увеличивает или уменьшает группу объектов: ×2 — вдвое больше, ×0,5 — вдвое меньше. Хитбоксы растут вместе с объектами!', 'Smoothly grows or shrinks a group: ×2 bigger, ×0.5 smaller. Hitboxes grow too!'],
+            label: o => `${tr('Г', 'G')}${o.target} ×${String(o.factor).replace('.', ',')}` },
+        TINT_TRIGGER: { icon: '🖌', bg: '#c026d3', ru: 'Цвет группы', en: 'Group color',
+            what: ['Плавно перекрашивает группу: блоки, шипы, пилы, платформы, фигуры, надписи. Смайлики и орбы начинают светиться этим цветом.', 'Smoothly recolors a group: blocks, spikes, saws, platforms, shapes, texts. Emoji and orbs glow in this color.'],
+            label: o => `${tr('Г', 'G')}${o.target}` },
+        PULSE_TRIGGER: { icon: '💓', bg: '#be123c', ru: 'Пульс', en: 'Pulse',
+            what: ['Группа вспыхивает цветом и гаснет — как будто бьётся сердце. Красиво с 🧨 повтором под музыку.', 'The group flashes a color and fades back, like a heartbeat. Looks great with a 🧨 repeat to the music.'],
+            label: o => `${tr('Г', 'G')}${o.target}` },
+        // ---- 2.6: экран и камера ----
+        CAMERA_TRIGGER: { icon: '🎥', bg: '#0369a1', ru: 'Сдвиг камеры', en: 'Camera offset',
+            what: ['Плавно сдвигает камеру вперёд/назад и вверх/вниз. 0 и 0 — вернуть камеру на место.', 'Smoothly moves the camera forward/back and up/down. 0 and 0 puts it back.'],
+            label: o => `${o.dx};${o.dy}` },
+        CAMROT_TRIGGER: { icon: '🔃', bg: '#4f46e5', ru: 'Поворот экрана', en: 'Rotate screen',
+            what: ['Поворачивает весь экран на угол. 0 — ровно, 180 — вверх ногами!', 'Rotates the whole screen. 0 = straight, 180 = upside down!'], label: o => o.deg + '°' },
+        MIRROR_TRIGGER: { icon: '🪞', bg: '#475569', ru: 'Зеркало', en: 'Mirror',
+            what: ['Отражает экран слева направо — кажется, что игрок летит в другую сторону. «Выключить» — вернуть.', 'Mirrors the screen left-to-right — the player seems to fly the other way. "Off" returns it.'],
+            label: o => o.on ? tr('вкл', 'on') : tr('выкл', 'off') },
+        TIME_TRIGGER: { icon: '🐢', bg: '#15803d', ru: 'Замедление времени', en: 'Time warp',
+            what: ['Вся игра идёт медленнее (0,5 — вдвое) или быстрее (2 — вдвое). 1 — как обычно. Музыка не меняется.', 'The whole game runs slower (0.5 = half) or faster (2 = double). 1 = normal. The music stays the same.'],
+            label: o => '×' + String(o.tk).replace('.', ',') },
+        DARK_TRIGGER: { icon: '🌑', bg: '#312e81', ru: 'Темнота', en: 'Darkness',
+            what: ['Экран темнеет, светло только вокруг игрока — как с фонариком. Темнота 0 — выключить.', 'The screen goes dark except around the player, like a flashlight. Darkness 0 = off.'],
+            label: o => o.power + '%' },
+        WEATHER_TRIGGER: { icon: '❄️', bg: '#0284c7', ru: 'Погода и частицы', en: 'Weather',
+            what: ['Снег, дождь, конфетти, звёзды, сердечки, искры, листья, пузыри — или салют! «Выключить» — убрать.', 'Snow, rain, confetti, stars, hearts, embers, leaves, bubbles — or fireworks! "Off" removes it.'],
+            label: o => (WEATHER_NAMES[o.weather] || [''])[0] },
+        RAINBOW_TRIGGER: { icon: '🌈', bg: '#e11d48', ru: 'Радуга', en: 'Rainbow',
+            what: ['Фон переливается всеми цветами радуги. «Выключить» — вернуть обычный цвет.', 'The background cycles through the rainbow. "Off" brings the normal color back.'],
+            label: o => o.on ? tr('вкл', 'on') : tr('выкл', 'off') },
+        // ---- 2.6: звук ----
+        SOUND_TRIGGER: { icon: '🔔', bg: '#9d174d', ru: 'Звук', en: 'Sound',
+            what: ['Проигрывает звук: взрыв, лазер, монетка, колокол, сирена, сила, барабан, свист, победа, провал, прыжок, волшебство.', 'Plays a sound: boom, laser, coin, bell, alarm, power-up, drum, whoosh, win, fail, jump, magic.'],
+            label: o => (SOUND_NAMES[o.snd] || [''])[0] }
     };
+    const WEATHER_NAMES = { none: ['🚫', 'выключить', 'off'], snow: ['❄️', 'снег', 'snow'], rain: ['🌧', 'дождь', 'rain'], confetti: ['🎊', 'конфетти', 'confetti'], stars: ['✨', 'звёзды', 'stars'],
+        hearts: ['💗', 'сердечки', 'hearts'], embers: ['🔥', 'искры', 'embers'], leaves: ['🍂', 'листья', 'leaves'], bubbles: ['🫧', 'пузыри', 'bubbles'], fireworks: ['🎆', 'салют (один раз)', 'fireworks (once)'] };
+    const SOUND_NAMES = { boom: ['💥', 'взрыв', 'boom'], laser: ['🔫', 'лазер', 'laser'], coin: ['🪙', 'монетка', 'coin'], bell: ['🔔', 'колокол', 'bell'], alarm: ['🚨', 'сирена', 'alarm'], power: ['⚡', 'сила', 'power-up'],
+        drum: ['🥁', 'барабан', 'drum'], whoosh: ['💨', 'свист', 'whoosh'], win: ['🏆', 'победа', 'win'], fail: ['📉', 'провал', 'fail'], jump: ['⬆️', 'прыжок', 'jump'], magic: ['🪄', 'волшебство', 'magic'] };
+    // триггеры по вкладкам редактора
+    const TRIG_CAT = {
+        group: ['MOVE_TRIGGER', 'TOGGLE_TRIGGER', 'FADE_TRIGGER', 'ROTATE_TRIGGER', 'SCALE_TRIGGER', 'TINT_TRIGGER', 'PULSE_TRIGGER', 'EMOJI_TRIGGER'],
+        logic: ['SPAWN_TRIGGER', 'RANDOM_TRIGGER', 'STOP_TRIGGER', 'COUNTER_TRIGGER', 'PRESS_TRIGGER', 'WIN_TRIGGER', 'KILL_TRIGGER'],
+        player: ['GRAVITY_TRIGGER', 'SPEED_TRIGGER', 'SIZE_TRIGGER', 'MODE_TRIGGER', 'HIDEP_TRIGGER', 'PCOLOR_TRIGGER'],
+        screen: ['COLOR_TRIGGER', 'GROUND_TRIGGER', 'ZOOM_TRIGGER', 'CAMERA_TRIGGER', 'CAMROT_TRIGGER', 'MIRROR_TRIGGER', 'SHAKE_TRIGGER', 'FLASH_TRIGGER', 'DARK_TRIGGER', 'RAINBOW_TRIGGER', 'WEATHER_TRIGGER', 'TIME_TRIGGER', 'MESSAGE_TRIGGER'],
+        sound: ['MUSIC_TRIGGER', 'SOUND_TRIGGER']
+    };
+    const trigTools = c => TRIG_CAT[c].map(k => [k, TRIG[k].icon, TRIG[k].ru, TRIG[k].en]);
+    // триггеры, которые управляют другими триггерами (их «группа» — это номера триггеров)
+    const LOGIC_T = { STOP_TRIGGER: 1, SPAWN_TRIGGER: 1, RANDOM_TRIGGER: 1, COUNTER_TRIGGER: 1, PRESS_TRIGGER: 1 };
     // какие поля триггера движения показывать: обычное движение или «за игроком»
     const isFollowOn = o => ['x', 'y', 'xy'].includes(o.follow);
     const notFollow = o => !o.follow || o.follow === 'none';
     const TRIG_FIELDS = {
-        COLOR_TRIGGER: [['color', 'color', 'Новый цвет фона', 'New background color']],
-        GROUND_TRIGGER: [['color', 'color', 'Новый цвет земли', 'New ground color']],
+        COLOR_TRIGGER: [['color', 'color', 'Новый цвет фона', 'New background color'], ['dur', 'num', 'Плавность, сек (0 — сразу)', 'Smoothness, s (0 = instant)', 0, 10, 0.1]],
+        GROUND_TRIGGER: [['color', 'color', 'Новый цвет земли', 'New ground color'], ['dur', 'num', 'Плавность, сек (0 — сразу)', 'Smoothness, s (0 = instant)', 0, 10, 0.1]],
         FLASH_TRIGGER: [['color', 'color', 'Цвет вспышки', 'Flash color'], ['dur', 'num', 'Длительность, сек', 'Duration, s', 0.1, 5, 0.1]],
         SHAKE_TRIGGER: [['power', 'num', 'Сила (1 — слабо, 10 — очень сильно)', 'Power (1 weak — 10 very strong)', 1, 10, 1], ['dur', 'num', 'Длительность, сек', 'Duration, s', 0.1, 5, 0.1]],
         ZOOM_TRIGGER: [['zoom', 'num', 'Зум (0,5 — дальше, 2 — ближе)', 'Zoom (0.5 far — 2 close)', 0.5, 2, 0.1], ['dur', 'num', 'Плавность, сек (0 — сразу)', 'Smoothness, s (0 = instant)', 0, 5, 0.1]],
@@ -2646,7 +3237,40 @@ const SECRET_LEVELS = [
             ['keepHit', 'sel', 'Когда исчезнет', 'When vanished', [[false, 'пропадает совсем — можно пролететь', 'gone — you can pass'], [true, 'невидимый, но твёрдый — ловушка!', 'invisible but solid — a trap!']]]],
         EMOJI_TRIGGER: [['target', 'num', 'Какая группа', 'Which group', 1, 99, 1], ['emoji', 'emoji', 'На какой смайлик сменить', 'New emoji']],
         MUSIC_TRIGGER: [['song', 'sel', 'Песня (свои треки — с 🎤)', 'Song (your tracks have 🎤)', () => songOptions()]],
-        MESSAGE_TRIGGER: [['text', 'text', 'Текст сообщения', 'Message text'], ['dur', 'num', 'Сколько секунд показывать', 'Seconds on screen', 0.5, 10, 0.5]]
+        MESSAGE_TRIGGER: [['text', 'text', 'Текст сообщения', 'Message text'], ['dur', 'num', 'Сколько секунд показывать', 'Seconds on screen', 0.5, 10, 0.5]],
+        // ---- 2.6 ----
+        STOP_TRIGGER: [['target', 'num', 'Какую группу триггеров остановить', 'Trigger group to stop', 1, 99, 1]],
+        SPAWN_TRIGGER: [['target', 'num', 'Какую группу триггеров запустить', 'Trigger group to fire', 1, 99, 1], ['delay', 'num', 'Подождать, сек (0 — сразу)', 'Wait, s (0 = now)', 0, 60, 0.1],
+            ['times', 'num', 'Сколько раз (0 — бесконечно)', 'How many times (0 = forever)', 0, 999, 1], ['every', 'num', 'Каждые, сек', 'Every, s', 0.05, 60, 0.05, o => o.times !== 1]],
+        RANDOM_TRIGGER: [['rnd', 'sel', 'Как выбирать', 'How', [['chance', 'шанс: группа A или группа B', 'chance: group A or group B'], ['one', 'одна из нескольких групп поровну', 'one of several groups equally']]],
+            ['chance', 'num', 'Шанс группы A, %', 'Chance of group A, %', 0, 100, 5, o => o.rnd !== 'one'], ['ga', 'num', 'Группа A', 'Group A', 0, 99, 1], ['gb', 'num', 'Группа B (0 — ничего)', 'Group B (0 = nothing)', 0, 99, 1],
+            ['gc', 'num', 'Группа C (0 — нет)', 'Group C (0 = none)', 0, 99, 1, o => o.rnd === 'one'], ['gd', 'num', 'Группа D (0 — нет)', 'Group D (0 = none)', 0, 99, 1, o => o.rnd === 'one']],
+        COUNTER_TRIGGER: [['cid', 'num', 'Номер счётчика (1–9)', 'Counter number (1–9)', 1, 9, 1], ['op', 'sel', 'Что сделать', 'Action', [['add', 'прибавить', 'add'], ['set', 'сделать равным', 'set to']]],
+            ['val', 'num', 'Число (минус — отнять)', 'Number (minus = subtract)', -999, 999, 1], ['need', 'num', 'Когда счётчик станет', 'When the counter reaches', -9999, 9999, 1],
+            ['target', 'num', '…запустить группу (0 — ничего)', '…fire group (0 = nothing)', 0, 99, 1], ['show', 'sel', 'Показывать счёт на экране', 'Show on screen', [[true, 'да', 'yes'], [false, 'нет', 'no']]]],
+        PRESS_TRIGGER: [['target', 'num', 'Какую группу запускать при каждом нажатии', 'Group to fire on every press', 1, 99, 1], ['dur', 'num', 'Сколько секунд работает (0 — пока не остановят ⛔)', 'Works for, s (0 = until ⛔ stopped)', 0, 600, 0.5],
+            ['max', 'num', 'Сколько нажатий (0 — сколько угодно)', 'Presses (0 = unlimited)', 0, 999, 1]],
+        WIN_TRIGGER: [], KILL_TRIGGER: [],
+        GRAVITY_TRIGGER: [['gmode', 'sel', 'Гравитация', 'Gravity', [['flip', '⇅ перевернуть', '⇅ flip'], ['up', '↑ вверх', '↑ up'], ['down', '↓ вниз', '↓ down']]]],
+        SPEED_TRIGGER: [['spd', 'sel', 'Скорость', 'Speed', [['SPEED_05', '🐢 0.5x', '🐢 0.5x'], ['SPEED_1', '▶ 1x', '▶ 1x'], ['SPEED_2', '⏩ 2x', '⏩ 2x'], ['SPEED_3', '🚀 3x', '🚀 3x'], ['SPEED_4', '⚡ 4x', '⚡ 4x']]]],
+        SIZE_TRIGGER: [['smode', 'sel', 'Размер', 'Size', [['mini', '🔹 маленький', '🔹 mini'], ['big', '🔷 обычный', '🔷 normal'], ['flip', '⇄ наоборот', '⇄ toggle']]]],
+        MODE_TRIGGER: [['mode', 'sel', 'Режим', 'Mode', () => MODE_NAMES_CORE.map(m => [m, MODE_NAMES[m][0], MODE_NAMES[m][1]])],
+            ['where', 'sel', 'Коридор (для корабля, шара, волны…)', 'Corridor (ship, ball, wave…)', [['player', 'вокруг игрока', 'around the player'], ['here', 'вокруг значка триггера', 'around the trigger icon']]]],
+        HIDEP_TRIGGER: [['show', 'sel', 'Что сделать', 'Action', [[false, '👻 спрятать игрока', '👻 hide the player'], [true, '👀 показать игрока', '👀 show the player']]]],
+        PCOLOR_TRIGGER: [['reset', 'sel', 'Что сделать', 'Action', [[false, 'покрасить', 'recolor'], [true, 'вернуть мой цвет', 'back to my color']]], ['color', 'color', 'Цвет', 'Color', null, null, null, o => !o.reset]],
+        SCALE_TRIGGER: [['target', 'num', 'Какую группу', 'Which group', 1, 99, 1], ['factor', 'num', 'Во сколько раз (2 — больше, 0,5 — меньше)', 'Times (2 bigger, 0.5 smaller)', 0.25, 4, 0.25],
+            ['dur', 'num', 'За сколько секунд (0 — сразу)', 'Over how many seconds (0 = instant)', 0, 20, 0.1], ['rmode', 'sel', 'Как', 'How', [['self', 'каждый объект на месте', 'each object in place'], ['group', 'вся группа от центра', 'whole group from its center']]]],
+        TINT_TRIGGER: [['target', 'num', 'Какую группу', 'Which group', 1, 99, 1], ['color', 'color', 'Новый цвет', 'New color'], ['dur', 'num', 'Плавность, сек (0 — сразу)', 'Smoothness, s (0 = instant)', 0, 10, 0.1]],
+        PULSE_TRIGGER: [['target', 'num', 'Какую группу', 'Which group', 1, 99, 1], ['color', 'color', 'Цвет вспышки', 'Pulse color'], ['dur', 'num', 'Длительность, сек', 'Duration, s', 0.1, 10, 0.1]],
+        CAMERA_TRIGGER: [['dx', 'num', 'Вперёд, блоков (минус — назад)', 'Forward, blocks (minus = back)', -20, 20, 0.5], ['dy', 'num', 'Вверх, блоков (минус — вниз)', 'Up, blocks (minus = down)', -10, 10, 0.5],
+            ['dur', 'num', 'Плавность, сек (0 — сразу)', 'Smoothness, s (0 = instant)', 0, 10, 0.1]],
+        CAMROT_TRIGGER: [['deg', 'num', 'Угол экрана, градусов (0 — ровно)', 'Screen angle, degrees (0 = straight)', -360, 360, 5], ['dur', 'num', 'Плавность, сек (0 — сразу)', 'Smoothness, s (0 = instant)', 0, 10, 0.1]],
+        MIRROR_TRIGGER: [['on', 'sel', 'Зеркало', 'Mirror', [[true, '🪞 включить', '🪞 on'], [false, 'выключить', 'off']]], ['dur', 'num', 'Плавность, сек', 'Smoothness, s', 0, 5, 0.1]],
+        TIME_TRIGGER: [['tk', 'num', 'Скорость игры (0,5 — медленнее, 2 — быстрее, 1 — обычно)', 'Game speed (0.5 slower, 2 faster, 1 normal)', 0.25, 2, 0.05]],
+        DARK_TRIGGER: [['power', 'num', 'Темнота, % (0 — выключить)', 'Darkness, % (0 = off)', 0, 100, 5], ['radius', 'num', 'Круг света, блоков', 'Light circle, blocks', 1, 20, 0.5], ['dur', 'num', 'Плавность, сек', 'Smoothness, s', 0, 10, 0.1]],
+        WEATHER_TRIGGER: [['weather', 'sel', 'Что', 'What', () => WEATHER_KINDS.map(k => [k, WEATHER_NAMES[k][0] + ' ' + WEATHER_NAMES[k][1], WEATHER_NAMES[k][0] + ' ' + WEATHER_NAMES[k][2]])]],
+        RAINBOW_TRIGGER: [['on', 'sel', 'Радуга', 'Rainbow', [[true, '🌈 включить', '🌈 on'], [false, 'выключить', 'off']]], ['speed', 'num', 'Скорость переливания', 'Cycle speed', 0.1, 5, 0.1, o => o.on]],
+        SOUND_TRIGGER: [['snd', 'sel', 'Звук', 'Sound', () => SOUND_KINDS.map(k => [k, SOUND_NAMES[k][0] + ' ' + SOUND_NAMES[k][1], SOUND_NAMES[k][0] + ' ' + SOUND_NAMES[k][2]])]]
     };
     const EMOJI_PICKS = ['💀', '😀', '🙂', '😐', '😢', '😭', '😡', '😎', '😱', '😈', '👻', '🤖', '🤡', '😴', '🥳', '🔥', '⭐', '❤️', '💔', '💥'];
     function groupCount(g) { return editorLevel.objects.filter(o => o.group === g && !OBJ[o.type].cat.includes('trigger')).length; }
@@ -2677,7 +3301,11 @@ const SECRET_LEVELS = [
         BLOCKS: { icon: '⬛', ru: 'Блоки', en: 'Blocks', tools: [['BLOCK', '⬛', 'Блок', 'Block'], ['SLAB', '▬', 'Полублок', 'Slab'], ['PLATFORM', '➖', 'Платформа (снизу насквозь)', 'One-way platform']] },
         HITBOX: { icon: '🔲', ru: 'Хитбоксы', en: 'Hitboxes', tools: [['HB_SOLID', '🟦', 'Твёрдый хитбокс', 'Solid hitbox'], ['HB_HAZARD', '🟥', 'Опасный хитбокс', 'Hazard hitbox'], ['HB_CIRCLE', '🔴', 'Круглый хитбокс', 'Circle hitbox']] },
         OTHER: { icon: '🏁', ru: 'Старт, монеты, финиш', en: 'Start, coins, goal', tools: [['START_POS', '🚩', 'Стартовая позиция', 'Start position'], ['COIN', '🪙', 'Монета', 'Coin'], ['GOAL', '🏁', 'Финиш', 'Goal']] },
-        TRIGGERS: { icon: '⚙️', ru: 'Триггеры', en: 'Triggers', tools: Object.entries(TRIG).map(([k, v]) => [k, v.icon, v.ru, v.en]) },
+        TRIG_GROUP: { icon: '⚙️', ru: 'Триггеры групп', en: 'Group triggers', tools: trigTools('group') },
+        TRIG_LOGIC: { icon: '🧠', ru: 'Логика', en: 'Logic', tools: trigTools('logic') },
+        TRIG_PLAYER: { icon: '🧍', ru: 'Игрок', en: 'Player', tools: trigTools('player') },
+        TRIG_SCREEN: { icon: '🎥', ru: 'Экран и камера', en: 'Screen & camera', tools: trigTools('screen') },
+        TRIG_SOUND: { icon: '🔔', ru: 'Звук', en: 'Sound', tools: trigTools('sound') },
         EMOJI: { icon: '😀', ru: 'Смайлики', en: 'Emoji', tools: [...["💀", "😀", "🙂", "😐", "😢", "😭", "😡", "😎", "😱", "🤔", "😴", "🥳", "😈", "🤡", "👻", "🤖", "👍", "👎", "❤️", "💔", "🔥", "⭐", "⚡", "💎", "👑", "🎉", "⚠️", "❗", "❓", "👀", "➡️", "⬆️", "⬇️", "⬅️", "🏁", "🎵"].map(e => ['EMOJI:' + e, e, '', '']), ['EMOJI:custom', '✏️', 'Свой смайлик', 'Custom']] },
         DECO: { icon: '✨', ru: 'Декор', en: 'Decor', tools: [['TEXT', '🔤', 'Надпись', 'Text'], ['ARROW', '➡️', 'Стрелка', 'Arrow'], ['DECO_STAR', '⭐', 'Звёздочка', 'Star'], ['DECO_LIGHT', '💡', 'Огонёк', 'Light'], ['DECO_CHAIN', '⛓️', 'Цепь', 'Chain']] },
         SHAPES: { icon: '🔷', ru: 'Фигуры', en: 'Shapes', tools: SHAPE_LIST.map(([id, icon, ru, en]) => ['SHAPE:' + id, icon, ru, en]) },
@@ -2738,13 +3366,13 @@ const SECRET_LEVELS = [
             c.appendChild(info);
             return;
         }
-        if (activeTab === 'TRIGGERS') {
+        if (activeTab.startsWith('TRIG')) {
             const info = document.createElement('div');
             info.className = 'w-full text-xs text-zinc-300 bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 mt-1';
             const t = TRIG[activeTool];
             info.innerHTML = (t ? `<b>${t.icon} ${tr(t.ru, t.en)}:</b> ${tr(t.what[0], t.what[1])}<br>` : '') +
-                tr('Как это работает: поставь триггер на поле → от него идёт пунктирная линия → когда игрок её пересекает, триггер срабатывает. Настройки — в панели над вкладками.',
-                   'How it works: place a trigger → a dashed line goes up and down from it → when the player crosses the line, the trigger fires. Settings are in the panel above the tabs.');
+                tr('Как это работает: поставь триггер на поле → от него идёт пунктирная линия → когда игрок её пересекает, триггер срабатывает. В настройках триггера можно выбрать «Как срабатывает»: по линии, при касании зоны 👆 или только от другого триггера (🧨 запуск, 🎲 случайность, 🔢 счётчик, 👆 нажатие). Впиши триггеру «🏷 номер», чтобы его можно было ⛔ остановить или запустить.',
+                   'How it works: place a trigger → a dashed line goes up and down from it → when the player crosses the line, the trigger fires. In its settings pick "How it fires": by the line, by touching a zone, or only from another trigger (🧨 spawn, 🎲 random, 🔢 counter, 👆 press). Give a trigger a "🏷 number" so it can be ⛔ stopped or launched.');
             c.classList.add('flex-wrap');
             c.appendChild(info);
         } else c.classList.remove('flex-wrap');
@@ -2958,6 +3586,7 @@ const SECRET_LEVELS = [
                 ${btn('q:MOVE_TRIGGER', '🚚 ' + (quickObjs.every(o => o.y < 0) ? tr('Вылезти из пола', 'Rise from the floor') : tr('Двигать', 'Move')), 'bg-orange-500 text-black')}
                 ${btn('q:FADE_TRIGGER', '🌫 ' + tr('Растворить', 'Fade out'))}${btn('q:TOGGLE_TRIGGER', '👁 ' + tr('Спрятать', 'Hide'))}
                 ${btn('q:ROTATE_TRIGGER', '🔄 ' + tr('Вращать', 'Rotate'))}${btn('q:FOLLOW', '👤 ' + tr('За игроком', 'Follow player'), 'bg-sky-500 text-black')}
+                ${btn('q:RANDHIDE', '🎲 ' + tr('Пропадёт с шансом 50%', 'Vanish 50%'), 'bg-emerald-600')}
                 ${quickObjs.some(o => o.type === 'EMOJI') ? btn('q:EMOJI_TRIGGER', '🔁 ' + tr('Сменить смайлик', 'Change emoji')) : ''}
                 <span class="text-zinc-400">${tr('группа назначится сама, триггер встанет на 6 блоков раньше', 'the group is set for you; the trigger goes 6 blocks earlier')}</span></div>` : '';
         const common = btn('dup', '⧉ ' + tr('Дублировать', 'Duplicate')) + btn('copy', '📋 ' + tr('Копировать', 'Copy')) + btn('rot', '🔄 ' + tr('Повернуть', 'Rotate')) +
@@ -3059,11 +3688,45 @@ const SECRET_LEVELS = [
                 if (o.type === 'EMOJI_TRIGGER' && groupCount(o.target) && !editorLevel.objects.some(x => x.type === 'EMOJI' && x.group === o.target)) {
                     html += `<div class="text-amber-300">⚠ ${tr(`В группе ${o.target} есть объекты, но нет смайликов — менять нечего. Дай номер группы именно смайлику.`, `Group ${o.target} has no emoji to change. Give the group number to an emoji.`)}</div>`;
                 }
-                if (o.target != null) {
+                if (o.type === 'SOUND_TRIGGER') html += `<div>${btn('sndtest', '▶ ' + tr('Послушать', 'Listen'))}</div>`;
+                // логические триггеры управляют триггерами: проверяем, есть ли кого запускать или останавливать
+                if (LOGIC_T[o.type]) {
+                    const gs = o.type === 'RANDOM_TRIGGER' ? [o.ga, o.gb, o.gc, o.gd].filter((g, i) => g > 0 && (o.rnd === 'one' || i < 2)) : o.target ? [o.target] : [];
+                    gs.forEach(g => {
+                        const list = editorLevel.objects.filter(x => x !== o && x.group === g && OBJ[x.type].cat === 'trigger');
+                        if (!list.length) html += `<div class="text-amber-300">⚠ ${o.type === 'STOP_TRIGGER'
+                            ? tr(`В группе ${g} нет триггеров — останавливать нечего. ⛔ останавливает триггеры: выбери нужный триггер (🚚, 🔄, 🧨…) и впиши ему «🏷 Номер этого триггера: ${g}».`, `Group ${g} has no triggers to stop. Select a trigger (🚚, 🔄, 🧨…) and set its "🏷 number" to ${g}.`)
+                            : tr(`В группе ${g} нет триггеров — запускать нечего. Выбери нужный триггер и впиши ему «🏷 Номер этого триггера: ${g}».`, `Group ${g} has no triggers to fire. Select a trigger and set its "🏷 number" to ${g}.`)}</div>`;
+                        else {
+                            html += `<div class="text-emerald-300">✓ ${o.type === 'STOP_TRIGGER' ? tr(`Остановит триггеров группы ${g}: ${list.length}`, `Stops ${list.length} trigger(s) of group ${g}`) : tr(`Запустит триггеров группы ${g}: ${list.length} — к ним идут пунктирные линии`, `Fires ${list.length} trigger(s) of group ${g} — see the dashed lines`)}</div>`;
+                            const own = list.filter(x => !x.act);
+                            if (o.type !== 'STOP_TRIGGER' && own.length) html += `<div class="flex flex-wrap items-center gap-2 text-amber-300">⚠ ${tr(`Триггеров группы ${g}, которые сработают ещё и сами (по своей линии): ${own.length}.`, `${own.length} trigger(s) of group ${g} will also fire by their own line.`)} ${btn('fixspawn:' + g, tr('Пусть срабатывают только отсюда', 'Fire only from here'), 'bg-amber-400 text-black')}</div>`;
+                        }
+                    });
+                }
+                if (o.target != null && !LOGIC_T[o.type]) {
                     const n = groupCount(o.target);
                     html += n ? `<div class="text-emerald-300">✓ ${tr(`Группа ${o.target}, объектов в ней: ${n} — они подсвечены на поле.`, `Group ${o.target}: ${n} objects — highlighted on the field.`)}</div>`
                         : `<div class="text-amber-300">⚠ ${tr(`В группе ${o.target} пока нет объектов. Выдели нужные объекты (👆 Выбор) и впиши им «Группа: ${o.target}».`, `Group ${o.target} is empty. Select objects (👆 Select) and set "Group: ${o.target}".`)}</div>`;
                 }
+            }
+            if (OBJ[o.type].cat === 'trigger') {
+                // 🏷 у каждого триггера свой номер и способ срабатывания
+                const act = o.act || 'line';
+                html += `<div class="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-zinc-700/60 pt-2">
+                    <label class="flex items-center gap-2"><span class="text-zinc-300">🏷 ${tr('Номер этого триггера (группа)', 'This trigger\'s number (group)')}</span>
+                    <input id="propGroup" type="number" min="0" max="99" step="1" value="${o.group || 0}" class="w-16 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-700 font-mono font-bold"></label>
+                    <label class="flex items-center gap-2"><span class="text-zinc-300">${tr('Как срабатывает', 'How it fires')}</span>
+                    <select id="propAct" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1">
+                        <option value="line" ${act === 'line' ? 'selected' : ''}>${tr('〰 игрок пересёк линию', '〰 the player crosses the line')}</option>
+                        <option value="touch" ${act === 'touch' ? 'selected' : ''}>${tr('👆 игрок коснулся зоны', '👆 the player touches the zone')}</option>
+                        <option value="spawn" ${act === 'spawn' ? 'selected' : ''}>${tr('🧨 только от другого триггера', '🧨 only from another trigger')}</option></select></label>
+                    ${act === 'touch' ? `${numIn('propZW', tr('Зона: ширина, блоков', 'Zone width, blocks'), o.zw || 1, 0.5, 30, 0.5)}${numIn('propZH', tr('высота', 'height'), o.zh || 1, 0.5, 30, 0.5)}
+                        <label class="flex items-center gap-1.5 text-zinc-300"><input id="propMulti" type="checkbox" ${o.multi ? 'checked' : ''}> ${tr('срабатывать при каждом касании', 'fire on every touch')}</label>` : ''}</div>
+                    <div class="text-zinc-400">${act === 'touch' ? tr('👆 Зона — фиолетовый прямоугольник: триггер сработает, только если игрок через неё пролетит. Если дать номер и двигать эту группу 🚚, зона поедет вместе с ней (например, «ударь босса»).', '👆 The zone is the purple box: the trigger fires only if the player flies through it. Give it a number and move that group with 🚚 — the zone moves too (e.g. "hit the boss").')
+                        : act === 'spawn' ? tr('🧨 Сам по себе не сработает — его запускают 🧨 Запуск, 🎲 Случайность, 🔢 Счётчик или 👆 Нажатие с таким же номером группы.', '🧨 It never fires by itself — 🧨 Spawn, 🎲 Random, 🔢 Counter or 👆 Press with its group number launch it.')
+                        : tr('🏷 Номер нужен, чтобы этот триггер можно было ⛔ остановить, 🧨 запустить или выбрать 🎲 случайно.', '🏷 The number lets you ⛔ stop this trigger, 🧨 launch it or pick it 🎲 randomly.')}</div>
+                    <div class="flex flex-wrap items-center gap-1.5"><span class="font-black">⚡ ${tr('Быстро', 'Quick')}:</span>${btn('tq:stop', '⛔ ' + tr('Добавить стоп', 'Add a stop'), 'bg-red-500/80')}${btn('tq:random', '🎲 ' + tr('Сработает с шансом 50%', '50% chance'), 'bg-emerald-600')}${btn('tq:repeat', '🔁 ' + tr('Повторять каждую секунду', 'Repeat every second'), 'bg-orange-500 text-black')}</div>`;
             } else if (OBJ[o.type].cat !== 'trigger' && OBJ[o.type].cat !== 'editor') {
                 html += `<div class="flex flex-wrap items-center gap-2"><label class="flex items-center gap-2"><span class="text-zinc-300">${tr('Группа', 'Group')}</span>
                     <input id="propGroup" type="number" min="0" max="99" step="1" value="${o.group || 0}" class="w-16 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-700 font-mono font-bold"></label>
@@ -3115,7 +3778,11 @@ const SECRET_LEVELS = [
             box.querySelectorAll('[data-emo], [data-pick]').forEach(b => b.addEventListener('click', () => { pushUndo(); o.emoji = b.dataset.emo || b.dataset.pick; saveEditor(); renderProps(); }));
             const textInp = $('propText');
             if (textInp) textInp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { textInp.blur(); setSelection([]); } });
-            bindInput('propGroup', el => { const v = Math.round(+el.value); if (v >= 1 && v <= 99) o.group = v; else delete o.group; }, 'change');
+            bindInput('propGroup', el => { const v = Math.round(+el.value); if (v >= 1 && v <= 99) o.group = v; else delete o.group; if (OBJ[o.type].cat === 'trigger') renderProps(); }, 'change');
+            bindInput('propAct', el => { if (el.value === 'line') delete o.act; else o.act = el.value; if (o.act === 'touch') { o.zw = o.zw || 1; o.zh = o.zh || 1; } renderProps(); }, 'change');
+            bindInput('propZW', el => { const v = clampNum(el, 0.5, 30); if (v != null) o.zw = v; }, 'change');
+            bindInput('propZH', el => { const v = clampNum(el, 0.5, 30); if (v != null) o.zh = v; }, 'change');
+            bindInput('propMulti', el => { o.multi = el.checked; }, 'change');
             (TRIG_FIELDS[o.type] || []).forEach(([key, kind, , , lo, hi]) => {
                 const el = $('tf_' + key); if (!el) return;
                 const apply = () => {
@@ -3127,6 +3794,7 @@ const SECRET_LEVELS = [
                 };
                 el.addEventListener('focus', () => pushUndo(), { once: true });
                 el.addEventListener(kind === 'sel' ? 'change' : 'input', apply);
+                if (o.type === 'SOUND_TRIGGER' && key === 'snd') el.addEventListener('change', () => sound.play(o.snd));
                 if (kind === 'num' || kind === 'sel') el.addEventListener('change', () => { apply(); renderProps(); });
             });
             bindInput('propColor', el => { o.color = el.value; });
@@ -3220,14 +3888,15 @@ const SECRET_LEVELS = [
     }
     function freeGroup() {
         const used = new Set();
-        editorLevel.objects.forEach(o => { if (o.group) used.add(o.group); if (o.target) used.add(o.target); });
+        editorLevel.objects.forEach(o => { [o.group, o.target, o.ga, o.gb, o.gc, o.gd].forEach(g => { if (g) used.add(g); }); });
         for (let g = 1; g <= 99; g++) if (!used.has(g)) return g;
         return 99;
     }
     // ⚡ Быстро: сам назначает свободную группу выделенному и ставит нужный триггер перед ним
     function quickTrigger(type) {
-        const follow = type === 'FOLLOW';
+        const follow = type === 'FOLLOW', randHide = type === 'RANDHIDE';
         if (follow) type = 'MOVE_TRIGGER';
+        if (randHide) type = 'RANDOM_TRIGGER';
         const objs = selSet.filter(o => OBJ[o.type].cat !== 'trigger' && OBJ[o.type].cat !== 'editor');
         if (!objs.length) return;
         pushUndo();
@@ -3237,12 +3906,40 @@ const SECRET_LEVELS = [
         const b = selBounds(objs);
         const tx = Math.max(0, Math.floor((b.x0 - 6 * GRID) / GRID) * GRID);
         const ty = Math.min(360, Math.max(0, Math.ceil(b.y1 / GRID) * GRID + GRID));
-        const extra = follow ? { follow: 'x', fk: 1 } : type === 'ROTATE_TRIGGER' ? { deg: 360, dur: 1, rmode: objs.length > 1 ? 'group' : 'self' } : type === 'MOVE_TRIGGER' ? { dy: b.y0 < 0 ? Math.ceil(-b.y0 / GRID) : 2, dur: 0.5 } : type === 'TOGGLE_TRIGGER' ? { show: false } : type === 'FADE_TRIGGER' ? { opacity: 0, dur: 0.5 } : {};
+        let g2 = 0;
+        if (randHide) {
+            // спрятать — только по броску кубика: 🎲 запускает 👁 «Скрыть» с отдельным номером
+            g2 = (() => { const used = new Set([g]); editorLevel.objects.forEach(o => [o.group, o.target, o.ga, o.gb, o.gc, o.gd].forEach(v => { if (v) used.add(v); })); for (let i = 1; i <= 99; i++) if (!used.has(i)) return i; return 99; })();
+            editorLevel.objects.push(normalizeLevel({ objects: [{ type: 'TOGGLE_TRIGGER', x: tx, y: Math.min(400, ty + GRID), target: g, show: false, group: g2, act: 'spawn' }] }).objects[0]);
+        }
+        const extra = randHide ? { ga: g2, gb: 0, chance: 50 } : follow ? { follow: 'x', fk: 1 } : type === 'ROTATE_TRIGGER' ? { deg: 360, dur: 1, rmode: objs.length > 1 ? 'group' : 'self' } : type === 'MOVE_TRIGGER' ? { dy: b.y0 < 0 ? Math.ceil(-b.y0 / GRID) : 2, dur: 0.5 } : type === 'TOGGLE_TRIGGER' ? { show: false } : type === 'FADE_TRIGGER' ? { opacity: 0, dur: 0.5 } : {};
         const trig = normalizeLevel({ objects: [Object.assign({ type, x: tx, y: ty, target: g }, extra)] }).objects[0];
         editorLevel.objects.push(trig);
         saveEditor(); setSelection([trig]);
-        if (follow) toast(tr(`👤 Готово: группа ${g} идёт за игроком по X и держит то же расстояние. Триггер — на 6 блоков раньше; в нём можно выбрать «по X и Y».`, `👤 Done: group ${g} follows the player on X at the same distance. The trigger is 6 blocks earlier; you can pick "X and Y" there.`), 4);
+        if (randHide) toast(tr(`🎲 Готово: в каждой попытке группа ${g} пропадёт с шансом 50%. Шанс можно поменять в кубике.`, `🎲 Done: group ${g} vanishes with a 50% chance each attempt. Change the chance in the dice.`), 4);
+        else if (follow) toast(tr(`👤 Готово: группа ${g} идёт за игроком по X и держит то же расстояние. Триггер — на 6 блоков раньше; в нём можно выбрать «по X и Y».`, `👤 Done: group ${g} follows the player on X at the same distance. The trigger is 6 blocks earlier; you can pick "X and Y" there.`), 4);
         else toast(tr(`Готово: группа ${g}, триггер стоит на 6 блоков раньше. Его можно перетащить.`, `Done: group ${g}, the trigger is 6 blocks earlier. You can drag it.`));
+    }
+    // ⚡ быстрые кнопки для выбранного триггера: стоп, шанс 50%, повтор
+    function triggerQuick(o, kind) {
+        pushUndo();
+        if (!o.group) o.group = freeGroup();
+        const g = o.group;
+        let made;
+        if (kind === 'stop') {
+            made = normalizeLevel({ objects: [{ type: 'STOP_TRIGGER', x: o.x + 10 * GRID, y: o.y, target: g }] }).objects[0];
+            toast(tr(`⛔ Готово: стоп для группы ${g} через 10 блоков. Перетащи его туда, где всё должно остановиться.`, `⛔ Done: a stop for group ${g} 10 blocks later. Drag it where things should stop.`), 4);
+        } else if (kind === 'random') {
+            o.act = 'spawn';
+            made = normalizeLevel({ objects: [{ type: 'RANDOM_TRIGGER', x: o.x, y: o.y + GRID, ga: g, gb: 0, chance: 50 }] }).objects[0];
+            toast(tr(`🎲 Готово: теперь этот триггер сработает с шансом 50% (кубик стоит над ним).`, `🎲 Done: this trigger now fires with a 50% chance (the dice is above it).`), 4);
+        } else {
+            o.act = 'spawn';
+            made = normalizeLevel({ objects: [{ type: 'SPAWN_TRIGGER', x: o.x, y: o.y + GRID, target: g, times: 0, every: 1 }] }).objects[0];
+            toast(tr(`🔁 Готово: триггер повторяется каждую секунду. Остановить — ⛔ Стоп с номером ${g}.`, `🔁 Done: the trigger repeats every second. Stop it with ⛔ Stop number ${g}.`), 4);
+        }
+        editorLevel.objects.push(made);
+        saveEditor(); setSelection([made]);
     }
     function deleteSelection() {
         if (!selSet.length) return;
@@ -3268,6 +3965,9 @@ const SECRET_LEVELS = [
         if (a === 'flip') { flipSelection(); return; }
         if (a.startsWith('q:')) { quickTrigger(a.slice(2)); return; }
         if (a === 'tpPick') { tpPick = tpPick === selObj ? null : selObj; renderProps(); return; }
+        if (a === 'sndtest' && selObj) { music.ensure(); sound.play(selObj.snd); return; }
+        if (a.startsWith('fixspawn:')) { pushUndo(); const g = +a.slice(9); editorLevel.objects.forEach(x => { if (x.group === g && OBJ[x.type].cat === 'trigger' && x !== selObj && !x.act) x.act = 'spawn'; }); saveEditor(); renderProps(); toast(tr('Готово: эти триггеры срабатывают только от другого триггера', 'Done: they fire only from another trigger')); return; }
+        if (a.startsWith('tq:') && selObj && OBJ[selObj.type].cat === 'trigger') { triggerQuick(selObj, a.slice(3)); return; }
         if (a.startsWith('scale')) { setSelectionScale(parseFloat(a.slice(5))); return; }
         if (a === 'tintreset') { pushUndo(); selSet.forEach(o => { if (TINTABLE[o.type]) delete o.color; }); saveEditor(); renderProps(); return; }
         if (a.startsWith('shape:')) { pushUndo(); selSet.forEach(o => { if (o.type === 'SHAPE') o.shape = a.slice(6); }); saveEditor(); renderProps(); return; }
@@ -3483,7 +4183,7 @@ const SECRET_LEVELS = [
         delete b.dataset.armed; pushUndo(); editorLevel.objects = []; saveEditor(); setSelection([]); toast(tr('Карта очищена. Вернуть можно кнопкой «Отмена».', 'Map cleared. Undo brings it back.'));
     });
     $('btnExportLevel').addEventListener('click', () => {
-        const data = { format: 'geometry-ai', version: '2.5', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, objects: editorLevel.objects };
+        const data = { format: 'geometry-ai', version: '2.6', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, objects: editorLevel.objects };
         const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -3568,6 +4268,14 @@ const SECRET_LEVELS = [
         ['Ctrl + Z / Ctrl + Y', 'отмена / повтор', 'undo / redo'], ['H', 'показать хитбоксы', 'show hitboxes'], ['Esc', 'снять выделение', 'clear selection'],
         ['Мини-карта внизу', 'клик — прыжок в это место уровня', 'click to jump there'],
         ['⚡ Быстро', 'выдели объекты → «Двигать / Растворить / Спрятать» — группа и триггер появятся сами', 'select objects → Move / Fade / Hide — group and trigger are made for you'],
+        ['⛔ Стоп', 'впиши триггеру «🏷 номер», поставь ⛔ Стоп с этим номером — движение, вращение, повторы и эффекты замрут', 'give a trigger a "🏷 number", place ⛔ Stop with it — movement, rotation, repeats and effects freeze'],
+        ['🎲 Случайность', 'с шансом запускает группу триггеров A или B, или одну из нескольких; каждую попытку по-новому', 'fires trigger group A or B by chance, or one of several; new every attempt'],
+        ['🧨 Запуск', 'запускает группу триггеров где угодно, с задержкой и повтором («каждую секунду, бесконечно»)', 'fires a trigger group anywhere, with delay and repeat'],
+        ['🔢 Счётчик / 👆 Нажатие', 'считает касания и нажатия; дошёл до числа — запускает группу (босс, ключи, таймеры)', 'counts touches and presses; at the goal it fires a group'],
+        ['Как срабатывает', 'у любого триггера: по линии, при касании зоны (зона может ехать с группой) или только от другого триггера', 'any trigger: by line, by touching a zone, or only from another trigger'],
+        ['🧍 Игрок', 'невидимые гравитация, скорость, размер и режим, невидимка, цвет игрока, 🏆 победа, 💀 проигрыш', 'invisible gravity, speed, size and mode, invisible player, player color, win, lose'],
+        ['🎥 Экран', 'сдвиг и поворот камеры, зеркало, замедление времени, темнота, погода и салют, радуга, 🔔 звуки', 'camera offset and rotation, mirror, time warp, darkness, weather and fireworks, rainbow, sounds'],
+        ['📏 🖌 💓 Группы', 'размер группы (хитбоксы растут), цвет группы и пульс', 'scale a group (hitboxes too), recolor it, pulse it'],
         ['🌀 Телепорт', 'переносит игрока в клетку выхода (оранжевый круг): перетащи круг или нажми «🎯 Указать выход» и кликни по блоку — игрок встанет на него сверху', 'moves the player to the exit cell (orange circle): drag it or press "🎯 Pick the exit" and click a block'],
         ['👤 За игроком', 'в 🚚 «Движение группы» — режим «следовать за игроком» по X, по Y или по X и Y; кнопка «👤 За игроком» в ⚡ Быстро делает это в один клик', 'the 🚚 Move trigger can follow the player on X, Y or both; the "👤 Follow player" quick button does it in one click'],
         ['🔲 Хитбоксы', 'невидимые в игре стены и зоны смерти любого размера (квадрат или круг)', 'invisible walls and death zones of any size'],
