@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Geometry AI v2.3.2</title>
+    <title>Geometry AI v2.4</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
@@ -45,9 +45,9 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.3.2</span>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.4</span>
                 </div>
-                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Быстрые триггеры и блоки под полом" data-en="Quick triggers and blocks under the floor">Быстрые триггеры и блоки под полом</p>
+                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Хитбоксы, фигуры, масштаб, вращение" data-en="Hitboxes, shapes, scale, rotation">Хитбоксы, фигуры, масштаб, вращение</p>
             </div>
         </button>
         <div class="flex items-center gap-2 flex-wrap">
@@ -366,8 +366,27 @@ const OBJ = {
     ARROW: { cat: 'deco', rect: [0, 0, 40, 40] },
     DECO_STAR: { cat: 'deco', rect: [0, 0, 40, 40], fixed: 1 },
     DECO_LIGHT: { cat: 'deco', rect: [0, 0, 40, 40], fixed: 1 },
-    DECO_CHAIN: { cat: 'deco', rect: [0, 0, 40, 40] }
+    DECO_CHAIN: { cat: 'deco', rect: [0, 0, 40, 40] },
+    // 2.4: хитбоксы, платформа, паучьи орб и батут, телепорт, фигуры, вращение
+    HB_SOLID: { cat: 'solid', rect: [0, 0, 40, 40], sized: 1, fixed: 1, invisible: 1 },
+    HB_HAZARD: { cat: 'hazard', rect: [0, 0, 40, 40], sized: 1, fixed: 1, invisible: 1 },
+    HB_CIRCLE: { cat: 'hazard', rect: [0, 0, 40, 40], radial: 1, fixed: 1, invisible: 1 },
+    PLATFORM: { cat: 'platform', rect: [0, 30, 40, 40] },
+    SPIDER_ORB: { cat: 'orb', kind: 'spider', rect: ORB_R, fixed: 1 },
+    SPIDER_PAD: { cat: 'pad', kind: 'spider', rect: PAD_R },
+    TELEPORT: { cat: 'portal', rect: PORTAL_R, fixed: 1 },
+    SHAPE: { cat: 'deco', rect: [0, 0, 40, 40] },
+    ROTATE_TRIGGER: { cat: 'trigger', rect: [0, 0, 40, 40], fixed: 1 }
 };
+const SHAPE_IDS = ['circle', 'ring', 'square', 'triangle', 'diamond', 'hexagon', 'star', 'heart', 'plus', 'xmark', 'cloud', 'bush', 'tree', 'flower',
+    'mushroom', 'moon', 'sun', 'bolt', 'crystal', 'flame', 'waves', 'gear', 'pillar', 'spiral', 'dots', 'rays', 'grass', 'eye', 'note', 'frame', 'stripe'];
+const TINTABLE = { BLOCK: 1, SLAB: 1, SPIKE: 1, SMALL_SPIKE: 1, GROUND_SPIKES: 1, SAW: 1, PLATFORM: 1 };
+// Радиус круглого хитбокса объекта (пила, круглый хитбокс) с учётом масштаба
+function circleOf(o) {
+    const d = OBJ[o.type];
+    if (o.type === 'HB_CIRCLE') return (o.r || 0.5) * GRID;
+    return d.circle ? d.circle * (o.scale || 1) : undefined;
+}
 const NON_GAMEPLAY = { editor: 1, trigger: 1, deco: 1 };
 ['CUBE_PORTAL','SHIP_PORTAL','BALL_PORTAL','UFO_PORTAL','WAVE_PORTAL','ROBOT_PORTAL','SPIDER_PORTAL','SWING_PORTAL','AIRPLANE_PORTAL',
  'GRAV_DOWN_PORTAL','GRAV_UP_PORTAL','MINI_PORTAL','BIG_PORTAL','SPEED_05','SPEED_1','SPEED_2','SPEED_3','SPEED_4']
@@ -385,10 +404,13 @@ function rotPt(u, v, rot) {
 }
 function objRect(o) {
     const d = OBJ[o.type];
+    if (d.sized) return { x0: o.x, x1: o.x + (o.w || 1) * GRID, y0: o.y, y1: o.y + (o.h || 1) * GRID };
+    if (d.radial) { const r = circleOf(o); return { x0: o.x + 20 - r, x1: o.x + 20 + r, y0: o.y + 20 - r, y1: o.y + 20 + r }; }
     const [a, b, c, e] = d.rect;
     const rot = d.fixed ? 0 : (o.rotation || 0);
-    // хитбокс — прямоугольник, в который помещается повёрнутая фигура
-    const pts = [[a, b], [c, b], [a, e], [c, e]].map(([u, v]) => rotPt(u - 20, v - 20, rot));
+    const sc = o.scale || 1;
+    // хитбокс — прямоугольник, в который помещается повёрнутая (и увеличенная) фигура
+    const pts = [[a, b], [c, b], [a, e], [c, e]].map(([u, v]) => rotPt((u - 20) * sc, (v - 20) * sc, rot));
     const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
     return {
         x0: o.x + 20 + Math.min(...xs), x1: o.x + 20 + Math.max(...xs),
@@ -433,7 +455,18 @@ function normalizeLevel(data) {
             if (o.type === 'FLASH_TRIGGER') { r.color = col(o.color, '#ffffff'); r.dur = num(o.dur, 0.5, 0.1, 5); }
             if (o.type === 'SHAKE_TRIGGER') { r.power = num(o.power, 4, 1, 10); r.dur = num(o.dur, 0.6, 0.1, 5); }
             if (o.type === 'ZOOM_TRIGGER') { r.zoom = num(o.zoom, 1.3, 0.5, 2); r.dur = num(o.dur, 1, 0, 5); }
-            if (o.type === 'MOVE_TRIGGER') { r.target = Math.round(num(o.target, 1, 1, 99)); r.dx = num(o.dx, 0, -40, 40); r.dy = num(o.dy, 2, -20, 20); r.dur = num(o.dur, 1, 0, 10); }
+            if (o.type === 'MOVE_TRIGGER') { r.target = Math.round(num(o.target, 1, 1, 99)); r.dx = num(o.dx, 0, -40, 40); r.dy = num(o.dy, 2, -20, 20); r.dur = num(o.dur, 1, 0, 10); r.loops = Math.round(num(o.loops, 1, 1, 50)); r.pingpong = !!o.pingpong; }
+            if (o.type === 'ROTATE_TRIGGER') { r.target = Math.round(num(o.target, 1, 1, 99)); r.deg = num(o.deg, 360, -3600, 3600); r.dur = num(o.dur, 1, 0, 20); r.rmode = o.rmode === 'group' ? 'group' : 'self'; }
+            if (o.scale != null && Number(o.scale) !== 1 && !OBJ[o.type].sized && o.type !== 'HB_CIRCLE') r.scale = num(o.scale, 1, 0.25, 4);
+            if (TINTABLE[o.type] && /^#[0-9a-f]{6}$/i.test(o.color)) r.color = o.color;
+            if (o.type === 'HB_SOLID' || o.type === 'HB_HAZARD') { r.w = num(o.w, 1, 0.25, 20); r.h = num(o.h, 1, 0.25, 20); }
+            if (o.type === 'HB_CIRCLE') r.r = num(o.r, 0.5, 0.1, 10);
+            if (o.type === 'TELEPORT') r.ty = num(o.ty, 4, -20, 20);
+            if (o.type === 'SHAPE') {
+                r.shape = SHAPE_IDS.includes(o.shape) ? o.shape : 'circle';
+                r.color = col(o.color, '#ffffff'); r.alpha = Math.round(num(o.alpha, 100, 10, 100)); r.glow = !!o.glow;
+                r.layer = ['back', 'normal', 'front'].includes(o.layer) ? o.layer : 'back';
+            }
             if (o.type === 'TOGGLE_TRIGGER') { r.target = Math.round(num(o.target, 1, 1, 99)); r.show = !!o.show; }
             if (o.type === 'EMOJI_TRIGGER') { r.target = Math.round(num(o.target, 1, 1, 99)); r.emoji = [...String(o.emoji || '😡')].slice(0, 3).join('') || '😡'; }
             if (o.type === 'FADE_TRIGGER') { r.target = Math.round(num(o.target, 1, 1, 99)); r.opacity = Math.round(num(o.opacity, 0, 0, 100)); r.dur = num(o.dur, 1, 0, 10); r.keepHit = !!o.keepHit; }
@@ -459,13 +492,19 @@ function prepareLevel(data) {
     const lv = normalizeLevel(data);
     const all = lv.objects.map((o, i) => {
         const d = OBJ[o.type];
-        return Object.assign({}, o, { id: i, cat: d.cat, kind: d.kind, circle: d.circle, rect: objRect(o) });
+        return Object.assign({}, o, { id: i, cat: d.cat, kind: d.kind, circle: circleOf(o), rect: objRect(o) });
     });
     // Объекты групп, которыми управляют триггеры движения/показа, живут отдельно: их место считается каждый кадр
-    const controlled = new Set(all.filter(o => o.type === 'MOVE_TRIGGER' || o.type === 'TOGGLE_TRIGGER' || o.type === 'FADE_TRIGGER').map(o => o.target));
+    const controlled = new Set(all.filter(o => ['MOVE_TRIGGER', 'TOGGLE_TRIGGER', 'FADE_TRIGGER', 'ROTATE_TRIGGER'].includes(o.type)).map(o => o.target));
     const movers = all.filter(o => o.group && controlled.has(o.group) && o.cat !== 'trigger' && o.cat !== 'editor');
     const moverSet = new Set(movers);
     const objs = all.filter(o => !moverSet.has(o)).sort((a, b) => a.rect.x0 - b.rect.x0);
+    const maxW = objs.reduce((m, o) => Math.max(m, o.rect.x1 - o.rect.x0 + 20), 60);
+    // центр каждой группы — вокруг него вращает триггер вращения в режиме «вся группа»
+    const groupCenters = {};
+    const gb = {};
+    movers.forEach(o => { const b = gb[o.group] || (gb[o.group] = [Infinity, Infinity, -Infinity, -Infinity]); b[0] = Math.min(b[0], o.x + 20); b[1] = Math.min(b[1], o.y + 20); b[2] = Math.max(b[2], o.x + 20); b[3] = Math.max(b[3], o.y + 20); });
+    for (const g in gb) groupCenters[g] = [(gb[g][0] + gb[g][2]) / 2, (gb[g][1] + gb[g][3]) / 2];
     const triggers = all.filter(o => o.cat === 'trigger').sort((a, b) => a.x - b.x || a.y - b.y);
     triggers.forEach((t, i) => { t.ti = i; });
     const goal = objs.find(o => o.type === 'GOAL');
@@ -478,7 +517,7 @@ function prepareLevel(data) {
         coinTotal: objs.filter(o => o.cat === 'coin').length,
         colorTriggers: objs.filter(o => o.type === 'COLOR_TRIGGER').map(o => ({ x: o.x + 20, color: o.color })).sort((a, b) => a.x - b.x),
         groundTriggers: objs.filter(o => o.type === 'GROUND_TRIGGER').map(o => ({ x: o.x + 20, color: o.color })).sort((a, b) => a.x - b.x),
-        triggers, movers,
+        triggers, movers, maxW, groupCenters,
         topY: Math.max(800, objs.reduce((m, o) => Math.max(m, o.rect.y1), 0) + 400),
         startY
     };
@@ -501,7 +540,7 @@ function portalBounds(o) {
 }
 function queryNear(L, x0, x1) {
     const a = L.objs; let lo = 0, hi = a.length;
-    const key = x0 - 60;
+    const key = x0 - (L.maxW || 60);
     while (lo < hi) { const m = (lo + hi) >> 1; if (a[m].rect.x0 < key) lo = m + 1; else hi = m; }
     const out = [];
     for (let i = lo; i < a.length && a[i].rect.x0 <= x1; i++) out.push(a[i]);
@@ -536,7 +575,7 @@ function initStateAt(L, sp) {
 function easeInOut(p) { return p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; }
 function evalFade(fd, frame) { return fd.from + (fd.to - fd.from) * Math.min(1, Math.max(0, (frame - fd.f) / fd.frames)); }
 function groupState(L, s) {
-    const off = {}, hidden = {}, fades = {};
+    const off = {}, hidden = {}, fades = {}, spin = {}, orbit = {};
     for (const [ti, f] of s.acts) {
         const t = L.triggers[ti];
         if (t.type === 'FADE_TRIGGER') {
@@ -545,15 +584,25 @@ function groupState(L, s) {
             continue;
         }
         if (t.type === 'MOVE_TRIGGER') {
-            const frames = Math.max(1, t.dur * 60);
-            const k = easeInOut(Math.min(1, Math.max(0, (s.frame - f) / frames)));
+            const frames = Math.max(1, t.dur * 60), el = s.frame - f, loops = t.loops || 1;
+            const legs = loops * (t.pingpong ? 2 : 1);
+            let k;
+            if (el >= legs * frames) k = t.pingpong ? 0 : loops;
+            else {
+                const leg = Math.max(0, Math.floor(el / frames)), p = easeInOut(Math.max(0, el - leg * frames) / frames);
+                k = t.pingpong ? (leg % 2 === 0 ? p : 1 - p) : leg + p;
+            }
             const g = off[t.target] || (off[t.target] = [0, 0]);
             g[0] += t.dx * GRID * k; g[1] += t.dy * GRID * k;
+        } else if (t.type === 'ROTATE_TRIGGER') {
+            const k = easeInOut(Math.min(1, Math.max(0, (s.frame - f) / Math.max(1, t.dur * 60))));
+            const acc = t.rmode === 'group' ? orbit : spin;
+            acc[t.target] = (acc[t.target] || 0) + t.deg * k;
         } else if (t.type === 'TOGGLE_TRIGGER') hidden[t.target] = !t.show;
     }
     const alpha = {}, keep = {};
     for (const g in fades) { alpha[g] = evalFade(fades[g], s.frame); keep[g] = fades[g].keep; }
-    return { off, hidden, alpha, keep };
+    return { off, hidden, alpha, keep, spin, orbit };
 }
 function activeMovers(L, s) {
     if (!L.movers || !L.movers.length) return [];
@@ -563,10 +612,16 @@ function activeMovers(L, s) {
         const a = gs.alpha[o.group];
         // полностью исчезнувший объект больше не мешает (если не выбрано «невидимый, но твёрдый»)
         if (a !== undefined && a <= 0.001 && !gs.keep[o.group]) continue;
-        const d = gs.off[o.group];
-        if (!d && a === undefined) { out.push(o); continue; }
+        const d = gs.off[o.group], sp = gs.spin[o.group], ob = gs.orbit[o.group];
+        if (!d && a === undefined && !sp && !ob) { out.push(o); continue; }
         const m = Object.assign({}, o, { alpha: a === undefined ? 1 : a });
-        if (d) Object.assign(m, { x: o.x + d[0], y: o.y + d[1], rect: { x0: o.rect.x0 + d[0], x1: o.rect.x1 + d[0], y0: o.rect.y0 + d[1], y1: o.rect.y1 + d[1] } });
+        let cx = o.x + 20, cy = o.y + 20, rot = o.rotation || 0;
+        if (ob) { const pc = L.groupCenters[o.group]; const [u, v] = rotPt(cx - pc[0], cy - pc[1], ob); cx = pc[0] + u; cy = pc[1] + v; rot += ob; }
+        if (sp) rot += sp;
+        if (d) { cx += d[0]; cy += d[1]; }
+        m.x = cx - 20; m.y = cy - 20; m.rotation = rot;
+        // при вращении хитбокс пересчитывается, при простом сдвиге — сдвигается
+        m.rect = (ob || sp) ? objRect(m) : { x0: o.rect.x0 + m.x - o.x, x1: o.rect.x1 + m.x - o.x, y0: o.rect.y0 + m.y - o.y, y1: o.rect.y1 + m.y - o.y };
         out.push(m);
     }
     return out;
@@ -584,6 +639,21 @@ function setSizeKeepCenter(s, fn) {
     s.y += (before - after) / 2;
 }
 
+// Мгновенный переброс на противоположную поверхность (паук, паучий орб и батут)
+function teleportFlip(s, near, size) {
+    const fromY = s.y;
+    if (s.g === 1) {
+        let best = s.ceil != null ? s.ceil : Infinity;
+        for (const o of near) if (o.cat === 'solid' && o.rect.x1 > s.x && o.rect.x0 < s.x + size && o.rect.y0 >= s.y + size - 0.5) best = Math.min(best, o.rect.y0);
+        if (best !== Infinity) s.y = best - size;
+    } else {
+        let best = s.floor;
+        for (const o of near) if (o.cat === 'solid' && o.rect.x1 > s.x && o.rect.x0 < s.x + size && o.rect.y1 <= s.y + 0.5) best = Math.max(best, o.rect.y1);
+        s.y = best;
+    }
+    s.g = -s.g; s.vy = 0; s.grounded = false; s.robotT = 0;
+    return fromY;
+}
 function applyOrb(s, kind) {
     const m = s.mini ? 0.8 : 1;
     const G = s.g;
@@ -631,9 +701,9 @@ function step(p, held, L) {
     if (s.buf > 0 && s.mode !== 'airplane') {
         for (const o of near) {
             if (o.cat !== 'orb' || s.used.includes(o.id)) continue;
-            if (s.mode === 'wave' && o.kind !== 'blue' && o.kind !== 'green') continue;
+            if (s.mode === 'wave' && o.kind !== 'blue' && o.kind !== 'green' && o.kind !== 'spider') continue;
             if (overlaps(o.rect, s.x, s.y, s.x + size, s.y + size)) {
-                applyOrb(s, o.kind);
+                if (o.kind === 'spider') teleportFlip(s, near, size); else applyOrb(s, o.kind);
                 s.used = s.used.concat(o.id);
                 s.buf = 0; acted = true; s.fx = { t: 'orb', kind: o.kind, x: o.x + 20, y: o.y + 20 };
                 break;
@@ -681,19 +751,7 @@ function step(p, held, L) {
             break;
         }
         case 'spider': {
-            if (press && s.grounded && !acted) {
-                const fromY = s.y;
-                if (s.g === 1) {
-                    let best = s.ceil != null ? s.ceil : Infinity;
-                    for (const o of near) if (o.cat === 'solid' && o.rect.x1 > s.x && o.rect.x0 < s.x + size && o.rect.y0 >= s.y + size - 0.5) best = Math.min(best, o.rect.y0);
-                    if (best !== Infinity) s.y = best - size;
-                } else {
-                    let best = s.floor;
-                    for (const o of near) if (o.cat === 'solid' && o.rect.x1 > s.x && o.rect.x0 < s.x + size && o.rect.y1 <= s.y + 0.5) best = Math.max(best, o.rect.y1);
-                    s.y = best;
-                }
-                s.g = -s.g; s.vy = 0; s.fx = { t: 'spider', from: fromY };
-            }
+            if (press && s.grounded && !acted) { const fromY = teleportFlip(s, near, size); s.fx = { t: 'spider', from: fromY }; }
             s.vy -= s.g * 0.95;
             if (s.vy * s.g < -15) s.vy = -15 * s.g;
             break;
@@ -722,11 +780,18 @@ function step(p, held, L) {
     s.grounded = false;
     near = nearWithMovers(L, s, s.x - 20, s.x + size + 20);
     for (const o of near) {
-        if (o.cat !== 'solid') continue;
+        const plat = o.cat === 'platform';
+        if (o.cat !== 'solid' && !plat) continue;
         const r = o.rect;
         if (!(s.x + size > r.x0 + 0.01 && s.x < r.x1 - 0.01 && s.y + size > r.y0 + 0.01 && s.y < r.y1 - 0.01)) continue;
-        if (s.mode === 'airplane') { s.dead = true; break; }
         const tol = 9;
+        if (plat) {
+            if (s.mode === 'airplane') continue;
+            if (s.g === 1 && prevY >= r.y1 - tol && s.vy <= 0.01) { s.y = r.y1; if (s.vy < 0) s.vy = 0; s.grounded = true; }
+            else if (s.g === -1 && prevY + size <= r.y0 + tol && s.vy >= -0.01) { s.y = r.y0 - size; if (s.vy > 0) s.vy = 0; s.grounded = true; }
+            continue;
+        }
+        if (s.mode === 'airplane') { s.dead = true; break; }
         if (prevY >= r.y1 - tol && s.vy <= 0.01) {
             s.y = r.y1; if (s.vy < 0) s.vy = 0; if (s.g === 1) s.grounded = true;
         } else if (prevY + size <= r.y0 + tol && s.vy >= -0.01) {
@@ -754,7 +819,8 @@ function step(p, held, L) {
             continue;
         } else if (o.cat === 'pad') {
             if (s.mode !== 'airplane' && overlaps(o.rect, s.x, s.y, s.x + size, s.y + size)) {
-                if (applyPad(s, o.kind)) { s.used = s.used.concat(o.id); s.fx = { t: 'pad', kind: o.kind, x: o.x + 20, y: o.y + 5 }; }
+                if (o.kind === 'spider') { teleportFlip(s, near, size); s.used = s.used.concat(o.id); s.fx = { t: 'pad', kind: o.kind, x: o.x + 20, y: o.y + 5 }; }
+                else if (applyPad(s, o.kind)) { s.used = s.used.concat(o.id); s.fx = { t: 'pad', kind: o.kind, x: o.x + 20, y: o.y + 5 }; }
             }
         } else if (o.cat === 'portal') {
             if (!overlaps(o.rect, s.x, s.y, s.x + size, s.y + size)) continue;
@@ -779,6 +845,10 @@ function step(p, held, L) {
                 setSizeKeepCenter(s, () => { s.mini = t === 'MINI_PORTAL'; });
             } else if (SPEEDS[t]) {
                 s.speed = SPEEDS[t];
+            } else if (t === 'TELEPORT') {
+                s.y += (o.ty || 0) * GRID;
+                if (s.y < s.floor) s.y = s.floor;
+                if (s.ceil != null && s.y + pSize(s) > s.ceil) s.y = s.ceil - pSize(s);
             }
             s.fx = { t: 'portal', type: t, x: o.x + 20, y: o.y + 20 };
             size = pSize(s);
@@ -1791,11 +1861,70 @@ const SECRET_LEVELS = [
     }
 
     // ---------- Рендер ----------
-    const ORB_COLORS = { yellow: '#ffe600', pink: '#ff5fd2', red: '#ff3b3b', blue: '#33ccff', green: '#3dff6e', black: '#222222' };
+    const ORB_COLORS = { yellow: '#ffe600', pink: '#ff5fd2', red: '#ff3b3b', blue: '#33ccff', green: '#3dff6e', black: '#222222', spider: '#b266ff' };
+    // Фигуры-декор: рисуются в клетке -20..20, цвет задаёт игрок
+    function drawShape(g, shape, c, t) {
+        g.fillStyle = c; g.strokeStyle = c; g.lineCap = 'round'; g.lineJoin = 'round';
+        const poly = (pts) => { g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fill(); };
+        const reg = (n, r, rot = -Math.PI / 2) => poly(Array.from({ length: n }, (_, i) => [Math.cos(rot + i * 2 * Math.PI / n) * r, Math.sin(rot + i * 2 * Math.PI / n) * r]));
+        const circ = (x, y, r) => { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); };
+        switch (shape) {
+            case 'ring': g.lineWidth = 5; g.beginPath(); g.arc(0, 0, 16, 0, Math.PI * 2); g.stroke(); break;
+            case 'square': g.fillRect(-18, -18, 36, 36); break;
+            case 'triangle': poly([[0, -19], [19, 17], [-19, 17]]); break;
+            case 'diamond': poly([[0, -20], [17, 0], [0, 20], [-17, 0]]); break;
+            case 'hexagon': reg(6, 19, 0); break;
+            case 'star': poly(Array.from({ length: 10 }, (_, i) => { const r = i % 2 ? 8 : 19, a = -Math.PI / 2 + i * Math.PI / 5; return [Math.cos(a) * r, Math.sin(a) * r]; })); break;
+            case 'heart': g.beginPath(); g.moveTo(0, 17); g.bezierCurveTo(-26, 0, -14, -22, 0, -8); g.bezierCurveTo(14, -22, 26, 0, 0, 17); g.fill(); break;
+            case 'plus': g.fillRect(-6, -18, 12, 36); g.fillRect(-18, -6, 36, 12); break;
+            case 'xmark': g.save(); g.rotate(Math.PI / 4); g.fillRect(-5, -19, 10, 38); g.fillRect(-19, -5, 38, 10); g.restore(); break;
+            case 'cloud': circ(-9, 4, 10); circ(3, -3, 12); circ(12, 6, 8); g.fillRect(-18, 4, 34, 10); break;
+            case 'bush': circ(-10, 10, 10); circ(0, 4, 12); circ(11, 10, 9); g.fillRect(-19, 10, 38, 10); break;
+            case 'tree': g.fillStyle = shade(c, -0.55); g.fillRect(-4, 6, 8, 14); g.fillStyle = c; poly([[0, -20], [15, 0], [7, 0], [17, 10], [-17, 10], [-7, 0], [-15, 0]]); break;
+            case 'flower':
+                g.fillStyle = shade(c, -0.5); g.fillRect(-1.5, 2, 3, 18);
+                g.fillStyle = c; for (let i = 0; i < 5; i++) { const a = i * 2 * Math.PI / 5 - Math.PI / 2; circ(Math.cos(a) * 7, -6 + Math.sin(a) * 7, 6); }
+                g.fillStyle = '#ffe600'; circ(0, -6, 4); break;
+            case 'mushroom': g.fillStyle = '#f5f5f4'; g.fillRect(-5, 0, 10, 18); g.fillStyle = c; g.beginPath(); g.arc(0, 2, 17, Math.PI, 0); g.fill(); g.fillStyle = '#fff'; circ(-7, -6, 3); circ(5, -9, 2.5); break;
+            case 'moon': g.beginPath(); g.arc(0, 0, 17, Math.PI * 0.35, Math.PI * 1.65); g.arc(8, 0, 13, Math.PI * 1.55, Math.PI * 0.45, true); g.closePath(); g.fill(); break;
+            case 'sun':
+                circ(0, 0, 10); g.lineWidth = 3;
+                for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + t; g.beginPath(); g.moveTo(Math.cos(a) * 13, Math.sin(a) * 13); g.lineTo(Math.cos(a) * 19, Math.sin(a) * 19); g.stroke(); }
+                break;
+            case 'bolt': poly([[4, -20], [-12, 3], [-1, 3], [-5, 20], [12, -4], [1, -4]]); break;
+            case 'crystal':
+                poly([[0, -20], [11, -6], [8, 18], [-8, 18], [-11, -6]]);
+                g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, -20); g.lineTo(0, 18); g.moveTo(-11, -6); g.lineTo(11, -6); g.stroke(); break;
+            case 'flame': {
+                const f = Math.sin(t * 10) * 2;
+                g.beginPath(); g.moveTo(0, -20 - f); g.bezierCurveTo(14, -4, 14, 18, 0, 18); g.bezierCurveTo(-14, 18, -14, -4, 0, -20 - f); g.fill();
+                g.fillStyle = '#ffe600'; g.beginPath(); g.moveTo(0, -4 - f); g.bezierCurveTo(7, 4, 7, 16, 0, 16); g.bezierCurveTo(-7, 16, -7, 4, 0, -4 - f); g.fill(); break;
+            }
+            case 'waves': g.lineWidth = 3; for (let k = -1; k <= 1; k++) { g.beginPath(); for (let x = -18; x <= 18; x += 2) { const y = k * 11 + Math.sin(x / 5 + t * 3) * 3; x === -18 ? g.moveTo(x, y) : g.lineTo(x, y); } g.stroke(); } break;
+            case 'gear': {
+                g.save(); g.rotate(t * 1.5); g.beginPath();
+                for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = i % 2 ? 14 : 19; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+                g.closePath(); g.fill(); g.restore();
+                g.fillStyle = 'rgba(0,0,0,.55)'; circ(0, 0, 6); break;
+            }
+            case 'pillar': g.fillRect(-9, -14, 18, 30); g.fillRect(-14, -20, 28, 6); g.fillRect(-14, 14, 28, 6); g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(-4, -14, 3, 28); g.fillRect(3, -14, 3, 28); break;
+            case 'spiral': g.lineWidth = 3; g.beginPath(); for (let i = 0; i < 60; i++) { const a = i * 0.32 + t * 2, r = i * 0.32; i ? g.lineTo(Math.cos(a) * r, Math.sin(a) * r) : g.moveTo(0, 0); } g.stroke(); break;
+            case 'dots': for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) circ(i * 12, j * 12, 3.5); break;
+            case 'rays': g.globalAlpha *= 0.6; for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6 + t * 0.6; poly([[0, 0], [Math.cos(a - 0.12) * 20, Math.sin(a - 0.12) * 20], [Math.cos(a + 0.12) * 20, Math.sin(a + 0.12) * 20]]); } break;
+            case 'grass': g.lineWidth = 2.5; for (let i = -16; i <= 16; i += 5) { const sw = Math.sin(t * 3 + i) * 2; g.beginPath(); g.moveTo(i, 20); g.quadraticCurveTo(i + sw, 8, i + sw * 2 + (i % 2 ? 3 : -3), 0); g.stroke(); } break;
+            case 'eye':
+                g.beginPath(); g.moveTo(-19, 0); g.quadraticCurveTo(0, -16, 19, 0); g.quadraticCurveTo(0, 16, -19, 0); g.fill();
+                g.fillStyle = '#000'; circ(0, 0, 6); g.fillStyle = '#fff'; circ(2, -2, 2); break;
+            case 'note': circ(-6, 12, 6); g.fillRect(-1, -16, 3, 28); g.beginPath(); g.moveTo(2, -16); g.quadraticCurveTo(14, -12, 10, -2); g.lineTo(2, -8); g.fill(); break;
+            case 'frame': g.lineWidth = 3; g.strokeRect(-17, -17, 34, 34); g.lineWidth = 1.5; g.strokeRect(-10, -10, 20, 20); break;
+            case 'stripe': g.fillRect(-20, -4, 40, 8); break;
+            default: circ(0, 0, 18);
+        }
+    }
     const PORTAL_STYLE = {
         CUBE_PORTAL: ['#3dff6e', '■'], SHIP_PORTAL: ['#ff5fd2', '➤'], BALL_PORTAL: ['#ff3b3b', '●'], UFO_PORTAL: ['#ff9f1a', '◓'],
         WAVE_PORTAL: ['#33ccff', '◢'], ROBOT_PORTAL: ['#f4f4f5', '🤖'], SPIDER_PORTAL: ['#b266ff', '🕷'], SWING_PORTAL: ['#ffe600', '⇅'],
-        AIRPLANE_PORTAL: ['#ff8c00', '✈'], GRAV_DOWN_PORTAL: ['#33a1ff', '↓'], GRAV_UP_PORTAL: ['#ffd500', '↑'],
+        AIRPLANE_PORTAL: ['#ff8c00', '✈'], TELEPORT: ['#22d3ee', '⇕'], GRAV_DOWN_PORTAL: ['#33a1ff', '↓'], GRAV_UP_PORTAL: ['#ffd500', '↑'],
         MINI_PORTAL: ['#ff66cc', '◦'], BIG_PORTAL: ['#33ff99', '◯'],
         SPEED_05: ['#ff9f1a', '<'], SPEED_1: ['#33ccff', '>'], SPEED_2: ['#3dff6e', '>>'], SPEED_3: ['#ff5fd2', '>>>'], SPEED_4: ['#ff3b3b', '>>>>']
     };
@@ -1810,10 +1939,12 @@ const SECRET_LEVELS = [
     function levelWall() { return (G.mode === 'EDITOR' ? editorLevel.wall : G.L && G.L.wall) || 'classic'; }
     function drawObject(o, t, cam) {
         at(cam, o.x + 20, o.y + 20);
-        const fixed = OBJ[o.type].fixed;
+        const od = OBJ[o.type], fixed = od.fixed;
         if (!fixed) ctx.rotate((o.rotation || 0) * Math.PI / 180);
+        const sc = od.sized || od.radial ? 1 : (o.scale || 1);
+        if (sc !== 1) ctx.scale(sc, sc);
         const used = G.S && G.mode !== 'EDITOR' && G.S.used.includes(o.id);
-        const lc = G.curColor || (G.mode === 'EDITOR' ? editorLevel.color : G.L && G.L.color) || '#2563eb';
+        const lc = (TINTABLE[o.type] && o.color) || G.curColor || (G.mode === 'EDITOR' ? editorLevel.color : G.L && G.L.color) || '#2563eb';
         switch (o.type) {
             case 'BLOCK': drawWall(ctx, levelWall(), lc); break;
             case 'SLAB': {
@@ -1825,34 +1956,62 @@ const SECRET_LEVELS = [
             case 'SPIKE': case 'SMALL_SPIKE': {
                 const h = o.type === 'SPIKE' ? 40 : 18;
                 ctx.beginPath(); ctx.moveTo(-18, 20); ctx.lineTo(0, 20 - h); ctx.lineTo(18, 20); ctx.closePath();
-                const gr = ctx.createLinearGradient(0, 20 - h, 0, 20); gr.addColorStop(0, '#2a2a2a'); gr.addColorStop(1, '#000');
+                const gr = ctx.createLinearGradient(0, 20 - h, 0, 20); gr.addColorStop(0, o.color || '#2a2a2a'); gr.addColorStop(1, o.color ? shade(o.color, -0.6) : '#000');
                 ctx.fillStyle = gr; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
                 break;
             }
             case 'GROUND_SPIKES': {
                 ctx.beginPath(); ctx.moveTo(-18, 20);
                 for (let i = 0; i < 4; i++) { ctx.lineTo(-18 + i * 9 + 4.5, 9); ctx.lineTo(-18 + (i + 1) * 9, 20); }
-                ctx.closePath(); ctx.fillStyle = '#000'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+                ctx.closePath(); ctx.fillStyle = o.color || '#000'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
                 break;
             }
             case 'SAW': {
                 ctx.rotate(t * 6);
                 ctx.beginPath();
                 for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2, r = i % 2 ? 22 : 30; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
-                ctx.closePath(); ctx.fillStyle = '#111'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.closePath(); ctx.fillStyle = o.color || '#111'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
                 ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.strokeStyle = '#fff'; ctx.stroke();
                 break;
             }
-            case 'ORB': case 'PINK_ORB': case 'RED_ORB': case 'GRAVITY_ORB': case 'GREEN_ORB': case 'BLACK_ORB': {
+            case 'PLATFORM': {
+                const c = o.color || shade(lc, 0.25);
+                ctx.fillStyle = c; ctx.fillRect(-20, -20, 40, 10);
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(-19, -19, 38, 8);
+                ctx.globalAlpha *= 0.45; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 4]);
+                ctx.beginPath(); ctx.moveTo(-14, -10); ctx.lineTo(-14, 18); ctx.moveTo(14, -10); ctx.lineTo(14, 18); ctx.stroke(); ctx.setLineDash([]);
+                ctx.globalAlpha /= 0.45;
+                break;
+            }
+            case 'HB_SOLID': case 'HB_HAZARD': case 'HB_CIRCLE': {
+                if (G.mode !== 'EDITOR') break; // в игре хитбоксы невидимы
+                const hz = o.type !== 'HB_SOLID', c = hz ? '255,59,59' : '56,189,248';
+                ctx.fillStyle = `rgba(${c},.22)`; ctx.strokeStyle = `rgb(${c})`; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+                if (o.type === 'HB_CIRCLE') { const r = circleOf(o); ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+                else { const w = (o.w || 1) * GRID, h = (o.h || 1) * GRID; ctx.fillRect(-20, 20 - h, w, h); ctx.strokeRect(-20, 20 - h, w, h); }
+                ctx.setLineDash([]);
+                ctx.fillStyle = '#fff'; ctx.font = 'bold 8px JetBrains Mono, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(hz ? tr('СМЕРТЬ', 'DEATH') : tr('СТЕНА', 'WALL'), o.type === 'HB_CIRCLE' ? 0 : -20 + (o.w || 1) * GRID / 2, o.type === 'HB_CIRCLE' ? 0 : 20 - (o.h || 1) * GRID / 2);
+                break;
+            }
+            case 'SHAPE': {
+                ctx.globalAlpha *= (o.alpha || 100) / 100;
+                if (o.glow) { ctx.shadowColor = o.color || '#fff'; ctx.shadowBlur = 16; }
+                drawShape(ctx, o.shape, o.color || '#ffffff', t);
+                ctx.shadowBlur = 0;
+                break;
+            }
+            case 'ORB': case 'PINK_ORB': case 'RED_ORB': case 'GRAVITY_ORB': case 'GREEN_ORB': case 'BLACK_ORB': case 'SPIDER_ORB': {
                 const c = ORB_COLORS[OBJ[o.type].kind];
                 const pulse = 1 + Math.sin(t * 6) * 0.08;
                 ctx.beginPath(); ctx.arc(0, 0, 19 * pulse, 0, Math.PI * 2); ctx.strokeStyle = used ? 'rgba(255,255,255,.15)' : c; ctx.lineWidth = 2; ctx.stroke();
                 ctx.beginPath(); ctx.arc(0, 0, 13, 0, Math.PI * 2); ctx.fillStyle = used ? '#3f3f46' : c; ctx.fill();
                 ctx.strokeStyle = o.type === 'BLACK_ORB' ? '#fff' : '#000'; ctx.lineWidth = 2.5; ctx.stroke();
                 if (o.type === 'GRAVITY_ORB' || o.type === 'GREEN_ORB') { ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke(); }
+                if (o.type === 'SPIDER_ORB') { ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-6, -6); ctx.lineTo(6, 6); ctx.moveTo(6, -6); ctx.lineTo(-6, 6); ctx.moveTo(0, -8); ctx.lineTo(0, 8); ctx.stroke(); }
                 break;
             }
-            case 'PAD': case 'PINK_PAD': case 'RED_PAD': case 'BLUE_PAD': {
+            case 'PAD': case 'PINK_PAD': case 'RED_PAD': case 'BLUE_PAD': case 'SPIDER_PAD': {
                 const c = ORB_COLORS[OBJ[o.type].kind];
                 ctx.beginPath(); ctx.moveTo(-17, 20); ctx.quadraticCurveTo(0, 6, 17, 20); ctx.closePath();
                 ctx.fillStyle = c; ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.stroke();
@@ -1879,7 +2038,8 @@ const SECRET_LEVELS = [
                 break;
             }
             case 'COLOR_TRIGGER': case 'GROUND_TRIGGER': case 'SHAKE_TRIGGER': case 'FLASH_TRIGGER': case 'ZOOM_TRIGGER':
-            case 'MOVE_TRIGGER': case 'TOGGLE_TRIGGER': case 'MUSIC_TRIGGER': case 'MESSAGE_TRIGGER': {
+            case 'MOVE_TRIGGER': case 'TOGGLE_TRIGGER': case 'MUSIC_TRIGGER': case 'MESSAGE_TRIGGER':
+            case 'FADE_TRIGGER': case 'EMOJI_TRIGGER': case 'ROTATE_TRIGGER': {
                 if (G.mode !== 'EDITOR') break;
                 const info = TRIG[o.type];
                 ctx.globalAlpha *= 0.4; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 4]);
@@ -2117,7 +2277,8 @@ const SECRET_LEVELS = [
         // Объекты
         const objs = G.mode === 'EDITOR' ? editorLevel.objects : G.L.objs;
         const vx0 = cam.x - 80, vx1 = cam.x + VIEW_W + 80;
-        for (const o of objs) if (o.x > vx0 && o.x < vx1) drawObject(o, t, cam);
+        for (const o of objs) if (o.layer === 'back' && o.x > vx0 && o.x < vx1) drawObject(o, t, cam);
+        for (const o of objs) if (o.layer !== 'back' && o.layer !== 'front' && o.x > vx0 && o.x < vx1) drawObject(o, t, cam);
         if (G.mode !== 'EDITOR' && G.S && G.L.movers && G.L.movers.length) for (const o of activeMovers(G.L, G.S)) {
             if (o.x <= vx0 || o.x >= vx1 || o.alpha === 0) continue;
             ctx.globalAlpha = o.alpha === undefined ? 1 : o.alpha;
@@ -2206,6 +2367,7 @@ const SECRET_LEVELS = [
             }
             if (G.deathTimer === 0) drawPlayer(S, cam);
         }
+        for (const o of objs) if (o.layer === 'front' && o.x > vx0 && o.x < vx1) drawObject(o, t, cam);
 
         // частицы
         G.particles.forEach(p => {
@@ -2270,13 +2432,13 @@ const SECRET_LEVELS = [
     // Редактор: номера групп на объектах и «призрак» того, куда уедет группа выбранного триггера
     function drawGroupsInEditor(cam, t) {
         const vx0 = cam.x - 80, vx1 = cam.x + VIEW_W + 80;
-        const sel = selObj && ['MOVE_TRIGGER', 'TOGGLE_TRIGGER', 'FADE_TRIGGER', 'EMOJI_TRIGGER'].includes(selObj.type) ? selObj : null;
+        const sel = selObj && ['MOVE_TRIGGER', 'TOGGLE_TRIGGER', 'FADE_TRIGGER', 'EMOJI_TRIGGER', 'ROTATE_TRIGGER'].includes(selObj.type) ? selObj : null;
         for (const o of editorLevel.objects) {
             if (!o.group || o.x < vx0 || o.x > vx1) continue;
             const hl = sel && sel.target === o.group;
             if (hl) {
                 at(cam, o.x, o.y + 40);
-                ctx.strokeStyle = sel.type === 'TOGGLE_TRIGGER' ? (sel.show ? '#3dff6e' : '#ff3b3b') : sel.type === 'FADE_TRIGGER' ? '#a78bfa' : sel.type === 'EMOJI_TRIGGER' ? '#facc15' : '#fb923c'; ctx.lineWidth = 3; ctx.strokeRect(-2, -2, 44, 44);
+                ctx.strokeStyle = sel.type === 'TOGGLE_TRIGGER' ? (sel.show ? '#3dff6e' : '#ff3b3b') : sel.type === 'FADE_TRIGGER' ? '#a78bfa' : sel.type === 'EMOJI_TRIGGER' ? '#facc15' : sel.type === 'ROTATE_TRIGGER' ? '#22d3ee' : '#fb923c'; ctx.lineWidth = 3; ctx.strokeRect(-2, -2, 44, 44);
                 if (sel.type === 'EMOJI_TRIGGER' && o.type === 'EMOJI') {
                     // показать, на что сменится смайлик
                     at(cam, o.x + 36, o.y + 44); ctx.font = '16px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -2291,6 +2453,22 @@ const SECRET_LEVELS = [
             ctx.fillStyle = hl ? '#fb923c' : 'rgba(0,0,0,.7)'; ctx.fillRect(0, 0, 20, 12);
             ctx.fillStyle = '#fff'; ctx.font = 'bold 9px JetBrains Mono, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
             ctx.fillText(tr('Г', 'G') + o.group, 2, 2);
+        }
+        if (sel && sel.type === 'ROTATE_TRIGGER' && sel.deg % 360 !== 0) {
+            // «призрак»: как будет стоять группа после поворота
+            const grp = editorLevel.objects.filter(o => o.group === sel.target && OBJ[o.type].cat !== 'trigger');
+            if (grp.length) {
+                const xs = grp.map(o => o.x + 20), ys = grp.map(o => o.y + 20);
+                const pc = [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
+                ctx.globalAlpha = 0.35;
+                grp.forEach(o => {
+                    let cx = o.x + 20, cy = o.y + 20;
+                    if (sel.rmode === 'group') { const [u, v] = rotPt(cx - pc[0], cy - pc[1], sel.deg); cx = pc[0] + u; cy = pc[1] + v; }
+                    drawObject(Object.assign({}, o, { x: cx - 20, y: cy - 20, rotation: (o.rotation || 0) + sel.deg }), t, cam);
+                });
+                ctx.globalAlpha = 1;
+                if (sel.rmode === 'group') { at(cam, pc[0], pc[1]); ctx.fillStyle = '#22d3ee'; ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill(); }
+            }
         }
         if (sel && sel.type === 'MOVE_TRIGGER' && (sel.dx || sel.dy)) {
             const grp = editorLevel.objects.filter(o => o.group === sel.target && !(OBJ[o.type].cat === 'trigger'));
@@ -2313,8 +2491,9 @@ const SECRET_LEVELS = [
             if (o.x < vx0 || o.x > vx1) continue;
             const d = OBJ[o.type]; if (!d || NON_GAMEPLAY[d.cat]) continue;
             const r = o.rect || objRect(o);
-            ctx.strokeStyle = d.cat === 'hazard' ? '#ff3b3b' : d.cat === 'solid' ? '#38bdf8' : '#3dff6e';
-            if (d.circle) { at(cam, o.x + 20, o.y + 20); ctx.beginPath(); ctx.arc(0, 0, d.circle, 0, Math.PI * 2); ctx.stroke(); }
+            ctx.strokeStyle = d.cat === 'hazard' ? '#ff3b3b' : d.cat === 'solid' ? '#38bdf8' : d.cat === 'platform' ? '#a78bfa' : '#3dff6e';
+            const cr = circleOf(o);
+            if (cr) { at(cam, o.x + 20, o.y + 20); ctx.beginPath(); ctx.arc(0, 0, cr, 0, Math.PI * 2); ctx.stroke(); }
             else { at(cam, r.x0, r.y1); ctx.strokeRect(0, 0, r.x1 - r.x0, r.y1 - r.y0); }
         }
         if (G.mode !== 'EDITOR' && G.S && !G.S.dead) {
@@ -2335,7 +2514,7 @@ const SECRET_LEVELS = [
         const kx = w / maxX, ky = h / 600;
         for (const o of objs) {
             const d = OBJ[o.type]; if (!d) continue;
-            ctx.fillStyle = d.cat === 'hazard' ? '#ff6b6b' : d.cat === 'solid' ? '#e4e4e7' : d.cat === 'portal' ? portalColor(o.type) : d.cat === 'deco' ? 'rgba(255,255,255,.3)' : '#3dff6e';
+            ctx.fillStyle = d.cat === 'hazard' ? '#ff6b6b' : d.cat === 'solid' || d.cat === 'platform' ? '#e4e4e7' : d.cat === 'portal' ? portalColor(o.type) : d.cat === 'deco' ? 'rgba(255,255,255,.3)' : '#3dff6e';
             ctx.fillRect(x + o.x * kx, y + h - Math.min(600, o.y + 40) * ky, Math.max(1.5, 40 * kx), Math.max(1.5, 40 * ky));
         }
         if (G.showPath && G.lastPath.length) { ctx.fillStyle = 'rgba(255,255,255,.6)'; G.lastPath.forEach(([px, py], i) => { if (i % 4 === 0) ctx.fillRect(x + px * kx, y + h - Math.min(600, py) * ky, 1.5, 1.5); }); }
@@ -2368,6 +2547,9 @@ const SECRET_LEVELS = [
         EMOJI_TRIGGER: { icon: '🔁', bg: '#ca8a04', ru: 'Смена смайлика', en: 'Change emoji',
             what: ['Меняет все смайлики с нужным номером группы на другой смайлик. Например, босс 😈 становится злым 😡, а в конце — 💀. Сначала дай смайлику номер группы.', 'Changes every emoji with the group number to another emoji. For example the boss 😈 turns 😡 and then 💀. Give the emoji a group number first.'],
             label: o => `${tr('Г', 'G')}${o.target} → ${o.emoji}` },
+        ROTATE_TRIGGER: { icon: '🔄', bg: '#0891b2', ru: 'Вращение группы', en: 'Rotate group',
+            what: ['Вращает группу объектов. «Каждый на месте» — объекты крутятся вокруг себя, «вся группа» — группа поворачивается вокруг своего центра, как стрелка часов. Хитбоксы крутятся вместе с объектами.', 'Rotates a group. "Each in place" spins every object around itself, "whole group" turns the group around its center like a clock hand. Hitboxes rotate too.'],
+            label: o => `${tr('Г', 'G')}${o.target} ${o.deg}°` },
         MUSIC_TRIGGER: { icon: '🎵', bg: '#db2777', ru: 'Смена музыки', en: 'Change music',
             what: ['С этого места играет другая песня.', 'Another song starts playing from here.'], label: o => songName(o.song) },
         MESSAGE_TRIGGER: { icon: '💬', bg: '#64748b', ru: 'Сообщение', en: 'Message',
@@ -2379,8 +2561,12 @@ const SECRET_LEVELS = [
         FLASH_TRIGGER: [['color', 'color', 'Цвет вспышки', 'Flash color'], ['dur', 'num', 'Длительность, сек', 'Duration, s', 0.1, 5, 0.1]],
         SHAKE_TRIGGER: [['power', 'num', 'Сила (1 — слабо, 10 — очень сильно)', 'Power (1 weak — 10 very strong)', 1, 10, 1], ['dur', 'num', 'Длительность, сек', 'Duration, s', 0.1, 5, 0.1]],
         ZOOM_TRIGGER: [['zoom', 'num', 'Зум (0,5 — дальше, 2 — ближе)', 'Zoom (0.5 far — 2 close)', 0.5, 2, 0.1], ['dur', 'num', 'Плавность, сек (0 — сразу)', 'Smoothness, s (0 = instant)', 0, 5, 0.1]],
+        ROTATE_TRIGGER: [['target', 'num', 'Какую группу вращать', 'Group to rotate', 1, 99, 1], ['deg', 'num', 'Угол, градусов (минус — против часовой, 360 — полный оборот)', 'Angle, degrees (minus = counterclockwise)', -3600, 3600, 15],
+            ['dur', 'num', 'За сколько секунд (0 — сразу)', 'Over how many seconds (0 = instant)', 0, 20, 0.1],
+            ['rmode', 'sel', 'Как вращать', 'How', [['self', 'каждый объект на месте', 'each object in place'], ['group', 'вся группа вокруг центра', 'whole group around its center']]]],
         MOVE_TRIGGER: [['target', 'num', 'Какую группу двигать', 'Group to move', 1, 99, 1], ['dx', 'num', 'Вправо, блоков (минус — влево)', 'Right, blocks (minus = left)', -40, 40, 0.5],
-            ['dy', 'num', 'Вверх, блоков (минус — вниз)', 'Up, blocks (minus = down)', -20, 20, 0.5], ['dur', 'num', 'Время движения, сек (0 — сразу)', 'Move time, s (0 = instant)', 0, 10, 0.1]],
+            ['dy', 'num', 'Вверх, блоков (минус — вниз)', 'Up, blocks (minus = down)', -20, 20, 0.5], ['dur', 'num', 'Время движения, сек (0 — сразу)', 'Move time, s (0 = instant)', 0, 10, 0.1],
+            ['loops', 'num', 'Сколько раз повторить', 'Repeat times', 1, 50, 1], ['pingpong', 'sel', 'Как двигаться', 'How', [[false, 'только туда (повторы складываются)', 'one way (repeats add up)'], [true, 'туда и обратно', 'there and back']]]],
         TOGGLE_TRIGGER: [['target', 'num', 'Какая группа', 'Which group', 1, 99, 1], ['show', 'sel', 'Что сделать', 'Action', [[false, 'Скрыть', 'Hide'], [true, 'Показать', 'Show']]]],
         FADE_TRIGGER: [['target', 'num', 'Какая группа', 'Which group', 1, 99, 1], ['opacity', 'num', 'Видимость, % (0 — исчезнуть, 100 — появиться)', 'Visibility, % (0 vanish — 100 appear)', 0, 100, 10],
             ['dur', 'num', 'За сколько секунд (0 — сразу)', 'Over how many seconds (0 = instant)', 0, 10, 0.1],
@@ -2392,6 +2578,9 @@ const SECRET_LEVELS = [
     const EMOJI_PICKS = ['💀', '😀', '🙂', '😐', '😢', '😭', '😡', '😎', '😱', '😈', '👻', '🤖', '🤡', '😴', '🥳', '🔥', '⭐', '❤️', '💔', '💥'];
     function groupCount(g) { return editorLevel.objects.filter(o => o.group === g && !OBJ[o.type].cat.includes('trigger')).length; }
 
+    const SHAPE_LIST = [["circle", "⚪", "Круг", "Circle"], ["ring", "⭕", "Кольцо", "Ring"], ["square", "⬜", "Квадрат", "Square"], ["triangle", "🔺", "Треугольник", "Triangle"], ["diamond", "🔷", "Ромб", "Diamond"], ["hexagon", "⬡", "Шестиугольник", "Hexagon"], ["star", "⭐", "Звезда", "Star"], ["heart", "❤️", "Сердце", "Heart"], ["plus", "➕", "Плюс", "Plus"], ["xmark", "✖️", "Крестик", "Cross"], ["cloud", "☁️", "Облако", "Cloud"], ["bush", "🌳", "Куст", "Bush"], ["tree", "🌲", "Ёлка", "Tree"], ["flower", "🌸", "Цветок", "Flower"], ["mushroom", "🍄", "Гриб", "Mushroom"], ["moon", "🌙", "Луна", "Moon"], ["sun", "☀️", "Солнце", "Sun"], ["bolt", "⚡", "Молния", "Bolt"], ["crystal", "💎", "Кристалл", "Crystal"], ["flame", "🔥", "Огонь", "Flame"], ["waves", "🌊", "Волны", "Waves"], ["gear", "⚙️", "Шестерёнка", "Gear"], ["pillar", "🏛", "Колонна", "Pillar"], ["spiral", "🌀", "Спираль", "Spiral"], ["dots", "⠿", "Точки", "Dots"], ["rays", "✴️", "Лучи", "Rays"], ["grass", "🌱", "Трава", "Grass"], ["eye", "👁", "Глаз", "Eye"], ["note", "🎵", "Нота", "Note"], ["frame", "🔳", "Рамка", "Frame"], ["stripe", "➖", "Полоса", "Stripe"]];
+    const SHAPE_COLORS = { cloud: '#e0f2fe', bush: '#22c55e', tree: '#16a34a', flower: '#f472b6', mushroom: '#ef4444', moon: '#fde68a', sun: '#facc15', bolt: '#facc15',
+        crystal: '#67e8f9', flame: '#f97316', waves: '#38bdf8', grass: '#4ade80', heart: '#f43f5e', star: '#fde047', note: '#ffffff', eye: '#ffffff' };
     // ---------- Редактор ----------
     const TABS = {
         SELECT: { icon: '👆', ru: 'Выбор', en: 'Select', tools: [['SELECT', '👆', 'Выбрать и двигать', 'Select & move']] },
@@ -2403,19 +2592,22 @@ const SECRET_LEVELS = [
             ['GRAV_DOWN_PORTAL', '⬇️', 'Гравитация вниз', 'Gravity down'], ['GRAV_UP_PORTAL', '⬆️', 'Гравитация вверх', 'Gravity up'],
             ['MINI_PORTAL', '🔹', 'Мини', 'Mini'], ['BIG_PORTAL', '🔷', 'Обычный размер', 'Normal size'],
             ['SPEED_05', '🐢', 'Скорость 0.5x', 'Speed 0.5x'], ['SPEED_1', '▶', 'Скорость 1x', 'Speed 1x'], ['SPEED_2', '⏩', 'Скорость 2x', 'Speed 2x'],
-            ['SPEED_3', '🚀', 'Скорость 3x', 'Speed 3x'], ['SPEED_4', '⚡', 'Скорость 4x', 'Speed 4x']] },
+            ['SPEED_3', '🚀', 'Скорость 3x', 'Speed 3x'], ['SPEED_4', '⚡', 'Скорость 4x', 'Speed 4x'], ['TELEPORT', '🌀', 'Телепорт (вверх/вниз)', 'Teleport (up/down)']] },
         ORBS: { icon: '⚪', ru: 'Орбы', en: 'Orbs', tools: [
             ['ORB', '🟡', 'Жёлтый орб', 'Yellow orb'], ['PINK_ORB', '🩷', 'Розовый орб', 'Pink orb'], ['RED_ORB', '🔴', 'Красный орб', 'Red orb'],
-            ['GRAVITY_ORB', '🔵', 'Синий (гравитация)', 'Blue (gravity)'], ['GREEN_ORB', '🟢', 'Зелёный (грав.+прыжок)', 'Green (grav+jump)'], ['BLACK_ORB', '⚫', 'Чёрный (вниз)', 'Black (down)']] },
+            ['GRAVITY_ORB', '🔵', 'Синий (гравитация)', 'Blue (gravity)'], ['GREEN_ORB', '🟢', 'Зелёный (грав.+прыжок)', 'Green (grav+jump)'], ['BLACK_ORB', '⚫', 'Чёрный (вниз)', 'Black (down)'],
+            ['SPIDER_ORB', '🟣', 'Паучий орб (переброс)', 'Spider orb (teleport)']] },
         PADS: { icon: '🟨', ru: 'Батуты', en: 'Pads', tools: [
-            ['PAD', '🟨', 'Жёлтый батут', 'Yellow pad'], ['PINK_PAD', '🟪', 'Розовый батут', 'Pink pad'], ['RED_PAD', '🟥', 'Красный батут', 'Red pad'], ['BLUE_PAD', '🟦', 'Синий (гравитация)', 'Blue (gravity)']] },
+            ['PAD', '🟨', 'Жёлтый батут', 'Yellow pad'], ['PINK_PAD', '🟪', 'Розовый батут', 'Pink pad'], ['RED_PAD', '🟥', 'Красный батут', 'Red pad'], ['BLUE_PAD', '🟦', 'Синий (гравитация)', 'Blue (gravity)'], ['SPIDER_PAD', '🕸', 'Паучий батут (переброс)', 'Spider pad (teleport)']] },
         SPIKES: { icon: '🔺', ru: 'Шипы и пилы', en: 'Hazards', tools: [
             ['SPIKE', '🔺', 'Шип', 'Spike'], ['SMALL_SPIKE', '▴', 'Маленький шип', 'Small spike'], ['GROUND_SPIKES', '〰️', 'Колючки', 'Ground spikes'], ['SAW', '⚙️', 'Пила', 'Saw']] },
-        BLOCKS: { icon: '⬛', ru: 'Блоки', en: 'Blocks', tools: [['BLOCK', '⬛', 'Блок', 'Block'], ['SLAB', '▬', 'Полублок', 'Slab']] },
+        BLOCKS: { icon: '⬛', ru: 'Блоки', en: 'Blocks', tools: [['BLOCK', '⬛', 'Блок', 'Block'], ['SLAB', '▬', 'Полублок', 'Slab'], ['PLATFORM', '➖', 'Платформа (снизу насквозь)', 'One-way platform']] },
+        HITBOX: { icon: '🔲', ru: 'Хитбоксы', en: 'Hitboxes', tools: [['HB_SOLID', '🟦', 'Твёрдый хитбокс', 'Solid hitbox'], ['HB_HAZARD', '🟥', 'Опасный хитбокс', 'Hazard hitbox'], ['HB_CIRCLE', '🔴', 'Круглый хитбокс', 'Circle hitbox']] },
         OTHER: { icon: '🏁', ru: 'Старт, монеты, финиш', en: 'Start, coins, goal', tools: [['START_POS', '🚩', 'Стартовая позиция', 'Start position'], ['COIN', '🪙', 'Монета', 'Coin'], ['GOAL', '🏁', 'Финиш', 'Goal']] },
         TRIGGERS: { icon: '⚙️', ru: 'Триггеры', en: 'Triggers', tools: Object.entries(TRIG).map(([k, v]) => [k, v.icon, v.ru, v.en]) },
         EMOJI: { icon: '😀', ru: 'Смайлики', en: 'Emoji', tools: [...["💀", "😀", "🙂", "😐", "😢", "😭", "😡", "😎", "😱", "🤔", "😴", "🥳", "😈", "🤡", "👻", "🤖", "👍", "👎", "❤️", "💔", "🔥", "⭐", "⚡", "💎", "👑", "🎉", "⚠️", "❗", "❓", "👀", "➡️", "⬆️", "⬇️", "⬅️", "🏁", "🎵"].map(e => ['EMOJI:' + e, e, '', '']), ['EMOJI:custom', '✏️', 'Свой смайлик', 'Custom']] },
         DECO: { icon: '✨', ru: 'Декор', en: 'Decor', tools: [['TEXT', '🔤', 'Надпись', 'Text'], ['ARROW', '➡️', 'Стрелка', 'Arrow'], ['DECO_STAR', '⭐', 'Звёздочка', 'Star'], ['DECO_LIGHT', '💡', 'Огонёк', 'Light'], ['DECO_CHAIN', '⛓️', 'Цепь', 'Chain']] },
+        SHAPES: { icon: '🔷', ru: 'Фигуры', en: 'Shapes', tools: SHAPE_LIST.map(([id, icon, ru, en]) => ['SHAPE:' + id, icon, ru, en]) },
         DELETE: { icon: '❌', ru: 'Удалитель', en: 'Eraser', tools: [['ERASER', '❌', 'Удалитель', 'Eraser']] }
     };
     let activeTab = 'MODES', activeTool = 'CUBE_PORTAL', currentRotation = 0, hoverCell = null;
@@ -2446,6 +2638,18 @@ const SECRET_LEVELS = [
             info.innerHTML = tr('<b>Как выделять:</b> клик по объекту — выбрать его. <b>Ещё клик по той же клетке</b> — выбрать объект под ним (например, блок под смайликом). ' +
                 '<b>Протяни рамку</b> по пустому месту — выделятся все объекты внутри. <b>Shift + клик</b> — добавить или убрать объект. <b>Shift + рамка</b> работает с любым инструментом. <b>Ctrl + A</b> — выделить всё, <b>V</b> — включить/выключить выделение.',
                 '<b>How to select:</b> click an object. <b>Click the same cell again</b> to pick the object under it. <b>Drag a box</b> on empty space to select everything inside. <b>Shift + click</b> adds or removes. <b>Shift + drag</b> works with any tool. <b>Ctrl + A</b> selects all, <b>V</b> toggles select mode.');
+            c.classList.add('flex-wrap');
+            c.appendChild(info);
+            return;
+        }
+        if (activeTab === 'HITBOX' || activeTab === 'SHAPES') {
+            const info = document.createElement('div');
+            info.className = 'w-full text-xs text-zinc-300 bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 mt-1 leading-relaxed';
+            info.innerHTML = activeTab === 'HITBOX'
+                ? tr('<b>Хитбоксы невидимы в игре</b> — их видно только в редакторе. 🟦 твёрдый — как стена или пол, 🟥 опасный — убивает, 🔴 круглый — убивает в круге. Размер и радиус — в панели. Так «одевают» декор: рисуешь монстра из фигур, а внутрь ставишь хитбокс.',
+                     '<b>Hitboxes are invisible in the game</b> — only the editor shows them. 🟦 solid works like a wall, 🟥 hazard kills, 🔴 circle kills inside a circle. Size and radius are in the panel. Use them inside decor made of shapes.')
+                : tr('<b>Фигуры — это декор</b>: сквозь них можно проходить. Цвет, прозрачность, свечение и слой (за блоками или перед игроком) — в панели. Размер и поворот — в строках «Масштаб» и «Поворот».',
+                     '<b>Shapes are decoration</b>: you pass through them. Color, opacity, glow and layer are in the panel. Size and angle are in the Scale and Rotate rows.');
             c.classList.add('flex-wrap');
             c.appendChild(info);
             return;
@@ -2622,6 +2826,7 @@ const SECRET_LEVELS = [
                 <span class="font-black">⚡ ${tr('Быстро', 'Quick')}:</span>
                 ${btn('q:MOVE_TRIGGER', '🚚 ' + (quickObjs.every(o => o.y < 0) ? tr('Вылезти из пола', 'Rise from the floor') : tr('Двигать', 'Move')), 'bg-orange-500 text-black')}
                 ${btn('q:FADE_TRIGGER', '🌫 ' + tr('Растворить', 'Fade out'))}${btn('q:TOGGLE_TRIGGER', '👁 ' + tr('Спрятать', 'Hide'))}
+                ${btn('q:ROTATE_TRIGGER', '🔄 ' + tr('Вращать', 'Rotate'))}
                 ${quickObjs.some(o => o.type === 'EMOJI') ? btn('q:EMOJI_TRIGGER', '🔁 ' + tr('Сменить смайлик', 'Change emoji')) : ''}
                 <span class="text-zinc-400">${tr('группа назначится сама, триггер встанет на 6 блоков раньше', 'the group is set for you; the trigger goes 6 blocks earlier')}</span></div>` : '';
         const common = btn('dup', '⧉ ' + tr('Дублировать', 'Duplicate')) + btn('copy', '📋 ' + tr('Копировать', 'Copy')) + btn('rot', '🔄 ' + tr('Повернуть', 'Rotate')) +
@@ -2642,6 +2847,12 @@ const SECRET_LEVELS = [
                 ${[[5, '1/8'], [10, '1/4'], [20, '1/2'], [40, tr('блок', 'block')]].map(([v, l]) => `<button data-step="${v}" class="px-2 py-1 rounded-lg ${moveStep === v ? 'bg-white text-black' : 'bg-zinc-800'} font-bold">${l}</button>`).join('')}
                 ${btn('mvL', '←')}${btn('mvU', '↑')}${btn('mvD', '↓')}${btn('mvR', '→')}
                 <span class="text-zinc-400">${tr('или Shift + стрелки; Q / E — поворот на 15°', 'or Shift + arrows; Q / E rotate 15°')}</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5">
+                <span class="font-black w-28">📏 ${tr('Масштаб', 'Scale')}</span>
+                ${[0.5, 0.75, 1, 1.5, 2, 3].map(v => btn('scale' + v, '×' + String(v).replace('.', ','), (selSet[0].scale || 1) === v ? 'bg-white text-black' : 'bg-zinc-800')).join('')}
+                <input id="propScale" type="number" min="0.25" max="4" step="0.05" value="${selSet[0].scale || 1}" class="w-16 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-700 font-mono font-bold text-center">
+                <span class="text-zinc-400">${tr('хитбокс растёт вместе с объектом', 'the hitbox grows with the object')}</span>
             </div>` + (tilted ? `<div class="text-amber-300">⚠ ${tr('Блок или шип, повёрнутый не на 90°, касается игрока по рамке вокруг себя. Включи 🔲 Хитбоксы, чтобы её увидеть.', 'A block or spike not turned by 90° touches the player by the box around it. Turn on 🔲 Hitboxes to see it.')}</div>` : '');
         if (selSet.length > 1) {
             box.innerHTML = `<div class="flex flex-wrap items-center gap-2"><span class="font-black text-sm">👆 ${tr('Выбрано объектов', 'Selected objects')}: ${selSet.length}</span>
@@ -2658,6 +2869,23 @@ const SECRET_LEVELS = [
                 <span class="font-mono text-zinc-400">x:${+(o.x / 40).toFixed(3)} y:${+(o.y / 40).toFixed(3)}</span><span class="flex-1"></span>${common}</div>` + quick + transform;
             const sizeBtns = (cur) => [[1, 'Маленький', 'Small'], [2, 'Средний', 'Medium'], [3, 'Большой', 'Large']].map(([v, r2, e2]) =>
                 `<button data-a="size${v}" class="px-2.5 py-1 rounded-lg ${cur === v ? 'bg-white text-black' : 'bg-zinc-800'} font-bold">${tr(r2, e2)}</button>`).join('');
+            const numIn = (id, label, val, lo, hi, step) => `<label class="flex items-center gap-1.5"><span class="text-zinc-300">${label}</span><input id="${id}" type="number" min="${lo}" max="${hi}" step="${step}" value="${val}" class="w-20 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-700 font-mono font-bold"></label>`;
+            if (OBJ[o.type].sized) html += `<div class="flex flex-wrap items-center gap-3">${numIn('propW', tr('Ширина, блоков', 'Width, blocks'), o.w || 1, 0.25, 20, 0.25)}${numIn('propH', tr('Высота, блоков', 'Height, blocks'), o.h || 1, 0.25, 20, 0.25)}
+                <span class="text-zinc-400">${o.type === 'HB_SOLID' ? tr('🟦 невидимая стена: на неё можно встать, в бок — разбиться', '🟦 invisible wall: stand on it, crash into its side') : tr('🟥 невидимая зона: коснулся — проиграл', '🟥 invisible zone: touch it and you lose')}</span></div>`;
+            if (o.type === 'HB_CIRCLE') html += `<div class="flex flex-wrap items-center gap-3">${numIn('propR', tr('Радиус, блоков', 'Radius, blocks'), o.r || 0.5, 0.1, 10, 0.1)}<span class="text-zinc-400">${tr('🔴 круг с центром в этой клетке — коснулся, проиграл', '🔴 circle centered on this cell — touch it and you lose')}</span></div>`;
+            if (o.type === 'TELEPORT') html += `<div class="flex flex-wrap items-center gap-3">${numIn('propTY', tr('Перенос, блоков (+ вверх, − вниз)', 'Shift, blocks (+ up, − down)'), o.ty == null ? 4 : o.ty, -20, 20, 0.5)}<span class="text-zinc-400">${tr('🌀 игрок мгновенно переносится вверх или вниз', '🌀 the player jumps instantly up or down')}</span></div>`;
+            if (o.type === 'PLATFORM') html += `<div class="text-zinc-400">${tr('➖ на платформу можно встать сверху, а снизу — пролететь насквозь', '➖ stand on it from above, pass through from below')}</div>`;
+            if (TINTABLE[o.type]) html += `<div class="flex flex-wrap items-center gap-2"><span class="text-zinc-300">🎨 ${tr('Свой цвет', 'Own color')}</span>
+                <input id="propTint" type="color" value="${o.color || (o.type === 'BLOCK' || o.type === 'SLAB' || o.type === 'PLATFORM' ? editorLevel.color : '#2a2a2a')}" class="w-10 h-8 bg-transparent">
+                ${o.color ? btn('tintreset', tr('как у уровня', 'level default')) : `<span class="text-zinc-500">${tr('сейчас — как у уровня', 'now — level default')}</span>`}</div>`;
+            if (o.type === 'SHAPE') html += `<div class="flex flex-wrap items-center gap-1">${SHAPE_LIST.map(([id, icon, ru, en]) => `<button data-a="shape:${id}" title="${tr(ru, en)}" class="w-8 h-8 rounded-lg text-base ${o.shape === id ? 'bg-white text-black' : 'bg-zinc-800 hover:bg-zinc-700'}">${icon}</button>`).join('')}</div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <label class="flex items-center gap-1.5 text-zinc-300">${tr('Цвет', 'Color')} <input id="propShapeColor" type="color" value="${o.color || '#ffffff'}" class="w-10 h-8 bg-transparent"></label>
+                    <label class="flex items-center gap-1.5 text-zinc-300">${tr('Видимость', 'Opacity')} <input id="propAlpha" type="range" min="10" max="100" step="5" value="${o.alpha || 100}" class="w-28 accent-sky-400"> <span id="propAlphaVal" class="font-mono w-10">${o.alpha || 100}%</span></label>
+                    <label class="flex items-center gap-1.5 text-zinc-300"><input id="propGlow" type="checkbox" ${o.glow ? 'checked' : ''}> ✨ ${tr('Свечение', 'Glow')}</label>
+                    <label class="flex items-center gap-1.5 text-zinc-300">${tr('Слой', 'Layer')} <select id="propLayer" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1">
+                        ${[['back', 'за блоками', 'behind blocks'], ['normal', 'вместе с блоками', 'with blocks'], ['front', 'перед игроком', 'in front of the player']].map(([v, r2, e2]) => `<option value="${v}" ${o.layer === v ? 'selected' : ''}>${tr(r2, e2)}</option>`).join('')}</select></label>
+                </div>`;
             if (o.type === 'TEXT') {
                 html += `<div class="flex flex-wrap items-center gap-2"><span class="text-zinc-300">✏️ ${tr('Пиши прямо здесь — текст сразу появится на поле', 'Type here — the text shows up on the field right away')}</span></div>
                     <div class="flex flex-wrap items-center gap-2">
@@ -2729,6 +2957,16 @@ const SECRET_LEVELS = [
             box.innerHTML = html;
             const bindInput = (id, fn, ev = 'input') => { const el = $(id); if (el) { el.addEventListener('focus', () => pushUndo(), { once: true }); el.addEventListener(ev, () => { fn(el); saveEditor(); }); } };
             bindInput('propText', el => { o.text = el.value; freshTextObj = null; });
+            const clampNum = (el, lo, hi) => { const v = Number(String(el.value).replace(',', '.')); return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : null; };
+            bindInput('propW', el => { const v = clampNum(el, 0.25, 20); if (v != null) o.w = v; }, 'change');
+            bindInput('propH', el => { const v = clampNum(el, 0.25, 20); if (v != null) o.h = v; }, 'change');
+            bindInput('propR', el => { const v = clampNum(el, 0.1, 10); if (v != null) o.r = v; }, 'change');
+            bindInput('propTY', el => { const v = clampNum(el, -20, 20); if (v != null) o.ty = v; }, 'change');
+            bindInput('propTint', el => { o.color = el.value; });
+            bindInput('propShapeColor', el => { o.color = el.value; });
+            bindInput('propAlpha', el => { o.alpha = +el.value; const lab = $('propAlphaVal'); if (lab) lab.textContent = el.value + '%'; });
+            bindInput('propGlow', el => { o.glow = el.checked; }, 'change');
+            bindInput('propLayer', el => { o.layer = el.value; }, 'change');
             bindInput('propTColor', el => { o.tcolor = el.value; });
             bindInput('propEmoji', el => { const v = [...el.value.trim()].slice(0, 3).join(''); if (v) { o.emoji = v; lastCustomEmoji = v; } });
             box.querySelectorAll('[data-emo], [data-pick]').forEach(b => b.addEventListener('click', () => { pushUndo(); o.emoji = b.dataset.emo || b.dataset.pick; saveEditor(); renderProps(); }));
@@ -2757,6 +2995,8 @@ const SECRET_LEVELS = [
         box.classList.remove('hidden');
         box.querySelectorAll('[data-a]').forEach(btnEl => btnEl.addEventListener('click', () => propAction(btnEl.dataset.a)));
         box.querySelectorAll('[data-step]').forEach(b2 => b2.addEventListener('click', () => { moveStep = +b2.dataset.step; renderProps(); }));
+        const scIn = $('propScale');
+        if (scIn) scIn.addEventListener('change', () => setSelectionScale(Number(String(scIn.value).replace(',', '.'))));
         const angIn = $('propAngle'), angRange = $('propAngleRange');
         if (angIn) angIn.addEventListener('change', () => { const v = Number(angIn.value.replace(',', '.')); if (Number.isFinite(v)) setSelectionAngle(v); });
         if (angRange) {
@@ -2828,6 +3068,13 @@ const SECRET_LEVELS = [
         });
         saveEditor(); renderProps();
     }
+    function setSelectionScale(v) {
+        if (!Number.isFinite(v)) return;
+        pushUndo();
+        v = Math.max(0.25, Math.min(4, v));
+        selSet.forEach(o => { if (OBJ[o.type].sized || o.type === 'HB_CIRCLE') return; if (v === 1) delete o.scale; else o.scale = v; });
+        saveEditor(); renderProps();
+    }
     function freeGroup() {
         const used = new Set();
         editorLevel.objects.forEach(o => { if (o.group) used.add(o.group); if (o.target) used.add(o.target); });
@@ -2845,7 +3092,7 @@ const SECRET_LEVELS = [
         const b = selBounds(objs);
         const tx = Math.max(0, Math.floor((b.x0 - 6 * GRID) / GRID) * GRID);
         const ty = Math.min(360, Math.max(0, Math.ceil(b.y1 / GRID) * GRID + GRID));
-        const extra = type === 'MOVE_TRIGGER' ? { dy: b.y0 < 0 ? Math.ceil(-b.y0 / GRID) : 2, dur: 0.5 } : type === 'TOGGLE_TRIGGER' ? { show: false } : type === 'FADE_TRIGGER' ? { opacity: 0, dur: 0.5 } : {};
+        const extra = type === 'ROTATE_TRIGGER' ? { deg: 360, dur: 1, rmode: objs.length > 1 ? 'group' : 'self' } : type === 'MOVE_TRIGGER' ? { dy: b.y0 < 0 ? Math.ceil(-b.y0 / GRID) : 2, dur: 0.5 } : type === 'TOGGLE_TRIGGER' ? { show: false } : type === 'FADE_TRIGGER' ? { opacity: 0, dur: 0.5 } : {};
         const trig = normalizeLevel({ objects: [Object.assign({ type, x: tx, y: ty, target: g }, extra)] }).objects[0];
         editorLevel.objects.push(trig);
         saveEditor(); setSelection([trig]);
@@ -2874,6 +3121,9 @@ const SECRET_LEVELS = [
         if (a === 'rot') { rotateSelection(); return; }
         if (a === 'flip') { flipSelection(); return; }
         if (a.startsWith('q:')) { quickTrigger(a.slice(2)); return; }
+        if (a.startsWith('scale')) { setSelectionScale(parseFloat(a.slice(5))); return; }
+        if (a === 'tintreset') { pushUndo(); selSet.forEach(o => { if (TINTABLE[o.type]) delete o.color; }); saveEditor(); renderProps(); return; }
+        if (a.startsWith('shape:')) { pushUndo(); selSet.forEach(o => { if (o.type === 'SHAPE') o.shape = a.slice(6); }); saveEditor(); renderProps(); return; }
         if (a.startsWith('rotby')) { rotateSelectionBy(+a.slice(5)); return; }
         if (a === 'rotset0') { setSelectionAngle(0); return; }
         if (a === 'mvL') { moveSelection(-moveStep, 0); return; }
@@ -2912,22 +3162,29 @@ const SECRET_LEVELS = [
         return { x: sx / k + G.edCamX, y: (canvas.height - sy) / k + G.edCamY, sx, sy };
     }
     // все объекты под мышкой, сверху вниз (последний поставленный — первый)
+    function hitTestObj(o, w) {
+        const d = OBJ[o.type];
+        if (d.sized) return w.x >= o.x && w.x < o.x + (o.w || 1) * GRID && w.y >= o.y && w.y < o.y + (o.h || 1) * GRID;
+        if (d.radial) { const r = Math.max(20, circleOf(o)); return (w.x - o.x - 20) ** 2 + (w.y - o.y - 20) ** 2 <= r * r; }
+        return w.x >= o.x && w.x < o.x + 40 && w.y >= o.y && w.y < o.y + 40;
+    }
     function objectsAtPoint(w) {
         const out = [];
         for (let i = editorLevel.objects.length - 1; i >= 0; i--) {
             const o = editorLevel.objects[i];
-            if (w.x >= o.x && w.x < o.x + 40 && w.y >= o.y && w.y < o.y + 40) out.push(o);
+            if (hitTestObj(o, w)) out.push(o);
         }
         return out;
     }
     function objAtPoint(w) {
         for (let i = editorLevel.objects.length - 1; i >= 0; i--) {
             const o = editorLevel.objects[i];
-            if (w.x >= o.x && w.x < o.x + 40 && w.y >= o.y && w.y < o.y + 40) return i;
+            if (hitTestObj(o, w)) return i;
         }
         return -1;
     }
     function toolObject(tool, x, y) {
+        if (tool.startsWith('SHAPE:')) { const sh = tool.slice(6); return { type: 'SHAPE', x, y, rotation: currentRotation, shape: sh, color: SHAPE_COLORS[sh] || '#ffffff', alpha: 100, layer: 'back' }; }
         if (tool.startsWith('EMOJI:')) { const e = tool.slice(6); return { type: 'EMOJI', x, y, rotation: 0, emoji: e === 'custom' ? (lastCustomEmoji || '🙂') : e, size: emojiSize }; }
         return { type: tool, x, y, rotation: currentRotation, size: tool === 'TEXT' ? textSize : undefined };
     }
@@ -2945,7 +3202,7 @@ const SECRET_LEVELS = [
             const obj = normalizeLevel({ objects: [toolObject(activeTool, cx, cy)] }).objects[0];
             editorLevel.objects.push(obj);
             stats.placed++; statsDirty = true;
-            if (MODE_PORTALS[activeTool] || TRIG[activeTool] || ['TEXT', 'START_POS', 'EMOJI:custom'].includes(activeTool)) {
+            if (MODE_PORTALS[activeTool] || TRIG[activeTool] || ['TEXT', 'START_POS', 'EMOJI:custom', 'HB_SOLID', 'HB_HAZARD', 'HB_CIRCLE', 'TELEPORT'].includes(activeTool) || activeTool.startsWith('SHAPE:')) {
                 setSelection([obj]); saveEditor();
                 // надпись: сразу можно печатать
                 const focusId = activeTool === 'TEXT' ? 'propText' : activeTool === 'EMOJI:custom' ? 'propEmoji' : null;
@@ -3017,7 +3274,7 @@ const SECRET_LEVELS = [
         const nc = { x: Math.floor(w.x / GRID) * GRID, y: Math.floor(w.y / GRID) * GRID };
         const changed = !hoverCell || nc.x !== hoverCell.x || nc.y !== hoverCell.y;
         hoverCell = nc.x >= 0 && nc.y >= MIN_Y && !inMinimap(w) ? nc : null;
-        if (painting && changed && ['BLOCK', 'SLAB', 'SPIKE', 'SMALL_SPIKE', 'GROUND_SPIKES', 'ERASER', 'DECO_STAR', 'DECO_CHAIN'].includes(activeTool)) editorPlace(e);
+        if (painting && changed && ['BLOCK', 'SLAB', 'SPIKE', 'SMALL_SPIKE', 'GROUND_SPIKES', 'ERASER', 'DECO_STAR', 'DECO_CHAIN', 'PLATFORM'].includes(activeTool)) editorPlace(e);
     });
     function finishBoxSelect() {
         const d = edDrag;
@@ -3075,7 +3332,7 @@ const SECRET_LEVELS = [
         delete b.dataset.armed; pushUndo(); editorLevel.objects = []; saveEditor(); setSelection([]); toast(tr('Карта очищена. Вернуть можно кнопкой «Отмена».', 'Map cleared. Undo brings it back.'));
     });
     $('btnExportLevel').addEventListener('click', () => {
-        const data = { format: 'geometry-ai', version: '2.0', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, objects: editorLevel.objects };
+        const data = { format: 'geometry-ai', version: '2.4', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, objects: editorLevel.objects };
         const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -3160,6 +3417,9 @@ const SECRET_LEVELS = [
         ['Ctrl + Z / Ctrl + Y', 'отмена / повтор', 'undo / redo'], ['H', 'показать хитбоксы', 'show hitboxes'], ['Esc', 'снять выделение', 'clear selection'],
         ['Мини-карта внизу', 'клик — прыжок в это место уровня', 'click to jump there'],
         ['⚡ Быстро', 'выдели объекты → «Двигать / Растворить / Спрятать» — группа и триггер появятся сами', 'select objects → Move / Fade / Hide — group and trigger are made for you'],
+        ['🔲 Хитбоксы', 'невидимые в игре стены и зоны смерти любого размера (квадрат или круг)', 'invisible walls and death zones of any size'],
+        ['📏 Масштаб', 'увеличить или уменьшить любой объект от ×0,25 до ×4', 'make any object ×0.25 … ×4'],
+        ['🔷 Фигуры', '31 фигура-декор: цвет, прозрачность, свечение и слой', '31 decor shapes: color, opacity, glow, layer'],
         ['Под полом', 'блоки можно ставить и опускать на 10 блоков под землю (▼ или Shift + ↓), а потом поднять триггером', 'place or lower blocks up to 10 below the ground, then raise them with a trigger'], ['🚩 С позиции', 'тест со стартовой позиции', 'test from the start position']
     ];
     $('btnHelp').addEventListener('click', () => {
