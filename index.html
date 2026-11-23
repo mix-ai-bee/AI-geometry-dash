@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Geometry AI v1.9.1</title>
+    <title>Geometry AI v2.0</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
@@ -45,9 +45,9 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v1.9.1</span>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.0</span>
                 </div>
-                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Триггеры исчезновения и смены смайлика" data-en="Fade and emoji-change triggers">Триггеры исчезновения и смены смайлика</p>
+                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Своя музыка: mp3 и запись с микрофона" data-en="Your own music: mp3 and microphone">Своя музыка: mp3 и запись с микрофона</p>
             </div>
         </button>
         <div class="flex items-center gap-2 flex-wrap">
@@ -63,7 +63,7 @@
         <div id="menuBgSquares" class="absolute inset-0 pointer-events-none"></div>
         <div class="relative text-center">
             <div class="text-5xl md:text-7xl font-black italic tracking-wider text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.45)]" data-ru="ГЕОМЕТРИЯ ИИ" data-en="GEOMETRY AI">ГЕОМЕТРИЯ ИИ</div>
-            <div class="mt-2 font-mono text-zinc-400 text-sm" data-ru="Обновление 1.9 — исчезающие блоки и смайлики!" data-en="Update 1.9 — fading blocks and emoji!">Обновление 1.9 — исчезающие блоки и смайлики!</div>
+            <div class="mt-2 font-mono text-zinc-400 text-sm" data-ru="Обновление 2.0 — своя музыка!" data-en="Update 2.0 — your own music!">Обновление 2.0 — своя музыка!</div>
         </div>
         <div class="relative flex flex-col md:flex-row gap-4 w-full max-w-3xl">
             <button id="btnOfficial" class="menu-btn flex-1 rounded-3xl bg-white text-black p-6 flex flex-col items-center gap-2 shadow-2xl">
@@ -217,6 +217,34 @@
                 </div>
                 <div id="libList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2"></div>
             </div>
+            <div id="musicModal" class="hidden absolute inset-0 bg-black/90 backdrop-blur-md z-30 p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="text-xl font-black">🎤 <span data-ru="Своя музыка" data-en="Your own music">Своя музыка</span></div>
+                    <button data-close class="px-3 py-2 rounded-xl bg-zinc-800 border border-zinc-600 font-black text-xs">✕</button>
+                </div>
+                <div class="grid md:grid-cols-2 gap-3">
+                    <div id="dropZone" class="rounded-2xl border-2 border-dashed border-zinc-600 p-4 flex flex-col gap-2 items-center justify-center text-center">
+                        <div class="text-3xl">📁</div>
+                        <div class="font-black" data-ru="Загрузить mp3 или другой аудиофайл" data-en="Upload an mp3 or other audio file">Загрузить mp3 или другой аудиофайл</div>
+                        <label class="px-4 py-2 rounded-xl bg-white text-black font-black text-sm cursor-pointer"><span data-ru="Выбрать файл" data-en="Choose file">Выбрать файл</span><input id="trackFile" type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a" class="hidden"></label>
+                        <div class="text-xs text-zinc-400" data-ru="…или перетащи файл сюда. До 25 МБ." data-en="…or drop a file here. Up to 25 MB.">…или перетащи файл сюда. До 25 МБ.</div>
+                    </div>
+                    <div class="rounded-2xl border border-zinc-700 bg-zinc-900 p-4 flex flex-col gap-2 items-center text-center">
+                        <div class="text-3xl">🎙</div>
+                        <div class="font-black" data-ru="Записать с микрофона" data-en="Record from the microphone">Записать с микрофона</div>
+                        <button id="btnRec" class="px-4 py-2 rounded-xl bg-red-500 text-white font-black text-sm">⏺ Записать</button>
+                        <div id="recTime" class="font-mono text-sm text-zinc-300"></div>
+                        <div id="recPreview" class="hidden w-full flex flex-col gap-2 items-center">
+                            <audio id="recAudio" controls class="w-full"></audio>
+                            <div class="flex gap-2 w-full"><input id="recName" maxlength="30" class="flex-1 px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-700 text-sm font-bold">
+                            <button id="btnRecSave" class="px-3 py-1.5 rounded-lg bg-white text-black font-black text-sm">💾 <span data-ru="Сохранить" data-en="Save">Сохранить</span></button></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-lg font-black">🎵 <span data-ru="Мои треки" data-en="My tracks">Мои треки</span></div>
+                <div id="trackList" class="flex flex-col gap-2"></div>
+                <div class="text-xs text-zinc-400" data-ru="Свои треки хранятся в этом браузере. В код уровня они не попадают — друг услышит обычную музыку. Чтобы трек звучал в официальном уровне у всех, пришли mp3 автору сайта." data-en="Your tracks are stored in this browser. They are not part of the level code — friends hear a built-in song. To have a track in an official level for everyone, send the mp3 to the site author.">Свои треки хранятся в этом браузере. В код уровня они не попадают — друг услышит обычную музыку. Чтобы трек звучал в официальном уровне у всех, пришли mp3 автору сайта.</div>
+            </div>
             <div id="helpModal" class="hidden absolute inset-0 bg-black/85 backdrop-blur-md z-30 p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
                 <div class="flex items-center justify-between"><div class="text-xl font-black">❓ <span data-ru="Клавиши редактора" data-en="Editor keys">Клавиши редактора</span></div>
                     <button data-close class="px-3 py-2 rounded-xl bg-zinc-800 border border-zinc-600 font-black text-xs">✕</button></div>
@@ -251,6 +279,7 @@
                 <label class="flex items-center gap-1.5 text-xs font-bold text-zinc-300"><span data-ru="Музыка" data-en="Song">Музыка</span>
                     <select id="edLevelSong" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1"></select></label>
                 <div class="flex-1"></div>
+                <button id="btnMusicModal" class="px-3 py-2 rounded-xl bg-pink-500 text-black text-xs font-black">🎤 <span data-ru="Своя музыка" data-en="Own music">Своя музыка</span></button>
                 <button id="btnEdTest" class="px-3.5 py-2 bg-white text-black rounded-xl text-xs font-black">▶ <span data-ru="Тест" data-en="Test">Тест</span></button>
                 <label class="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-zinc-800 border border-zinc-700 text-xs font-bold cursor-pointer" title="Начать тест со стартовой позиции 🚩">
                     <input id="edUseStartPos" type="checkbox" class="accent-emerald-400"> 🚩 <span data-ru="С позиции" data-en="From start pos">С позиции</span></label>
@@ -363,6 +392,11 @@ function objRect(o) {
     };
 }
 
+// Песня уровня: 0–4 — встроенные мелодии, 'c:ID' — свой трек из браузера, 'u:music/файл.mp3' — файл на сайте
+function songKey(v) {
+    if (typeof v === 'string' && /^(c:[\w-]{1,40}|u:music\/[\w.-]{1,80})$/.test(v)) return v;
+    return Math.max(0, Math.min(4, Math.round(Number(v)) || 0));
+}
 const WALL_STYLES = ['classic', 'neon', 'brick', 'glass', 'pixel', 'gold', 'stone', 'ice', 'wood', 'lava'];
 const MODE_NAMES_CORE = ['cube', 'ship', 'ball', 'ufo', 'wave', 'robot', 'spider', 'swing', 'airplane'];
 // Превращает JSON уровня в готовую к игре структуру
@@ -372,7 +406,7 @@ function normalizeLevel(data) {
     return {
         name: data.name || 'Мой уровень',
         color: data.color || '#2563eb',
-        song: data.song || 0,
+        song: songKey(data.song),
         wall: WALL_STYLES.includes(data.wall) ? data.wall : 'classic',
         objects: (data.objects || []).filter(o => o && OBJ[o.type]).map(o => {
             // позиция с точностью до 1/4 пикселя (можно двигать не на целую клетку), угол — любой
@@ -399,7 +433,7 @@ function normalizeLevel(data) {
             if (o.type === 'TOGGLE_TRIGGER') { r.target = Math.round(num(o.target, 1, 1, 99)); r.show = !!o.show; }
             if (o.type === 'EMOJI_TRIGGER') { r.target = Math.round(num(o.target, 1, 1, 99)); r.emoji = [...String(o.emoji || '😡')].slice(0, 3).join('') || '😡'; }
             if (o.type === 'FADE_TRIGGER') { r.target = Math.round(num(o.target, 1, 1, 99)); r.opacity = Math.round(num(o.opacity, 0, 0, 100)); r.dur = num(o.dur, 1, 0, 10); r.keepHit = !!o.keepHit; }
-            if (o.type === 'MUSIC_TRIGGER') r.song = Math.round(num(o.song, 1, 0, 4));
+            if (o.type === 'MUSIC_TRIGGER') r.song = songKey(o.song == null ? 1 : o.song);
             if (o.type === 'MESSAGE_TRIGGER') { r.text = String(o.text == null ? 'Вперёд!' : o.text).slice(0, 60); r.dur = num(o.dur, 2, 0.5, 10); }
             if (o.group != null && Number(o.group) >= 1) r.group = Math.round(num(o.group, 0, 1, 99));
             if (o.type === 'START_POS') {
@@ -1125,16 +1159,63 @@ const OFFICIAL_LEVELS = [
         { name: 'Machinery', bpm: 180, notes: [146.83, 146.83, 293.66, 146.83, 174.61, 174.61, 349.23, 174.61, 130.81, 130.81, 261.63, 130.81, 196, 196, 392, 233.08] },
         { name: 'Final Rush', bpm: 200, notes: [440, 523.25, 659.25, 880, 783.99, 659.25, 523.25, 587.33, 698.46, 880, 1046.5, 880, 698.46, 587.33, 523.25, 493.88] }
     ];
+    // ---------- Свои треки: хранятся в браузере (IndexedDB) ----------
+    const trackDB = {
+        db: null,
+        open() {
+            if (this.db) return Promise.resolve(this.db);
+            return new Promise((res, rej) => {
+                try {
+                    const r = indexedDB.open('gai-tracks', 1);
+                    r.onupgradeneeded = () => r.result.createObjectStore('tracks', { keyPath: 'id' });
+                    r.onsuccess = () => { this.db = r.result; res(this.db); };
+                    r.onerror = () => rej(r.error);
+                } catch (e) { rej(e); }
+            });
+        },
+        async req(mode, fn) {
+            const db = await this.open();
+            return new Promise((res, rej) => { const q = fn(db.transaction('tracks', mode).objectStore('tracks')); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+        },
+        all() { return this.req('readonly', st => st.getAll()); },
+        get(id) { return this.req('readonly', st => st.get(id)); },
+        put(rec) { return this.req('readwrite', st => st.put(rec)); },
+        del(id) { return this.req('readwrite', st => st.delete(id)); }
+    };
+    let trackCache = [];
+    const trackUrls = {};
+    async function trackUrl(key) {
+        if (key.startsWith('u:')) return key.slice(2);
+        const id = key.slice(2);
+        if (trackUrls[id]) return trackUrls[id];
+        try { const t = await trackDB.get(id); return t ? (trackUrls[id] = URL.createObjectURL(t.blob)) : null; } catch (e) { return null; }
+    }
+    function songName(key) {
+        if (typeof key === 'number') return (SONGS[key] || SONGS[0]).name;
+        if (key.startsWith('u:')) return '🎵 ' + key.split('/').pop().replace(/\.[a-z0-9]+$/i, '');
+        const t = trackCache.find(x => 'c:' + x.id === key);
+        return '🎤 ' + (t ? t.name : tr('свой трек', 'custom track'));
+    }
+    function songOptions() {
+        return [...SONGS.map((sg, i) => [i, sg.name, sg.name]), ...trackCache.map(t => ['c:' + t.id, '🎤 ' + t.name, '🎤 ' + t.name])];
+    }
+    function parseSongValue(v) { return /^\d+$/.test(v) ? Number(v) : v; }
+
     class MusicEngine {
-        constructor() { this.ctx = null; this.enabled = store.get('music', true); this.timer = null; this.step = 0; this.song = 0; }
+        constructor() {
+            this.ctx = null; this.enabled = store.get('music', true); this.timer = null; this.step = 0; this.song = 0;
+            this.audio = new Audio(); this.audio.loop = true; this.audioKey = null; this.token = 0; this.fresh = true; this.warned = false;
+        }
         ensure() {
             if (!this.ctx) { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return false; } }
             if (this.ctx.state === 'suspended') this.ctx.resume();
             return true;
         }
         play(song) {
-            if (song !== undefined && song !== this.song) { this.song = song; this.stop(); }
-            if (!this.enabled || this.timer || !this.ensure()) return;
+            if (song !== undefined && song !== this.song) { this.stop(); this.song = song; this.fresh = true; }
+            if (!this.enabled) return;
+            if (typeof this.song === 'string') { this.playCustom(); return; }
+            if (this.timer || !this.ensure()) return;
             const sng = SONGS[this.song] || SONGS[0];
             this.step = 0;
             this.timer = setInterval(() => {
@@ -1156,8 +1237,24 @@ const OFFICIAL_LEVELS = [
                 } catch (e) {}
             }, 60000 / sng.bpm / 2);
         }
-        restart(song) { this.stop(); this.song = song; this.play(); }
-        stop() { if (this.timer) { clearInterval(this.timer); this.timer = null; } }
+        // свой трек: файл из браузера или с сайта; с начала — при новой попытке, с места — после паузы
+        async playCustom() {
+            const key = this.song, token = ++this.token;
+            if (this.audioKey !== key) {
+                const url = await trackUrl(key);
+                if (token !== this.token) return;
+                if (!url) {
+                    if (!this.warned) { this.warned = true; toast(tr('У этого уровня своя музыка автора, у тебя её нет — играет обычная.', 'This level uses the author\'s own music, which you don\'t have — playing a built-in song.')); }
+                    this.song = 0; this.play(); return;
+                }
+                this.audio.src = url; this.audioKey = key; this.fresh = true;
+            }
+            if (this.fresh) { try { this.audio.currentTime = 0; } catch (e) {} this.fresh = false; }
+            this.audio.volume = 0.8;
+            this.audio.play().catch(() => {});
+        }
+        restart(song) { this.stop(); this.song = song; this.fresh = true; this.play(); }
+        stop() { if (this.timer) { clearInterval(this.timer); this.timer = null; } this.token++; try { this.audio.pause(); } catch (e) {} }
         toggle() { this.enabled = !this.enabled; store.set('music', this.enabled); if (this.enabled) this.play(); else this.stop(); }
     }
     const music = new MusicEngine();
@@ -1196,7 +1293,7 @@ const OFFICIAL_LEVELS = [
     function applyLang() {
         document.querySelectorAll('[data-ru]').forEach(el => { const t = el.getAttribute('data-' + currentLang); if (t) el.innerText = t; });
         $('edLevelName').placeholder = tr('Название уровня', 'Level name');
-        refreshAudioButtons(); renderTabs(); renderToolBar(); if (typeof fillWallSelect === 'function') fillWallSelect(); renderLevelCards(); updatePracticeBtn(); renderProps(); refreshMenuIcon();
+        refreshAudioButtons(); renderTabs(); renderToolBar(); if (typeof fillWallSelect === 'function') fillWallSelect(); if (typeof fillSongSelect === 'function') fillSongSelect(); renderLevelCards(); updatePracticeBtn(); renderProps(); refreshMenuIcon();
         if (G.screen === 'ONLINE') renderOnline();
         if (G.screen === 'GARAGE') renderGarage();
         if (G.L) updateHud(true);
@@ -2179,7 +2276,7 @@ const OFFICIAL_LEVELS = [
             what: ['Меняет все смайлики с нужным номером группы на другой смайлик. Например, босс 😈 становится злым 😡, а в конце — 💀. Сначала дай смайлику номер группы.', 'Changes every emoji with the group number to another emoji. For example the boss 😈 turns 😡 and then 💀. Give the emoji a group number first.'],
             label: o => `${tr('Г', 'G')}${o.target} → ${o.emoji}` },
         MUSIC_TRIGGER: { icon: '🎵', bg: '#db2777', ru: 'Смена музыки', en: 'Change music',
-            what: ['С этого места играет другая песня.', 'Another song starts playing from here.'], label: o => (SONGS[o.song] || SONGS[0]).name },
+            what: ['С этого места играет другая песня.', 'Another song starts playing from here.'], label: o => songName(o.song) },
         MESSAGE_TRIGGER: { icon: '💬', bg: '#64748b', ru: 'Сообщение', en: 'Message',
             what: ['Показывает надпись крупно вверху экрана на несколько секунд.', 'Shows big text at the top of the screen for a few seconds.'], label: o => o.text }
     };
@@ -2196,7 +2293,7 @@ const OFFICIAL_LEVELS = [
             ['dur', 'num', 'За сколько секунд (0 — сразу)', 'Over how many seconds (0 = instant)', 0, 10, 0.1],
             ['keepHit', 'sel', 'Когда исчезнет', 'When vanished', [[false, 'пропадает совсем — можно пролететь', 'gone — you can pass'], [true, 'невидимый, но твёрдый — ловушка!', 'invisible but solid — a trap!']]]],
         EMOJI_TRIGGER: [['target', 'num', 'Какая группа', 'Which group', 1, 99, 1], ['emoji', 'emoji', 'На какой смайлик сменить', 'New emoji']],
-        MUSIC_TRIGGER: [['song', 'sel', 'Песня', 'Song', SONGS.map((sg, i) => [i, sg.name, sg.name])]],
+        MUSIC_TRIGGER: [['song', 'sel', 'Песня (свои треки — с 🎤)', 'Song (your tracks have 🎤)', () => songOptions()]],
         MESSAGE_TRIGGER: [['text', 'text', 'Текст сообщения', 'Message text'], ['dur', 'num', 'Сколько секунд показывать', 'Seconds on screen', 0.5, 10, 0.5]]
     };
     const EMOJI_PICKS = ['💀', '😀', '🙂', '😐', '😢', '😭', '😡', '😎', '😱', '😈', '👻', '🤖', '🤡', '😴', '🥳', '🔥', '⭐', '❤️', '💔', '💥'];
@@ -2282,7 +2379,15 @@ const OFFICIAL_LEVELS = [
             c.appendChild(info);
         } else c.classList.remove('flex-wrap');
     }
-    SONGS.forEach((s, i) => { const o = document.createElement('option'); o.value = i; o.textContent = s.name; $('edLevelSong').appendChild(o); });
+    function fillSongSelect() {
+        const sel = $('edLevelSong'); if (!sel) return;
+        sel.innerHTML = '';
+        songOptions().forEach(([v, ru, en]) => { const o = document.createElement('option'); o.value = v; o.textContent = tr(ru, en); sel.appendChild(o); });
+        const add = document.createElement('option'); add.value = '__add'; add.textContent = tr('➕ Своя музыка…', '➕ Your own music…'); sel.appendChild(add);
+        sel.value = String(editorLevel.song);
+        if (sel.value !== String(editorLevel.song)) sel.value = '0';
+    }
+    fillSongSelect();
     function fillWallSelect() {
         const sel = $('edLevelWall'); sel.innerHTML = '';
         WALL_STYLES.forEach(w => { const o = document.createElement('option'); o.value = w; o.textContent = tr(WALL_NAMES[w][0], WALL_NAMES[w][1]); sel.appendChild(o); });
@@ -2302,7 +2407,7 @@ const OFFICIAL_LEVELS = [
         $('pauseModal').classList.add('hidden'); $('winModal').classList.add('hidden');
         $('edLevelName').value = editorLevel.name;
         $('edLevelColor').value = editorLevel.color;
-        $('edLevelSong').value = editorLevel.song;
+        fillSongSelect();
         $('edLevelWall').value = editorLevel.wall || 'classic';
         $('zoomText').innerText = Math.round(G.edZoom * 100) + '%';
         renderProps();
@@ -2311,7 +2416,10 @@ const OFFICIAL_LEVELS = [
     }
     $('edLevelName').addEventListener('input', e => { editorLevel.name = e.target.value; saveEditor(); updateHud(true); });
     $('edLevelColor').addEventListener('input', e => { editorLevel.color = e.target.value; saveEditor(); });
-    $('edLevelSong').addEventListener('change', e => { editorLevel.song = +e.target.value; saveEditor(); music.restart(editorLevel.song); });
+    $('edLevelSong').addEventListener('change', e => {
+        if (e.target.value === '__add') { e.target.value = String(editorLevel.song); openMusicModal(); return; }
+        editorLevel.song = parseSongValue(e.target.value); saveEditor(); music.restart(editorLevel.song);
+    });
     $('btnEdTest').addEventListener('click', () => startLevel({ kind: 'editor' }, 'PLAY'));
     $('btnEdTestAI').addEventListener('click', () => startLevel({ kind: 'editor' }, 'AI'));
 
@@ -2475,7 +2583,7 @@ const OFFICIAL_LEVELS = [
                     if (kind === 'emoji') return `<div class="flex flex-wrap items-center gap-1 w-full">${label}
                         <input id="${id}" maxlength="8" value="${escAttr(o[key])}" class="w-16 px-2 py-1 rounded-lg bg-zinc-950 border-2 border-sky-500 text-xl text-center">
                         ${EMOJI_PICKS.map(e => `<button data-pick="${e}" class="w-8 h-8 rounded-lg text-lg ${o[key] === e ? 'bg-white' : 'bg-zinc-800 hover:bg-zinc-700'}">${e}</button>`).join('')}</div>`;
-                    if (kind === 'sel') return `<label class="flex items-center gap-2">${label}<select id="${id}" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1">${a1.map(([v, r2, e2]) => `<option value="${v}" ${String(v) === String(o[key]) ? 'selected' : ''}>${tr(r2, e2)}</option>`).join('')}</select></label>`;
+                    if (kind === 'sel') return `<label class="flex items-center gap-2">${label}<select id="${id}" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1">${(typeof a1 === 'function' ? a1() : a1).map(([v, r2, e2]) => `<option value="${v}" ${String(v) === String(o[key]) ? 'selected' : ''}>${tr(r2, e2)}</option>`).join('')}</select></label>`;
                     return `<label class="flex items-center gap-2 flex-1 min-w-[220px]">${label}<input id="${id}" maxlength="60" value="${escAttr(o[key])}" class="flex-1 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-700 font-bold"></label>`;
                 }).join('') + '</div>';
                 if (o.type === 'EMOJI_TRIGGER' && groupCount(o.target) && !editorLevel.objects.some(x => x.type === 'EMOJI' && x.group === o.target)) {
@@ -2532,7 +2640,7 @@ const OFFICIAL_LEVELS = [
                 const apply = () => {
                     if (kind === 'num') { let v = Number(el.value.replace(',', '.')); if (!Number.isFinite(v)) return; o[key] = Math.max(lo, Math.min(hi, v)); }
                     else if (kind === 'emoji') { const v = [...el.value.trim()].slice(0, 3).join(''); if (!v) return; o[key] = v; }
-                    else if (kind === 'sel') o[key] = el.value === 'true' ? true : el.value === 'false' ? false : Number(el.value);
+                    else if (kind === 'sel') o[key] = el.value === 'true' ? true : el.value === 'false' ? false : /^-?\d+(\.\d+)?$/.test(el.value) ? Number(el.value) : el.value;
                     else o[key] = el.value;
                     saveEditor();
                 };
@@ -2841,7 +2949,7 @@ const OFFICIAL_LEVELS = [
         delete b.dataset.armed; pushUndo(); editorLevel.objects = []; saveEditor(); setSelection([]); toast(tr('Карта очищена. Вернуть можно кнопкой «Отмена».', 'Map cleared. Undo brings it back.'));
     });
     $('btnExportLevel').addEventListener('click', () => {
-        const data = { format: 'geometry-ai', version: '1.9', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, objects: editorLevel.objects };
+        const data = { format: 'geometry-ai', version: '2.0', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, objects: editorLevel.objects };
         const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -2941,6 +3049,127 @@ const OFFICIAL_LEVELS = [
     $('btnHitboxes').addEventListener('click', () => { G.showHitboxes = !G.showHitboxes; store.set('hitboxes', G.showHitboxes); refreshToggles(); });
     $('btnPathToggle').addEventListener('click', () => { G.showPath = !G.showPath; refreshToggles(); if (G.showPath && !G.lastPath.length) toast(tr('След появится после теста ▶', 'The path appears after a test ▶')); });
     refreshToggles();
+
+    // ---------- Своя музыка: загрузка, запись, список ----------
+    async function refreshTracks() {
+        try { trackCache = ((await trackDB.all()) || []).map(t => ({ id: t.id, name: t.name, duration: t.duration || 0, created: t.created || 0 })).sort((a, b) => b.created - a.created); }
+        catch (e) { trackCache = []; }
+        fillSongSelect();
+        if (!$('musicModal').classList.contains('hidden')) renderTrackList();
+        if (selObj && selObj.type === 'MUSIC_TRIGGER') renderProps();
+    }
+    function fmtTime(sec) { sec = Math.round(sec || 0); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); }
+    function audioDuration(blob) {
+        return new Promise(res => {
+            const a = new Audio(), url = URL.createObjectURL(blob);
+            const done = v => { URL.revokeObjectURL(url); res(v); };
+            a.preload = 'metadata';
+            a.onloadedmetadata = () => done(isFinite(a.duration) ? a.duration : 0);
+            a.onerror = () => done(0);
+            setTimeout(() => done(0), 4000);
+            a.src = url;
+        });
+    }
+    async function saveTrack(blob, name) {
+        const id = 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+        try {
+            await trackDB.put({ id, name: (name || tr('Мой трек', 'My track')).slice(0, 30), blob, type: blob.type, duration: await audioDuration(blob), created: Date.now() });
+            await refreshTracks();
+            toast(tr('Трек сохранён! Нажми «Поставить на уровень».', 'Track saved! Press "Use in level".'));
+            return id;
+        } catch (e) { toast(tr('Не получилось сохранить трек: в браузере нет места или хранилище выключено.', 'Could not save the track: no space or storage is disabled.')); }
+    }
+    const previewAudio = new Audio();
+    let previewId = null;
+    function renderTrackList() {
+        const box = $('trackList'); box.innerHTML = '';
+        if (!trackCache.length) { box.innerHTML = `<div class="text-sm text-zinc-500">${tr('Пока нет своих треков. Загрузи mp3 или запиши с микрофона.', 'No tracks yet. Upload an mp3 or record one.')}</div>`; return; }
+        trackCache.forEach(t => {
+            const inLevel = editorLevel.song === 'c:' + t.id;
+            const row = document.createElement('div');
+            row.className = 'flex flex-wrap items-center gap-2 rounded-xl px-3 py-2 border ' + (inLevel ? 'border-pink-400 bg-pink-500/10' : 'border-zinc-700 bg-zinc-900');
+            row.innerHTML = `<button data-k="play" class="w-9 h-9 rounded-lg bg-zinc-800 font-black">${previewId === t.id ? '⏹' : '▶'}</button>
+                <span class="font-bold flex-1 min-w-[120px] truncate"></span><span class="font-mono text-xs text-zinc-400">${fmtTime(t.duration)}</span>
+                ${inLevel ? `<span class="text-xs font-black text-pink-300">✓ ${tr('играет в уровне', 'used in level')}</span>` : `<button data-k="use" class="px-3 py-1.5 rounded-lg bg-pink-500 text-black font-black text-xs">${tr('Поставить на уровень', 'Use in level')}</button>`}
+                <button data-k="del" class="px-2.5 py-1.5 rounded-lg bg-zinc-800 text-xs">🗑</button>`;
+            row.querySelector('span').textContent = '🎤 ' + t.name;
+            row.querySelector('[data-k="play"]').addEventListener('click', async () => {
+                if (previewId === t.id) { previewAudio.pause(); previewId = null; renderTrackList(); return; }
+                music.stop(); previewAudio.src = await trackUrl('c:' + t.id); previewAudio.currentTime = 0; previewAudio.play().catch(() => {}); previewId = t.id; renderTrackList();
+            });
+            const use = row.querySelector('[data-k="use"]');
+            if (use) use.addEventListener('click', () => {
+                previewAudio.pause(); previewId = null;
+                editorLevel.song = 'c:' + t.id; saveEditor(); fillSongSelect(); music.restart(editorLevel.song); renderTrackList();
+                toast(tr('Теперь в уровне играет «' + t.name + '»', 'The level now plays "' + t.name + '"'));
+            });
+            const del = row.querySelector('[data-k="del"]');
+            del.addEventListener('click', async () => {
+                if (!del.dataset.armed) { del.dataset.armed = '1'; del.textContent = tr('Точно?', 'Sure?'); setTimeout(() => { if (del.isConnected) { delete del.dataset.armed; del.textContent = '🗑'; } }, 3000); return; }
+                try { await trackDB.del(t.id); } catch (e) {}
+                if (editorLevel.song === 'c:' + t.id) { editorLevel.song = 0; saveEditor(); }
+                refreshTracks();
+            });
+            box.appendChild(row);
+        });
+    }
+    previewAudio.addEventListener('ended', () => { previewId = null; renderTrackList(); });
+    function openMusicModal() { refreshTracks(); renderTrackList(); $('musicModal').classList.remove('hidden'); $('recName').placeholder = tr('Название трека', 'Track name'); }
+    $('btnMusicModal').addEventListener('click', openMusicModal);
+    $('musicModal').querySelector('[data-close]').addEventListener('click', () => { previewAudio.pause(); previewId = null; if (G.mode === 'EDITOR') music.restart(editorLevel.song); });
+    async function handleAudioFile(file) {
+        if (!file) return;
+        const okType = /^audio\//.test(file.type) || /\.(mp3|wav|ogg|m4a|aac|flac|webm)$/i.test(file.name);
+        if (!okType) { toast(tr('Это не аудиофайл. Подойдут mp3, wav, ogg, m4a.', 'Not an audio file. mp3, wav, ogg, m4a work.')); return; }
+        if (file.size > 25 * 1024 * 1024) { toast(tr('Файл больше 25 МБ — выбери покороче или сожми его.', 'The file is over 25 MB — pick a shorter one.')); return; }
+        await saveTrack(file, file.name.replace(/\.[a-z0-9]+$/i, ''));
+    }
+    $('trackFile').addEventListener('change', e => { handleAudioFile(e.target.files[0]); e.target.value = ''; });
+    $('dropZone').addEventListener('dragover', e => { e.preventDefault(); $('dropZone').classList.add('border-pink-400'); });
+    $('dropZone').addEventListener('dragleave', () => $('dropZone').classList.remove('border-pink-400'));
+    $('dropZone').addEventListener('drop', e => { e.preventDefault(); $('dropZone').classList.remove('border-pink-400'); handleAudioFile(e.dataTransfer.files[0]); });
+    // запись с микрофона
+    let recorder = null, recChunks = [], recStart = 0, recTimer = 0, recBlob = null;
+    function updateRecBtn() {
+        const on = recorder && recorder.state === 'recording';
+        $('btnRec').textContent = on ? '⏹ ' + tr('Стоп', 'Stop') : '⏺ ' + tr('Записать', 'Record');
+        $('btnRec').classList.toggle('animate-pulse', !!on);
+    }
+    $('btnRec').addEventListener('click', async () => {
+        if (recorder && recorder.state === 'recording') { recorder.stop(); return; }
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            recChunks = []; recorder = new MediaRecorder(stream);
+            recorder.ondataavailable = e => { if (e.data && e.data.size) recChunks.push(e.data); };
+            recorder.onstop = () => {
+                stream.getTracks().forEach(t => t.stop());
+                clearInterval(recTimer);
+                recBlob = new Blob(recChunks, { type: recorder.mimeType || 'audio/webm' });
+                $('recAudio').src = URL.createObjectURL(recBlob);
+                $('recName').value = tr('Моя запись ', 'My recording ') + new Date().toLocaleTimeString().slice(0, 5);
+                $('recPreview').classList.remove('hidden');
+                $('recTime').textContent = tr('Готово! Послушай и сохрани.', 'Done! Listen and save.');
+                updateRecBtn();
+            };
+            music.stop(); previewAudio.pause();
+            recorder.start(); recStart = Date.now();
+            recTimer = setInterval(() => {
+                const sec = (Date.now() - recStart) / 1000;
+                $('recTime').textContent = '🔴 ' + fmtTime(sec);
+                if (sec >= 300 && recorder.state === 'recording') recorder.stop();
+            }, 200);
+            $('recPreview').classList.add('hidden');
+            updateRecBtn();
+        } catch (e) {
+            toast(tr('Нет доступа к микрофону. Разреши микрофон для сайта (значок слева от адреса) и попробуй снова.', 'No microphone access. Allow the microphone for this site and try again.'));
+        }
+    });
+    $('btnRecSave').addEventListener('click', async () => {
+        if (!recBlob) return;
+        await saveTrack(recBlob, $('recName').value.trim());
+        $('recPreview').classList.add('hidden'); $('recTime').textContent = ''; recBlob = null;
+    });
+    refreshTracks();
 
     // ---------- Онлайн уровни: коды ----------
     function b64uEncode(bytes) {
@@ -3246,7 +3475,7 @@ const OFFICIAL_LEVELS = [
             if (ctrl && e.code === 'KeyV') { e.preventDefault(); const c = hoverCell || { x: Math.max(0, Math.round((G.edCamX + VIEW_W / G.edZoom / 2) / GRID) * GRID), y: 0 }; pasteAt(c.x, c.y); }
             if (ctrl && e.code === 'KeyD') { e.preventDefault(); duplicateSelection(); }
             if (ctrl && e.code === 'KeyA') { e.preventDefault(); activeTool = 'SELECT'; activeTab = 'SELECT'; renderTabs(); renderToolBar(); refreshSelectBtn(); setSelection(editorLevel.objects.slice()); }
-            if (e.code === 'Escape') { setSelection([]); ['libModal', 'helpModal'].forEach(id => $(id).classList.add('hidden')); }
+            if (e.code === 'Escape') { setSelection([]); ['libModal', 'helpModal', 'musicModal'].forEach(id => $(id).classList.add('hidden')); }
             if ((e.code === 'Equal' || e.code === 'NumpadAdd') && !ctrl) setZoom(G.edZoom * 1.25);
             if ((e.code === 'Minus' || e.code === 'NumpadSubtract') && !ctrl) setZoom(G.edZoom / 1.25);
             if ((e.code === 'Delete' || e.code === 'Backspace') && selSet.length) { e.preventDefault(); deleteSelection(); }
