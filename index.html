@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Geometry AI v2.1</title>
+    <title>Geometry AI v2.2</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
@@ -45,9 +45,9 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.1</span>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.2</span>
                 </div>
-                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Новый уровень 6 — «Корм» (Лёгкий демон)" data-en="New level 6 — Korm (Easy Demon)">Новый уровень 6 — «Корм» (Лёгкий демон)</p>
+                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Быстрые триггеры и блоки под полом" data-en="Quick triggers and blocks under the floor">Быстрые триггеры и блоки под полом</p>
             </div>
         </button>
         <div class="flex items-center gap-2 flex-wrap">
@@ -2163,7 +2163,19 @@ const OFFICIAL_LEVELS = [
             ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
         }
 
-        if (G.mode === 'EDITOR') drawPortalZones(cam, W, H);
+        if (G.mode === 'EDITOR') {
+            const under = editorLevel.objects.filter(o => o.y < 0 && o.x > cam.x - 80 && o.x < cam.x + VIEW_W + 80);
+            if (under.length) {
+                ctx.globalAlpha = 0.6;
+                under.forEach(o => drawObject(o, t, cam));
+                ctx.globalAlpha = 1;
+                ctx.setLineDash([5, 4]); ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5;
+                under.forEach(o => { if (selSet.includes(o)) { at(cam, o.x, o.y + 40); ctx.strokeRect(-3, -3, 46, 46); } });
+                ctx.setLineDash([]);
+                under.forEach(o => { if (o.group) { at(cam, o.x, o.y + 40); ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(0, 0, 20, 12); ctx.fillStyle = '#fff'; ctx.font = 'bold 9px JetBrains Mono, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(tr('Г', 'G') + o.group, 2, 2); } });
+            }
+            drawPortalZones(cam, W, H);
+        }
 
         // предпросмотр в редакторе
         if (G.mode === 'EDITOR' && hoverCell && activeTool !== 'ERASER' && activeTool !== 'SELECT' && !edDrag) {
@@ -2537,6 +2549,13 @@ const OFFICIAL_LEVELS = [
         cleanSelection();
         if (!selSet.length) { box.classList.add('hidden'); box.innerHTML = ''; return; }
         const btn = (a, label, cls = 'bg-zinc-800') => `<button data-a="${a}" class="px-2.5 py-1 rounded-lg ${cls} font-bold">${label}</button>`;
+        const quickObjs = selSet.filter(o => OBJ[o.type].cat !== 'trigger' && OBJ[o.type].cat !== 'editor');
+        const quick = quickObjs.length ? `<div class="flex flex-wrap items-center gap-1.5 rounded-lg bg-orange-500/10 border border-orange-400/40 px-2 py-1.5">
+                <span class="font-black">⚡ ${tr('Быстро', 'Quick')}:</span>
+                ${btn('q:MOVE_TRIGGER', '🚚 ' + (quickObjs.every(o => o.y < 0) ? tr('Вылезти из пола', 'Rise from the floor') : tr('Двигать', 'Move')), 'bg-orange-500 text-black')}
+                ${btn('q:FADE_TRIGGER', '🌫 ' + tr('Растворить', 'Fade out'))}${btn('q:TOGGLE_TRIGGER', '👁 ' + tr('Спрятать', 'Hide'))}
+                ${quickObjs.some(o => o.type === 'EMOJI') ? btn('q:EMOJI_TRIGGER', '🔁 ' + tr('Сменить смайлик', 'Change emoji')) : ''}
+                <span class="text-zinc-400">${tr('группа назначится сама, триггер встанет на 6 блоков раньше', 'the group is set for you; the trigger goes 6 blocks earlier')}</span></div>` : '';
         const common = btn('dup', '⧉ ' + tr('Дублировать', 'Duplicate')) + btn('copy', '📋 ' + tr('Копировать', 'Copy')) + btn('rot', '🔄 ' + tr('Повернуть', 'Rotate')) +
             (selSet.length > 1 ? btn('flip', '↔ ' + tr('Отразить', 'Flip')) : '') + btn('del', '🗑 ' + tr('Удалить', 'Delete'), 'bg-red-500/80') + btn('close', '✕');
         const ang = selSet[0].rotation || 0;
@@ -2558,7 +2577,7 @@ const OFFICIAL_LEVELS = [
             </div>` + (tilted ? `<div class="text-amber-300">⚠ ${tr('Блок или шип, повёрнутый не на 90°, касается игрока по рамке вокруг себя. Включи 🔲 Хитбоксы, чтобы её увидеть.', 'A block or spike not turned by 90° touches the player by the box around it. Turn on 🔲 Hitboxes to see it.')}</div>` : '');
         if (selSet.length > 1) {
             box.innerHTML = `<div class="flex flex-wrap items-center gap-2"><span class="font-black text-sm">👆 ${tr('Выбрано объектов', 'Selected objects')}: ${selSet.length}</span>
-                <span class="text-zinc-400">${tr('Тащи мышкой, чтобы двигать все сразу. Shift + стрелки — сдвиг на 1 блок.', 'Drag to move them all. Shift + arrows move by 1 block.')}</span><span class="flex-1"></span>${common}</div>
+                <span class="text-zinc-400">${tr('Тащи мышкой, чтобы двигать все сразу. Shift + стрелки — сдвиг на 1 блок.', 'Drag to move them all. Shift + arrows move by 1 block.')}</span><span class="flex-1"></span>${common}</div>${quick}
                 <div class="flex flex-wrap items-center gap-2"><span class="text-zinc-300">${tr('Группа для всех выделенных', 'Group for all selected')}</span>
                     <input id="propGroupAll" type="number" min="0" max="99" step="1" value="${selSet.every(o => o.group === selSet[0].group) ? (selSet[0].group || 0) : 0}" class="w-16 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-700 font-mono font-bold">
                     <button data-a="setgroup" class="px-2.5 py-1 rounded-lg bg-orange-500 text-black font-bold">${tr('Назначить', 'Apply')}</button>
@@ -2568,7 +2587,7 @@ const OFFICIAL_LEVELS = [
             const toolInfo = Object.values(TABS).flatMap(t => t.tools).find(t => t[0] === o.type);
             const title = toolInfo ? `${toolInfo[1]} ${tr(toolInfo[2], toolInfo[3])}` : o.type;
             let html = `<div class="flex flex-wrap items-center gap-2"><span class="font-black text-sm">${title}</span>
-                <span class="font-mono text-zinc-400">x:${+(o.x / 40).toFixed(3)} y:${+(o.y / 40).toFixed(3)}</span><span class="flex-1"></span>${common}</div>` + transform;
+                <span class="font-mono text-zinc-400">x:${+(o.x / 40).toFixed(3)} y:${+(o.y / 40).toFixed(3)}</span><span class="flex-1"></span>${common}</div>` + quick + transform;
             const sizeBtns = (cur) => [[1, 'Маленький', 'Small'], [2, 'Средний', 'Medium'], [3, 'Большой', 'Large']].map(([v, r2, e2]) =>
                 `<button data-a="size${v}" class="px-2.5 py-1 rounded-lg ${cur === v ? 'bg-white text-black' : 'bg-zinc-800'} font-bold">${tr(r2, e2)}</button>`).join('');
             if (o.type === 'TEXT') {
@@ -2693,7 +2712,7 @@ const OFFICIAL_LEVELS = [
     function pasteAt(cx, cy) {
         if (!edClipboard) { toast(tr('Буфер пуст — сначала скопируй (Ctrl+C)', 'Clipboard is empty — copy first (Ctrl+C)')); return; }
         pushUndo();
-        const added = edClipboard.map(c => Object.assign(JSON.parse(JSON.stringify(c)), { x: Math.max(0, cx + c.x), y: Math.max(0, cy + c.y) }));
+        const added = edClipboard.map(c => Object.assign(JSON.parse(JSON.stringify(c)), { x: Math.max(0, cx + c.x), y: Math.max(MIN_Y, cy + c.y) }));
         const cells = new Set(added.map(o => o.x + ':' + o.y + ':' + o.type));
         editorLevel.objects = editorLevel.objects.filter(o => !cells.has(o.x + ':' + o.y + ':' + o.type));
         if (added.some(o => o.type === 'GOAL')) editorLevel.objects = editorLevel.objects.filter(o => o.type !== 'GOAL');
@@ -2719,7 +2738,7 @@ const OFFICIAL_LEVELS = [
             if (delta % 90 === 0) { cx = Math.round((cx - 20) / GRID) * GRID + 20; cy = Math.round((cy - 20) / GRID) * GRID + 20; }
             selSet.forEach(o => {
                 const [u, v] = rotPt(o.x + 20 - cx, o.y + 20 - cy, delta);
-                o.x = Math.max(0, Math.round((cx + u - 20) * 4) / 4); o.y = Math.max(0, Math.round((cy + v - 20) * 4) / 4);
+                o.x = Math.max(0, Math.round((cx + u - 20) * 4) / 4); o.y = Math.max(MIN_Y, Math.round((cy + v - 20) * 4) / 4);
             });
         }
         selSet.forEach(o => { o.rotation = normAngle((o.rotation || 0) + delta); });
@@ -2741,6 +2760,29 @@ const OFFICIAL_LEVELS = [
         });
         saveEditor(); renderProps();
     }
+    function freeGroup() {
+        const used = new Set();
+        editorLevel.objects.forEach(o => { if (o.group) used.add(o.group); if (o.target) used.add(o.target); });
+        for (let g = 1; g <= 99; g++) if (!used.has(g)) return g;
+        return 99;
+    }
+    // ⚡ Быстро: сам назначает свободную группу выделенному и ставит нужный триггер перед ним
+    function quickTrigger(type) {
+        const objs = selSet.filter(o => OBJ[o.type].cat !== 'trigger' && OBJ[o.type].cat !== 'editor');
+        if (!objs.length) return;
+        pushUndo();
+        const gs = new Set(objs.map(o => o.group || 0));
+        const g = gs.size === 1 && !gs.has(0) ? objs[0].group : freeGroup();
+        objs.forEach(o => { o.group = g; });
+        const b = selBounds(objs);
+        const tx = Math.max(0, Math.floor((b.x0 - 6 * GRID) / GRID) * GRID);
+        const ty = Math.min(360, Math.max(0, Math.ceil(b.y1 / GRID) * GRID + GRID));
+        const extra = type === 'MOVE_TRIGGER' ? { dy: b.y0 < 0 ? Math.ceil(-b.y0 / GRID) : 2, dur: 0.5 } : type === 'TOGGLE_TRIGGER' ? { show: false } : type === 'FADE_TRIGGER' ? { opacity: 0, dur: 0.5 } : {};
+        const trig = normalizeLevel({ objects: [Object.assign({ type, x: tx, y: ty, target: g }, extra)] }).objects[0];
+        editorLevel.objects.push(trig);
+        saveEditor(); setSelection([trig]);
+        toast(tr(`Готово: группа ${g}, триггер стоит на 6 блоков раньше. Его можно перетащить.`, `Done: group ${g}, the trigger is 6 blocks earlier. You can drag it.`));
+    }
     function deleteSelection() {
         if (!selSet.length) return;
         pushUndo();
@@ -2752,7 +2794,7 @@ const OFFICIAL_LEVELS = [
         if (!selSet.length) return;
         pushUndo();
         const b = selBounds(selSet);
-        dx = Math.max(dx, -b.x0); dy = Math.max(dy, -b.y0);
+        dx = Math.max(dx, -b.x0); dy = Math.max(dy, MIN_Y - b.y0);
         selSet.forEach(o => { o.x += dx; o.y += dy; });
         saveEditor(); renderProps();
     }
@@ -2763,6 +2805,7 @@ const OFFICIAL_LEVELS = [
         if (a === 'copy') { copySelection(); toast(tr(`Скопировано: ${selSet.length}. Вставка — Ctrl+V туда, где мышка.`, `Copied: ${selSet.length}. Paste with Ctrl+V at the mouse.`)); return; }
         if (a === 'rot') { rotateSelection(); return; }
         if (a === 'flip') { flipSelection(); return; }
+        if (a.startsWith('q:')) { quickTrigger(a.slice(2)); return; }
         if (a.startsWith('rotby')) { rotateSelectionBy(+a.slice(5)); return; }
         if (a === 'rotset0') { setSelectionAngle(0); return; }
         if (a === 'mvL') { moveSelection(-moveStep, 0); return; }
@@ -2825,10 +2868,11 @@ const OFFICIAL_LEVELS = [
         const w = screenToWorld(e);
         const cx = Math.floor(w.x / GRID) * GRID, cy = Math.floor(w.y / GRID) * GRID;
         if (activeTool === 'ERASER') { const i = objAtPoint(w); if (i >= 0) editorLevel.objects.splice(i, 1); }
-        else if (cx >= 0 && cy >= 0) {
+        else if (cx >= 0 && cy >= MIN_Y) {
             const newType = toolObject(activeTool, cx, cy).type;
             // в одной клетке могут быть разные объекты; одинаковый — заменяется
-            editorLevel.objects = editorLevel.objects.filter(o => !(o.x === cx && o.y === cy && o.type === newType));
+            // одинаковый объект заменяется, но объект с группой остаётся (его потом двигает триггер)
+            editorLevel.objects = editorLevel.objects.filter(o => !(o.x === cx && o.y === cy && o.type === newType && !o.group));
             if (activeTool === 'GOAL' || activeTool === 'START_POS') editorLevel.objects = editorLevel.objects.filter(o => o.type !== activeTool);
             const obj = normalizeLevel({ objects: [toolObject(activeTool, cx, cy)] }).objects[0];
             editorLevel.objects.push(obj);
@@ -2896,7 +2940,7 @@ const OFFICIAL_LEVELS = [
             else if (edDrag.type === 'move') {
                 let dx = Math.round((w.x - edDrag.sx) / GRID) * GRID, dy = Math.round((w.y - edDrag.sy) / GRID) * GRID;
                 dx = Math.max(dx, -Math.min(...edDrag.items.map(it => it.ox)));
-                dy = Math.max(dy, -Math.min(...edDrag.items.map(it => it.oy)));
+                dy = Math.max(dy, MIN_Y - Math.min(...edDrag.items.map(it => it.oy)));
                 edDrag.items.forEach(it => { it.o.x = it.ox + dx; it.o.y = it.oy + dy; });
             }
             return;
@@ -2904,7 +2948,7 @@ const OFFICIAL_LEVELS = [
         canvas.style.cursor = inMinimap(w) ? 'pointer' : hitPortalLine(selObj, w) ? 'ns-resize' : (activeTool === 'SELECT' ? 'default' : 'crosshair');
         const nc = { x: Math.floor(w.x / GRID) * GRID, y: Math.floor(w.y / GRID) * GRID };
         const changed = !hoverCell || nc.x !== hoverCell.x || nc.y !== hoverCell.y;
-        hoverCell = nc.x >= 0 && nc.y >= 0 && !inMinimap(w) ? nc : null;
+        hoverCell = nc.x >= 0 && nc.y >= MIN_Y && !inMinimap(w) ? nc : null;
         if (painting && changed && ['BLOCK', 'SLAB', 'SPIKE', 'SMALL_SPIKE', 'GROUND_SPIKES', 'ERASER', 'DECO_STAR', 'DECO_CHAIN'].includes(activeTool)) editorPlace(e);
     });
     function finishBoxSelect() {
@@ -2943,9 +2987,10 @@ const OFFICIAL_LEVELS = [
     function refreshSelectBtn() { $('btnSelectMode').classList.toggle('tool-active', activeTool === 'SELECT'); }
     $('btnSelectMode').addEventListener('click', toggleSelectMode);
     $('btnZoomOut').addEventListener('click', () => setZoom(G.edZoom / 1.25));
+    const MIN_Y = -400; // под полом можно строить на 10 блоков вниз
     function moveEditorCam(dx, dy) {
         G.edCamX = Math.max(-200, G.edCamX + dx);
-        G.edCamY = Math.max(-80, G.edCamY + dy);
+        G.edCamY = Math.max(MIN_Y - 80, G.edCamY + dy);
         $('scrollPosText').innerText = 'x:' + Math.max(0, Math.round(G.edCamX / GRID));
     }
     $('btnScrollLeft').addEventListener('click', () => moveEditorCam(-400, 0));
@@ -3045,7 +3090,9 @@ const OFFICIAL_LEVELS = [
         ['Ctrl + C / Ctrl + V', 'копировать / вставить туда, где мышка', 'copy / paste at the mouse'], ['Ctrl + D', 'дублировать выделенное', 'duplicate selection'],
         ['Ctrl + A', 'выделить всё', 'select all'], ['R', 'повернуть', 'rotate'], ['Delete', 'удалить выделенное', 'delete selection'],
         ['Ctrl + Z / Ctrl + Y', 'отмена / повтор', 'undo / redo'], ['H', 'показать хитбоксы', 'show hitboxes'], ['Esc', 'снять выделение', 'clear selection'],
-        ['Мини-карта внизу', 'клик — прыжок в это место уровня', 'click to jump there'], ['🚩 С позиции', 'тест со стартовой позиции', 'test from the start position']
+        ['Мини-карта внизу', 'клик — прыжок в это место уровня', 'click to jump there'],
+        ['⚡ Быстро', 'выдели объекты → «Двигать / Растворить / Спрятать» — группа и триггер появятся сами', 'select objects → Move / Fade / Hide — group and trigger are made for you'],
+        ['Под полом', 'блоки можно ставить и опускать на 10 блоков под землю (▼ или Shift + ↓), а потом поднять триггером', 'place or lower blocks up to 10 below the ground, then raise them with a trigger'], ['🚩 С позиции', 'тест со стартовой позиции', 'test from the start position']
     ];
     $('btnHelp').addEventListener('click', () => {
         $('helpList').innerHTML = HELP.map(([k, ru, en]) => `<div class="flex gap-3"><span class="font-mono font-bold text-sky-300 shrink-0">${k}</span><span class="text-zinc-300">${tr(ru, en)}</span></div>`).join('') +
