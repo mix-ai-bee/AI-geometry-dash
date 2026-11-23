@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Geometry AI v2.3.1</title>
+    <title>Geometry AI v2.3.2</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
@@ -45,7 +45,7 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.3.1</span>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.3.2</span>
                 </div>
                 <p class="text-[11px] text-zinc-400 font-mono" data-ru="Быстрые триггеры и блоки под полом" data-en="Quick triggers and blocks under the floor">Быстрые триггеры и блоки под полом</p>
             </div>
@@ -100,6 +100,10 @@
         </div>
         <div id="levelCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         <p class="text-center text-xs font-mono text-zinc-500" data-ru="Пробел / клик / тап — прыжок. Esc — пауза." data-en="Space / click / tap — jump. Esc — pause.">Пробел / клик / тап — прыжок. Esc — пауза.</p>
+        <div class="flex justify-end items-center gap-2">
+            <input id="secretCodeInput" maxlength="20" class="hidden w-36 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-700 font-mono text-sm text-center" placeholder="код">
+            <button id="btnSecretCode" title="?" class="w-7 h-7 rounded-lg text-xs opacity-20 hover:opacity-70">🔑</button>
+        </div>
     </section>
 
     <!-- ================= ОНЛАЙН УРОВНИ ================= -->
@@ -1396,6 +1400,28 @@ const SECRET_LEVELS = [
             setTimeout(() => { sound.win(); toast(tr('🔮 Невероятно! Открылся секретный уровень!', '🔮 Incredible! A secret level appeared!')); checkAchievements(); }, 300);
         }
     }
+    // Секретный код открывает секретный уровень сразу, без удачи
+    const SECRET_CODE = '1601 2016';
+    let codeBuffer = '';
+    function unlockSecretByCode() {
+        if (store.get('secretFound', false)) { toast(tr('🔮 Секретный уровень уже открыт!', '🔮 The secret level is already open!')); return; }
+        store.set('secretFound', true);
+        sound.win();
+        toast(tr('🔮 Код принят! Секретный уровень открыт!', '🔮 Code accepted! The secret level is open!'));
+        renderLevelCards(); checkAchievements();
+    }
+    $('btnSecretCode').addEventListener('click', () => { const i = $('secretCodeInput'); i.classList.toggle('hidden'); if (!i.classList.contains('hidden')) { i.value = ''; i.focus(); } });
+    $('secretCodeInput').addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        const ok = e.target.value.trim().replace(/\s+/g, ' ') === SECRET_CODE;
+        e.target.value = ''; e.target.classList.add('hidden');
+        if (ok) unlockSecretByCode(); else toast(tr('Неверный код', 'Wrong code'));
+    });
+    window.addEventListener('keydown', e => {
+        if (G.screen !== 'LEVELS' || e.target.tagName === 'INPUT' || e.key.length !== 1) return;
+        codeBuffer = (codeBuffer + e.key).slice(-SECRET_CODE.length);
+        if (codeBuffer === SECRET_CODE) { codeBuffer = ''; unlockSecretByCode(); }
+    });
     function renderLevelCards() {
         const box = $('levelCards'); if (!box) return;
         box.innerHTML = '';
