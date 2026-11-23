@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Geometry AI v2.4</title>
+    <title>Geometry AI v2.5</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
@@ -45,9 +45,9 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.4</span>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.5</span>
                 </div>
-                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Хитбоксы, фигуры, масштаб, вращение" data-en="Hitboxes, shapes, scale, rotation">Хитбоксы, фигуры, масштаб, вращение</p>
+                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Телепорт на блок и «за игроком»" data-en="Teleport onto a block and follow the player">Телепорт на блок и «за игроком»</p>
             </div>
         </button>
         <div class="flex items-center gap-2 flex-wrap">
@@ -455,13 +455,14 @@ function normalizeLevel(data) {
             if (o.type === 'FLASH_TRIGGER') { r.color = col(o.color, '#ffffff'); r.dur = num(o.dur, 0.5, 0.1, 5); }
             if (o.type === 'SHAKE_TRIGGER') { r.power = num(o.power, 4, 1, 10); r.dur = num(o.dur, 0.6, 0.1, 5); }
             if (o.type === 'ZOOM_TRIGGER') { r.zoom = num(o.zoom, 1.3, 0.5, 2); r.dur = num(o.dur, 1, 0, 5); }
+            if (o.type === 'MOVE_TRIGGER') { r.follow = ['x', 'y', 'xy', 'stop'].includes(o.follow) ? o.follow : 'none'; r.fk = num(o.fk, 1, -2, 2); }
             if (o.type === 'MOVE_TRIGGER') { r.target = Math.round(num(o.target, 1, 1, 99)); r.dx = num(o.dx, 0, -40, 40); r.dy = num(o.dy, 2, -20, 20); r.dur = num(o.dur, 1, 0, 10); r.loops = Math.round(num(o.loops, 1, 1, 50)); r.pingpong = !!o.pingpong; }
             if (o.type === 'ROTATE_TRIGGER') { r.target = Math.round(num(o.target, 1, 1, 99)); r.deg = num(o.deg, 360, -3600, 3600); r.dur = num(o.dur, 1, 0, 20); r.rmode = o.rmode === 'group' ? 'group' : 'self'; }
             if (o.scale != null && Number(o.scale) !== 1 && !OBJ[o.type].sized && o.type !== 'HB_CIRCLE') r.scale = num(o.scale, 1, 0.25, 4);
             if (TINTABLE[o.type] && /^#[0-9a-f]{6}$/i.test(o.color)) r.color = o.color;
             if (o.type === 'HB_SOLID' || o.type === 'HB_HAZARD') { r.w = num(o.w, 1, 0.25, 20); r.h = num(o.h, 1, 0.25, 20); }
             if (o.type === 'HB_CIRCLE') r.r = num(o.r, 0.5, 0.1, 10);
-            if (o.type === 'TELEPORT') r.ty = num(o.ty, 4, -20, 20);
+            if (o.type === 'TELEPORT') { r.tx = num(o.tx, 0, 0, 300); r.ty = num(o.ty, 4, -20, 40); }
             if (o.type === 'SHAPE') {
                 r.shape = SHAPE_IDS.includes(o.shape) ? o.shape : 'circle';
                 r.color = col(o.color, '#ffffff'); r.alpha = Math.round(num(o.alpha, 100, 10, 100)); r.glow = !!o.glow;
@@ -576,8 +577,18 @@ function easeInOut(p) { return p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2)
 function evalFade(fd, frame) { return fd.from + (fd.to - fd.from) * Math.min(1, Math.max(0, (frame - fd.f) / fd.frames)); }
 function groupState(L, s) {
     const off = {}, hidden = {}, fades = {}, spin = {}, orbit = {};
-    for (const [ti, f] of s.acts) {
+    const fol = {};
+    for (const act of s.acts) {
+        const ti = act[0], f = act[1];
         const t = L.triggers[ti];
+        // следование за игроком: группа сдвигается на столько же, на сколько сдвинулся игрок (умножить на силу)
+        if (t.type === 'MOVE_TRIGGER' && t.follow && t.follow !== 'none') {
+            const F = fol[t.target] || (fol[t.target] = { base: [0, 0], cur: null });
+            const px = act[2] == null ? s.x : act[2], py = act[3] == null ? s.y : act[3];
+            if (F.cur) { F.base[0] += (px - F.cur.x0) * F.cur.kx; F.base[1] += (py - F.cur.y0) * F.cur.ky; F.cur = null; }
+            if (t.follow !== 'stop') F.cur = { x0: px, y0: py, kx: t.follow.includes('x') ? t.fk : 0, ky: t.follow.includes('y') ? t.fk : 0 };
+            continue;
+        }
         if (t.type === 'FADE_TRIGGER') {
             const prev = fades[t.target];
             fades[t.target] = { from: prev ? evalFade(prev, f) : 1, to: t.opacity / 100, f, frames: Math.max(1, t.dur * 60), keep: t.keepHit };
@@ -599,6 +610,11 @@ function groupState(L, s) {
             const acc = t.rmode === 'group' ? orbit : spin;
             acc[t.target] = (acc[t.target] || 0) + t.deg * k;
         } else if (t.type === 'TOGGLE_TRIGGER') hidden[t.target] = !t.show;
+    }
+    for (const g in fol) {
+        const F = fol[g], o = off[g] || (off[g] = [0, 0]);
+        o[0] += F.base[0] + (F.cur ? (s.x - F.cur.x0) * F.cur.kx : 0);
+        o[1] += F.base[1] + (F.cur ? (s.y - F.cur.y0) * F.cur.ky : 0);
     }
     const alpha = {}, keep = {};
     for (const g in fades) { alpha[g] = evalFade(fades[g], s.frame); keep[g] = fades[g].keep; }
@@ -693,7 +709,7 @@ function step(p, held, L) {
     const vx = BASE_SPEED * s.speed;
     let size = pSize(s);
     // --- Триггеры: срабатывают, когда центр игрока пересекает их линию ---
-    while (L.triggers && s.tn < L.triggers.length && s.x + size / 2 >= L.triggers[s.tn].x + 20) { s.acts = s.acts.concat([[s.tn, s.frame]]); s.tn++; }
+    while (L.triggers && s.tn < L.triggers.length && s.x + size / 2 >= L.triggers[s.tn].x + 20) { s.acts = s.acts.concat([[s.tn, s.frame, s.x, s.y]]); s.tn++; }
     let near = nearWithMovers(L, s, s.x - 20, s.x + size + 60);
     let acted = false;
 
@@ -846,9 +862,13 @@ function step(p, held, L) {
             } else if (SPEEDS[t]) {
                 s.speed = SPEEDS[t];
             } else if (t === 'TELEPORT') {
-                s.y += (o.ty || 0) * GRID;
+                // выход — клетка (tx вперёд, ty вверх) от портала; игрок встаёт в неё (назад телепорт не переносит)
+                const sz = pSize(s), ex = o.x + (o.tx || 0) * GRID, ey = o.y + (o.ty || 0) * GRID;
+                s.x = Math.max(s.x, ex + (GRID - sz) / 2);
+                s.y = s.g === 1 ? ey : ey + GRID - sz;
+                s.vy = 0;
                 if (s.y < s.floor) s.y = s.floor;
-                if (s.ceil != null && s.y + pSize(s) > s.ceil) s.y = s.ceil - pSize(s);
+                if (s.ceil != null && s.y + sz > s.ceil) s.y = s.ceil - sz;
             }
             s.fx = { t: 'portal', type: t, x: o.x + 20, y: o.y + 20 };
             size = pSize(s);
@@ -2285,6 +2305,7 @@ const SECRET_LEVELS = [
             drawObject(o, t, cam);
             ctx.globalAlpha = 1;
         }
+        drawTeleportExits(cam, objs, t);
         if (G.mode === 'EDITOR') drawGroupsInEditor(cam, t);
         if (G.mode === 'EDITOR') {
             ctx.setLineDash([5, 4]); ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5;
@@ -2429,6 +2450,40 @@ const SECRET_LEVELS = [
         }
     }
 
+    // Выход телепорта: оранжевый круг. В редакторе — с пунктиром от портала, у выбранного — «призрак» игрока
+    function drawTeleportExits(cam, objs, t) {
+        const ed = G.mode === 'EDITOR', vx0 = cam.x - 80, vx1 = cam.x + VIEW_W + 80;
+        for (const o of objs) {
+            if (o.type !== 'TELEPORT') continue;
+            const ex = o.x + (o.tx || 0) * GRID, ey = o.y + (o.ty == null ? 4 : o.ty) * GRID;
+            if (Math.max(o.x, ex) < vx0 || Math.min(o.x, ex) > vx1) continue;
+            const sel = ed && selSet.includes(o);
+            if (ed) {
+                at(cam, 0, 0);
+                ctx.globalAlpha = sel ? 1 : 0.5;
+                ctx.strokeStyle = '#fb923c'; ctx.lineWidth = sel ? 2.5 : 1.5; ctx.setLineDash([7, 5]);
+                ctx.beginPath(); ctx.moveTo(o.x + 20, -(o.y + 20)); ctx.lineTo(ex + 20, -(ey + 20)); ctx.stroke(); ctx.setLineDash([]);
+                at(cam, ex + 20, ey + 20);
+                ctx.fillStyle = 'rgba(251,146,60,.25)'; ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2); ctx.fill();
+                ctx.lineWidth = 3; ctx.stroke();
+                // «призрак» игрока: он встанет на дно клетки выхода
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.strokeRect(-12, -4, 24, 24); ctx.setLineDash([]);
+                if (sel) {
+                    ctx.font = 'bold 11px JetBrains Mono, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                    ctx.fillStyle = '#fb923c'; ctx.fillText(tr('ВЫХОД', 'EXIT'), 0, -22);
+                }
+                ctx.globalAlpha = 1;
+            } else {
+                const used = G.S && G.S.used.includes(o.id);
+                at(cam, ex + 20, ey + 20);
+                ctx.globalAlpha = used ? 0.2 : 0.45 + 0.15 * Math.sin(t * 5);
+                ctx.strokeStyle = '#fb923c'; ctx.lineWidth = 3; ctx.shadowColor = '#fb923c'; ctx.shadowBlur = 10;
+                ctx.beginPath(); ctx.ellipse(0, 0, 7, 19, 0, 0, Math.PI * 2); ctx.stroke();
+                ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+            }
+        }
+    }
+
     // Редактор: номера групп на объектах и «призрак» того, куда уедет группа выбранного триггера
     function drawGroupsInEditor(cam, t) {
         const vx0 = cam.x - 80, vx1 = cam.x + VIEW_W + 80;
@@ -2445,7 +2500,7 @@ const SECRET_LEVELS = [
                     ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill(); ctx.fillText(sel.emoji, 0, 1);
                     at(cam, o.x, o.y + 40);
                 }
-                if (sel.type === 'MOVE_TRIGGER' && (sel.dx || sel.dy)) {
+                if (sel.type === 'MOVE_TRIGGER' && notFollow(sel) && (sel.dx || sel.dy)) {
                     ctx.globalAlpha = 0.35; drawObject(Object.assign({}, o, { x: o.x + sel.dx * GRID, y: o.y + sel.dy * GRID }), t, cam); ctx.globalAlpha = 1;
                 }
             }
@@ -2470,7 +2525,19 @@ const SECRET_LEVELS = [
                 if (sel.rmode === 'group') { at(cam, pc[0], pc[1]); ctx.fillStyle = '#22d3ee'; ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill(); }
             }
         }
-        if (sel && sel.type === 'MOVE_TRIGGER' && (sel.dx || sel.dy)) {
+        if (sel && sel.type === 'MOVE_TRIGGER' && !notFollow(sel)) {
+            const grp = editorLevel.objects.filter(o => o.group === sel.target && OBJ[o.type].cat !== 'trigger');
+            if (grp.length) {
+                const b = selBounds(grp);
+                const txt = sel.follow === 'stop' ? tr('✋ стоп', '✋ stop') : '👤 ' + (sel.follow === 'xy' ? 'X+Y' : sel.follow.toUpperCase()) + (sel.fk !== 1 ? ' ×' + String(sel.fk).replace('.', ',') : '');
+                at(cam, (b.x0 + b.x1) / 2, b.y1 + 6);
+                ctx.font = 'bold 13px Outfit, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                const tw = ctx.measureText(txt).width + 14;
+                ctx.fillStyle = '#fb923c'; ctx.fillRect(-tw / 2, -22, tw, 20);
+                ctx.fillStyle = '#000'; ctx.fillText(txt, 0, -11);
+            }
+        }
+        if (sel && sel.type === 'MOVE_TRIGGER' && notFollow(sel) && (sel.dx || sel.dy)) {
             const grp = editorLevel.objects.filter(o => o.group === sel.target && !(OBJ[o.type].cat === 'trigger'));
             if (grp.length) {
                 const b = selBounds(grp), cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
@@ -2536,8 +2603,8 @@ const SECRET_LEVELS = [
         ZOOM_TRIGGER: { icon: '🔍', bg: '#0ea5e9', ru: 'Зум камеры', en: 'Camera zoom',
             what: ['Камера приближается (больше 1) или отдаляется (меньше 1). 1 — обычный вид.', 'Zooms the camera in (above 1) or out (below 1). 1 is normal.'], label: o => '×' + o.zoom },
         MOVE_TRIGGER: { icon: '🚚', bg: '#2563eb', ru: 'Движение группы', en: 'Move group',
-            what: ['Двигает все объекты с нужным номером группы: блоки, шипы, орбы. Они двигаются по-настоящему — об них можно разбиться.', 'Moves every object with the group number: blocks, spikes, orbs. They really move — you can crash into them.'],
-            label: o => `${tr('Г', 'G')}${o.target} ${o.dx > 0 ? '→' : o.dx < 0 ? '←' : ''}${o.dx ? Math.abs(o.dx) : ''} ${o.dy > 0 ? '↑' : o.dy < 0 ? '↓' : ''}${o.dy ? Math.abs(o.dy) : ''}` },
+            what: ['Двигает все объекты с нужным номером группы: блоки, шипы, орбы, смайлики. Они двигаются по-настоящему — об них можно разбиться. Режим «👤 следовать за игроком»: группа всё время повторяет движение игрока — по X (едет вперёд вместе с ним), по Y (вверх-вниз вместе с ним) или по X и Y. «✋ Перестать следовать» — группа останавливается там, где была.', 'Moves every object with the group number: blocks, spikes, orbs, emoji. They really move — you can crash into them. "👤 Follow the player" mode: the group keeps copying the player\'s movement — on X (rides forward with them), on Y (up and down with them) or both. "✋ Stop following" — the group stays where it is.'],
+            label: o => o.follow && o.follow !== 'none' ? `${tr('Г', 'G')}${o.target} 👤${o.follow === 'stop' ? '✋' : o.follow === 'xy' ? 'XY' : o.follow.toUpperCase()}` : `${tr('Г', 'G')}${o.target} ${o.dx > 0 ? '→' : o.dx < 0 ? '←' : ''}${o.dx ? Math.abs(o.dx) : ''} ${o.dy > 0 ? '↑' : o.dy < 0 ? '↓' : ''}${o.dy ? Math.abs(o.dy) : ''}` },
         TOGGLE_TRIGGER: { icon: '👁', bg: '#10b981', ru: 'Показать / скрыть', en: 'Show / hide',
             what: ['Прячет или показывает группу объектов. Спрятанные объекты не мешают и не убивают. Чтобы объект появился позже — поставь в начале «Скрыть», а дальше «Показать».', 'Hides or shows a group. Hidden objects do nothing. To make something appear later, hide it at the start and show it further on.'],
             label: o => `${tr('Г', 'G')}${o.target} ${o.show ? tr('показать', 'show') : tr('скрыть', 'hide')}` },
@@ -2555,6 +2622,9 @@ const SECRET_LEVELS = [
         MESSAGE_TRIGGER: { icon: '💬', bg: '#64748b', ru: 'Сообщение', en: 'Message',
             what: ['Показывает надпись крупно вверху экрана на несколько секунд.', 'Shows big text at the top of the screen for a few seconds.'], label: o => o.text }
     };
+    // какие поля триггера движения показывать: обычное движение или «за игроком»
+    const isFollowOn = o => ['x', 'y', 'xy'].includes(o.follow);
+    const notFollow = o => !o.follow || o.follow === 'none';
     const TRIG_FIELDS = {
         COLOR_TRIGGER: [['color', 'color', 'Новый цвет фона', 'New background color']],
         GROUND_TRIGGER: [['color', 'color', 'Новый цвет земли', 'New ground color']],
@@ -2564,9 +2634,12 @@ const SECRET_LEVELS = [
         ROTATE_TRIGGER: [['target', 'num', 'Какую группу вращать', 'Group to rotate', 1, 99, 1], ['deg', 'num', 'Угол, градусов (минус — против часовой, 360 — полный оборот)', 'Angle, degrees (minus = counterclockwise)', -3600, 3600, 15],
             ['dur', 'num', 'За сколько секунд (0 — сразу)', 'Over how many seconds (0 = instant)', 0, 20, 0.1],
             ['rmode', 'sel', 'Как вращать', 'How', [['self', 'каждый объект на месте', 'each object in place'], ['group', 'вся группа вокруг центра', 'whole group around its center']]]],
-        MOVE_TRIGGER: [['target', 'num', 'Какую группу двигать', 'Group to move', 1, 99, 1], ['dx', 'num', 'Вправо, блоков (минус — влево)', 'Right, blocks (minus = left)', -40, 40, 0.5],
-            ['dy', 'num', 'Вверх, блоков (минус — вниз)', 'Up, blocks (minus = down)', -20, 20, 0.5], ['dur', 'num', 'Время движения, сек (0 — сразу)', 'Move time, s (0 = instant)', 0, 10, 0.1],
-            ['loops', 'num', 'Сколько раз повторить', 'Repeat times', 1, 50, 1], ['pingpong', 'sel', 'Как двигаться', 'How', [[false, 'только туда (повторы складываются)', 'one way (repeats add up)'], [true, 'туда и обратно', 'there and back']]]],
+        MOVE_TRIGGER: [['target', 'num', 'Какую группу двигать', 'Group to move', 1, 99, 1],
+            ['follow', 'sel', 'Режим', 'Mode', [['none', '🚚 обычное движение', '🚚 normal move'], ['xy', '👤 следовать за игроком по X и Y', '👤 follow the player on X and Y'], ['x', '👤 следовать за игроком по X (вперёд)', '👤 follow the player on X (forward)'], ['y', '👤 следовать за игроком по Y (вверх-вниз)', '👤 follow the player on Y (up-down)'], ['stop', '✋ перестать следовать', '✋ stop following']]],
+            ['fk', 'num', 'Сила (1 — точно как игрок, 0,5 — вдвое медленнее, минус — наоборот)', 'Strength (1 = exactly like the player, 0.5 = half as fast, minus = mirrored)', -2, 2, 0.1, isFollowOn],
+            ['dx', 'num', 'Вправо, блоков (минус — влево)', 'Right, blocks (minus = left)', -40, 40, 0.5, notFollow],
+            ['dy', 'num', 'Вверх, блоков (минус — вниз)', 'Up, blocks (minus = down)', -20, 20, 0.5, notFollow], ['dur', 'num', 'Время движения, сек (0 — сразу)', 'Move time, s (0 = instant)', 0, 10, 0.1, notFollow],
+            ['loops', 'num', 'Сколько раз повторить', 'Repeat times', 1, 50, 1, notFollow], ['pingpong', 'sel', 'Как двигаться', 'How', [[false, 'только туда (повторы складываются)', 'one way (repeats add up)'], [true, 'туда и обратно', 'there and back']], null, null, notFollow]],
         TOGGLE_TRIGGER: [['target', 'num', 'Какая группа', 'Which group', 1, 99, 1], ['show', 'sel', 'Что сделать', 'Action', [[false, 'Скрыть', 'Hide'], [true, 'Показать', 'Show']]]],
         FADE_TRIGGER: [['target', 'num', 'Какая группа', 'Which group', 1, 99, 1], ['opacity', 'num', 'Видимость, % (0 — исчезнуть, 100 — появиться)', 'Visibility, % (0 vanish — 100 appear)', 0, 100, 10],
             ['dur', 'num', 'За сколько секунд (0 — сразу)', 'Over how many seconds (0 = instant)', 0, 10, 0.1],
@@ -2592,7 +2665,7 @@ const SECRET_LEVELS = [
             ['GRAV_DOWN_PORTAL', '⬇️', 'Гравитация вниз', 'Gravity down'], ['GRAV_UP_PORTAL', '⬆️', 'Гравитация вверх', 'Gravity up'],
             ['MINI_PORTAL', '🔹', 'Мини', 'Mini'], ['BIG_PORTAL', '🔷', 'Обычный размер', 'Normal size'],
             ['SPEED_05', '🐢', 'Скорость 0.5x', 'Speed 0.5x'], ['SPEED_1', '▶', 'Скорость 1x', 'Speed 1x'], ['SPEED_2', '⏩', 'Скорость 2x', 'Speed 2x'],
-            ['SPEED_3', '🚀', 'Скорость 3x', 'Speed 3x'], ['SPEED_4', '⚡', 'Скорость 4x', 'Speed 4x'], ['TELEPORT', '🌀', 'Телепорт (вверх/вниз)', 'Teleport (up/down)']] },
+            ['SPEED_3', '🚀', 'Скорость 3x', 'Speed 3x'], ['SPEED_4', '⚡', 'Скорость 4x', 'Speed 4x'], ['TELEPORT', '🌀', 'Телепорт (на любую клетку)', 'Teleport (to any cell)']] },
         ORBS: { icon: '⚪', ru: 'Орбы', en: 'Orbs', tools: [
             ['ORB', '🟡', 'Жёлтый орб', 'Yellow orb'], ['PINK_ORB', '🩷', 'Розовый орб', 'Pink orb'], ['RED_ORB', '🔴', 'Красный орб', 'Red orb'],
             ['GRAVITY_ORB', '🔵', 'Синий (гравитация)', 'Blue (gravity)'], ['GREEN_ORB', '🟢', 'Зелёный (грав.+прыжок)', 'Green (grav+jump)'], ['BLACK_ORB', '⚫', 'Чёрный (вниз)', 'Black (down)'],
@@ -2778,6 +2851,64 @@ const SECRET_LEVELS = [
             ctx.setLineDash([]);
         });
     }
+    // ---- Выход телепорта: клетка (tx вперёд, ty вверх в блоках от портала) ----
+    let tpPick = null; // телепорт, для которого сейчас «🎯 Указать выход»
+    function tpExit(o) { return { x: o.x + (o.tx || 0) * GRID, y: o.y + (o.ty == null ? 4 : o.ty) * GRID }; }
+    function hitTpExit(o, w) {
+        if (!o || o.type !== 'TELEPORT' || !editorLevel.objects.includes(o)) return false;
+        const e = tpExit(o);
+        return (w.x - e.x - 20) ** 2 + (w.y - e.y - 20) ** 2 <= 24 * 24;
+    }
+    // твёрдое (на что можно встать) в полосе x0..x1 и по высоте y0..y1 — верх самого высокого такого объекта
+    function solidTopIn(x0, x1, y0, y1) {
+        let top = null;
+        for (const s of editorLevel.objects) {
+            const d = OBJ[s.type];
+            if (!d || (d.cat !== 'solid' && d.cat !== 'platform') || s.type === 'TELEPORT') continue;
+            const r = objRect(s);
+            if (r.x1 <= x0 || r.x0 >= x1 || r.y1 <= y0 || r.y0 >= y1) continue;
+            if (top == null || r.y1 > top) top = r.y1;
+        }
+        return top;
+    }
+    // клетка под мышкой; если там блок — выход ставится на него сверху (и на верх всей стопки блоков)
+    function tpSnap(o, w) {
+        const cx = Math.max(o.x, Math.floor(w.x / GRID) * GRID);
+        let y = Math.floor(w.y / GRID) * GRID, onBlock = false;
+        const x0 = cx + 6, x1 = cx + 34;
+        let top = solidTopIn(x0, x1, y, y + GRID);
+        for (let guard = 0; top != null && guard < 60; guard++) {
+            y = top; onBlock = true;
+            top = solidTopIn(x0, x1, y + 1, y + GRID - 1);
+            if (top != null && top <= y) top = null;
+        }
+        const r3 = v => Math.round(v * 1000) / 1000;
+        return { tx: r3(Math.min(300, (cx - o.x) / GRID)), ty: r3(Math.max(-20, Math.min(40, (y - o.y) / GRID))), onBlock };
+    }
+    function pickTpExit(w) {
+        const o = tpPick; tpPick = null;
+        if (!o || !editorLevel.objects.includes(o)) { renderProps(); return; }
+        pushUndo();
+        const behind = w.x < o.x;
+        const r = tpSnap(o, w);
+        o.tx = r.tx; o.ty = r.ty;
+        saveEditor(); setSelection([o]);
+        toast(r.onBlock ? tr('🎯 Готово: игрок появится на этом блоке сверху', '🎯 Done: the player lands on top of this block')
+            : behind ? tr('Назад телепорт не переносит — выход поставлен прямо над/под порталом', 'Teleports never go backwards — the exit is right above/below the portal')
+                : tr('🎯 Готово: игрок появится в этой клетке', '🎯 Done: the player appears in this cell'));
+    }
+    // выход внутри твёрдого блока или шипа?
+    function tpExitBlocked(o) {
+        const e = tpExit(o), x0 = e.x + 8, x1 = e.x + 32, y0 = e.y + 2, y1 = e.y + 28;
+        return editorLevel.objects.some(s => {
+            const d = OBJ[s.type];
+            if (!d || (d.cat !== 'solid' && d.cat !== 'hazard')) return false;
+            const cr = circleOf(s);
+            if (cr) { const nx = Math.max(x0, Math.min(x1, s.x + 20)), ny = Math.max(y0, Math.min(y1, s.y + 20)); return (nx - s.x - 20) ** 2 + (ny - s.y - 20) ** 2 < cr * cr; }
+            const r = objRect(s);
+            return r.x1 > x0 && r.x0 < x1 && r.y1 > y0 && r.y0 < y1;
+        });
+    }
     // Попала ли мышка в линию пола/потолка/дорожки выбранного портала
     function hitPortalLine(o, w) {
         if (!o || !MODE_PORTALS[o.type] || !editorLevel.objects.includes(o)) return null;
@@ -2826,7 +2957,7 @@ const SECRET_LEVELS = [
                 <span class="font-black">⚡ ${tr('Быстро', 'Quick')}:</span>
                 ${btn('q:MOVE_TRIGGER', '🚚 ' + (quickObjs.every(o => o.y < 0) ? tr('Вылезти из пола', 'Rise from the floor') : tr('Двигать', 'Move')), 'bg-orange-500 text-black')}
                 ${btn('q:FADE_TRIGGER', '🌫 ' + tr('Растворить', 'Fade out'))}${btn('q:TOGGLE_TRIGGER', '👁 ' + tr('Спрятать', 'Hide'))}
-                ${btn('q:ROTATE_TRIGGER', '🔄 ' + tr('Вращать', 'Rotate'))}
+                ${btn('q:ROTATE_TRIGGER', '🔄 ' + tr('Вращать', 'Rotate'))}${btn('q:FOLLOW', '👤 ' + tr('За игроком', 'Follow player'), 'bg-sky-500 text-black')}
                 ${quickObjs.some(o => o.type === 'EMOJI') ? btn('q:EMOJI_TRIGGER', '🔁 ' + tr('Сменить смайлик', 'Change emoji')) : ''}
                 <span class="text-zinc-400">${tr('группа назначится сама, триггер встанет на 6 блоков раньше', 'the group is set for you; the trigger goes 6 blocks earlier')}</span></div>` : '';
         const common = btn('dup', '⧉ ' + tr('Дублировать', 'Duplicate')) + btn('copy', '📋 ' + tr('Копировать', 'Copy')) + btn('rot', '🔄 ' + tr('Повернуть', 'Rotate')) +
@@ -2873,7 +3004,14 @@ const SECRET_LEVELS = [
             if (OBJ[o.type].sized) html += `<div class="flex flex-wrap items-center gap-3">${numIn('propW', tr('Ширина, блоков', 'Width, blocks'), o.w || 1, 0.25, 20, 0.25)}${numIn('propH', tr('Высота, блоков', 'Height, blocks'), o.h || 1, 0.25, 20, 0.25)}
                 <span class="text-zinc-400">${o.type === 'HB_SOLID' ? tr('🟦 невидимая стена: на неё можно встать, в бок — разбиться', '🟦 invisible wall: stand on it, crash into its side') : tr('🟥 невидимая зона: коснулся — проиграл', '🟥 invisible zone: touch it and you lose')}</span></div>`;
             if (o.type === 'HB_CIRCLE') html += `<div class="flex flex-wrap items-center gap-3">${numIn('propR', tr('Радиус, блоков', 'Radius, blocks'), o.r || 0.5, 0.1, 10, 0.1)}<span class="text-zinc-400">${tr('🔴 круг с центром в этой клетке — коснулся, проиграл', '🔴 circle centered on this cell — touch it and you lose')}</span></div>`;
-            if (o.type === 'TELEPORT') html += `<div class="flex flex-wrap items-center gap-3">${numIn('propTY', tr('Перенос, блоков (+ вверх, − вниз)', 'Shift, blocks (+ up, − down)'), o.ty == null ? 4 : o.ty, -20, 20, 0.5)}<span class="text-zinc-400">${tr('🌀 игрок мгновенно переносится вверх или вниз', '🌀 the player jumps instantly up or down')}</span></div>`;
+            if (o.type === 'TELEPORT') {
+                const picking = tpPick === o;
+                html += `<div class="flex flex-wrap items-center gap-3">${numIn('propTX', tr('Вперёд, блоков', 'Forward, blocks'), o.tx || 0, 0, 300, 0.5)}${numIn('propTY', tr('Вверх, блоков (минус — вниз)', 'Up, blocks (minus = down)'), o.ty == null ? 4 : o.ty, -20, 40, 0.5)}
+                    ${btn('tpPick', picking ? '✋ ' + tr('Отмена', 'Cancel') : '🎯 ' + tr('Указать выход', 'Pick the exit'), picking ? 'bg-zinc-600' : 'bg-orange-500 text-black')}</div>
+                    <div class="${picking ? 'text-orange-300 font-bold' : 'text-zinc-400'}">${picking ? tr('🎯 Кликни на поле по блоку — игрок появится на нём сверху. Кликнешь по пустой клетке — появится в ней. Esc — отмена.', '🎯 Click a block on the field — the player lands on top of it. Click an empty cell — they appear there. Esc cancels.')
+                        : tr('🌀 Игрок мгновенно переносится в клетку выхода — оранжевый круг на поле. Перетащи круг мышкой (на блок — встанет сверху) или нажми «🎯 Указать выход». Назад телепорт не переносит.', '🌀 The player jumps instantly to the exit cell — the orange circle on the field. Drag the circle (onto a block — lands on top) or press "🎯 Pick the exit". It never moves you backwards.')}</div>` +
+                    (tpExitBlocked(o) ? `<div class="text-amber-300">⚠ ${tr('Выход внутри блока или шипа — игрок разобьётся. Подними круг повыше.', 'The exit is inside a block or spike — the player will crash. Move the circle up.')}</div>` : '');
+            }
             if (o.type === 'PLATFORM') html += `<div class="text-zinc-400">${tr('➖ на платформу можно встать сверху, а снизу — пролететь насквозь', '➖ stand on it from above, pass through from below')}</div>`;
             if (TINTABLE[o.type]) html += `<div class="flex flex-wrap items-center gap-2"><span class="text-zinc-300">🎨 ${tr('Свой цвет', 'Own color')}</span>
                 <input id="propTint" type="color" value="${o.color || (o.type === 'BLOCK' || o.type === 'SLAB' || o.type === 'PLATFORM' ? editorLevel.color : '#2a2a2a')}" class="w-10 h-8 bg-transparent">
@@ -2904,7 +3042,8 @@ const SECRET_LEVELS = [
                 const info = TRIG[o.type];
                 html += `<div class="rounded-lg bg-black/40 px-2.5 py-1.5 text-zinc-200 leading-relaxed"><b>${tr('Что делает', 'What it does')}:</b> ${tr(info.what[0], info.what[1])}<br>
                     <b>${tr('Когда срабатывает', 'When it fires')}:</b> ${tr('когда игрок пересекает пунктирную линию этого триггера.', 'when the player crosses this trigger\'s dashed line.')}</div>`;
-                html += '<div class="flex flex-wrap gap-x-5 gap-y-2 items-center">' + fields.map(([key, kind, ru, en, a1, b1, c1]) => {
+                html += '<div class="flex flex-wrap gap-x-5 gap-y-2 items-center">' + fields.map(([key, kind, ru, en, a1, b1, c1, vis]) => {
+                    if (vis && !vis(o)) return '';
                     const id = 'tf_' + key, label = `<span class="text-zinc-300">${tr(ru, en)}</span>`;
                     if (kind === 'color') return `<label class="flex items-center gap-2">${label}<input id="${id}" type="color" value="${o[key]}" class="w-10 h-8 bg-transparent"></label>`;
                     if (kind === 'num') return `<label class="flex items-center gap-2">${label}<input id="${id}" type="number" min="${a1}" max="${b1}" step="${c1}" value="${o[key]}" class="w-20 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-700 font-mono font-bold"></label>`;
@@ -2914,6 +3053,9 @@ const SECRET_LEVELS = [
                     if (kind === 'sel') return `<label class="flex items-center gap-2">${label}<select id="${id}" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1">${(typeof a1 === 'function' ? a1() : a1).map(([v, r2, e2]) => `<option value="${v}" ${String(v) === String(o[key]) ? 'selected' : ''}>${tr(r2, e2)}</option>`).join('')}</select></label>`;
                     return `<label class="flex items-center gap-2 flex-1 min-w-[220px]">${label}<input id="${id}" maxlength="60" value="${escAttr(o[key])}" class="flex-1 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-700 font-bold"></label>`;
                 }).join('') + '</div>';
+                if (o.type === 'MOVE_TRIGGER' && !notFollow(o)) html += `<div class="text-sky-300">${o.follow === 'stop'
+                    ? tr('✋ Группа перестаёт следовать за игроком и остаётся там, где была в этот момент.', '✋ The group stops following the player and stays where it was at that moment.')
+                    : tr('👤 Когда игрок пересечёт линию, группа начнёт повторять его движение и будет держаться на том же расстоянии, какое было в этот момент. Чтобы отпустить её — поставь дальше такой же триггер с «✋ перестать следовать».', '👤 Once the player crosses the line, the group copies their movement and keeps the same distance it had at that moment. To release it, put another one further on with "✋ stop following".')}</div>`;
                 if (o.type === 'EMOJI_TRIGGER' && groupCount(o.target) && !editorLevel.objects.some(x => x.type === 'EMOJI' && x.group === o.target)) {
                     html += `<div class="text-amber-300">⚠ ${tr(`В группе ${o.target} есть объекты, но нет смайликов — менять нечего. Дай номер группы именно смайлику.`, `Group ${o.target} has no emoji to change. Give the group number to an emoji.`)}</div>`;
                 }
@@ -2961,7 +3103,8 @@ const SECRET_LEVELS = [
             bindInput('propW', el => { const v = clampNum(el, 0.25, 20); if (v != null) o.w = v; }, 'change');
             bindInput('propH', el => { const v = clampNum(el, 0.25, 20); if (v != null) o.h = v; }, 'change');
             bindInput('propR', el => { const v = clampNum(el, 0.1, 10); if (v != null) o.r = v; }, 'change');
-            bindInput('propTY', el => { const v = clampNum(el, -20, 20); if (v != null) o.ty = v; }, 'change');
+            bindInput('propTX', el => { const v = clampNum(el, 0, 300); if (v != null) o.tx = v; renderProps(); }, 'change');
+            bindInput('propTY', el => { const v = clampNum(el, -20, 40); if (v != null) o.ty = v; renderProps(); }, 'change');
             bindInput('propTint', el => { o.color = el.value; });
             bindInput('propShapeColor', el => { o.color = el.value; });
             bindInput('propAlpha', el => { o.alpha = +el.value; const lab = $('propAlphaVal'); if (lab) lab.textContent = el.value + '%'; });
@@ -3083,6 +3226,8 @@ const SECRET_LEVELS = [
     }
     // ⚡ Быстро: сам назначает свободную группу выделенному и ставит нужный триггер перед ним
     function quickTrigger(type) {
+        const follow = type === 'FOLLOW';
+        if (follow) type = 'MOVE_TRIGGER';
         const objs = selSet.filter(o => OBJ[o.type].cat !== 'trigger' && OBJ[o.type].cat !== 'editor');
         if (!objs.length) return;
         pushUndo();
@@ -3092,11 +3237,12 @@ const SECRET_LEVELS = [
         const b = selBounds(objs);
         const tx = Math.max(0, Math.floor((b.x0 - 6 * GRID) / GRID) * GRID);
         const ty = Math.min(360, Math.max(0, Math.ceil(b.y1 / GRID) * GRID + GRID));
-        const extra = type === 'ROTATE_TRIGGER' ? { deg: 360, dur: 1, rmode: objs.length > 1 ? 'group' : 'self' } : type === 'MOVE_TRIGGER' ? { dy: b.y0 < 0 ? Math.ceil(-b.y0 / GRID) : 2, dur: 0.5 } : type === 'TOGGLE_TRIGGER' ? { show: false } : type === 'FADE_TRIGGER' ? { opacity: 0, dur: 0.5 } : {};
+        const extra = follow ? { follow: 'x', fk: 1 } : type === 'ROTATE_TRIGGER' ? { deg: 360, dur: 1, rmode: objs.length > 1 ? 'group' : 'self' } : type === 'MOVE_TRIGGER' ? { dy: b.y0 < 0 ? Math.ceil(-b.y0 / GRID) : 2, dur: 0.5 } : type === 'TOGGLE_TRIGGER' ? { show: false } : type === 'FADE_TRIGGER' ? { opacity: 0, dur: 0.5 } : {};
         const trig = normalizeLevel({ objects: [Object.assign({ type, x: tx, y: ty, target: g }, extra)] }).objects[0];
         editorLevel.objects.push(trig);
         saveEditor(); setSelection([trig]);
-        toast(tr(`Готово: группа ${g}, триггер стоит на 6 блоков раньше. Его можно перетащить.`, `Done: group ${g}, the trigger is 6 blocks earlier. You can drag it.`));
+        if (follow) toast(tr(`👤 Готово: группа ${g} идёт за игроком по X и держит то же расстояние. Триггер — на 6 блоков раньше; в нём можно выбрать «по X и Y».`, `👤 Done: group ${g} follows the player on X at the same distance. The trigger is 6 blocks earlier; you can pick "X and Y" there.`), 4);
+        else toast(tr(`Готово: группа ${g}, триггер стоит на 6 блоков раньше. Его можно перетащить.`, `Done: group ${g}, the trigger is 6 blocks earlier. You can drag it.`));
     }
     function deleteSelection() {
         if (!selSet.length) return;
@@ -3121,6 +3267,7 @@ const SECRET_LEVELS = [
         if (a === 'rot') { rotateSelection(); return; }
         if (a === 'flip') { flipSelection(); return; }
         if (a.startsWith('q:')) { quickTrigger(a.slice(2)); return; }
+        if (a === 'tpPick') { tpPick = tpPick === selObj ? null : selObj; renderProps(); return; }
         if (a.startsWith('scale')) { setSelectionScale(parseFloat(a.slice(5))); return; }
         if (a === 'tintreset') { pushUndo(); selSet.forEach(o => { if (TINTABLE[o.type]) delete o.color; }); saveEditor(); renderProps(); return; }
         if (a.startsWith('shape:')) { pushUndo(); selSet.forEach(o => { if (o.type === 'SHAPE') o.shape = a.slice(6); }); saveEditor(); renderProps(); return; }
@@ -3222,8 +3369,11 @@ const SECRET_LEVELS = [
         if (G.mode === 'EDITOR') {
             const w = screenToWorld(e);
             if (e.button === 0 && inMinimap(w)) { edDrag = { type: 'minimap' }; minimapJump(w); return; }
+            if (tpPick && (e.button === 2 || tpPick !== selObj)) { tpPick = null; renderProps(); if (e.button === 2) return; }
             if (e.button === 2) { const i = objAtPoint(w); if (i >= 0) { pushUndo(); editorLevel.objects.splice(i, 1); saveEditor(); renderProps(); } return; }
             if (e.button !== 0) return;
+            if (tpPick) { pickTpExit(w); return; }
+            if (activeTool !== 'ERASER' && hitTpExit(selObj, w)) { pushUndo(); edDrag = { type: 'tpExit', o: selObj }; return; }
             const hit = activeTool !== 'ERASER' ? hitPortalLine(selObj, w) : null;
             if (hit) { pushUndo(); edDrag = Object.assign({ type: 'line', o: selObj }, hit); return; }
             if (activeTool === 'SELECT' || e.shiftKey) {
@@ -3261,6 +3411,7 @@ const SECRET_LEVELS = [
         if (edDrag) {
             if (edDrag.type === 'minimap') minimapJump(w);
             else if (edDrag.type === 'line') dragPortalLine(edDrag.o, edDrag.kind, edDrag.i, w.y);
+            else if (edDrag.type === 'tpExit') Object.assign(edDrag.o, tpSnap(edDrag.o, w));
             else if (edDrag.type === 'box') { edDrag.x1 = w.x; edDrag.y1 = w.y; }
             else if (edDrag.type === 'move') {
                 let dx = Math.round((w.x - edDrag.sx) / GRID) * GRID, dy = Math.round((w.y - edDrag.sy) / GRID) * GRID;
@@ -3270,7 +3421,7 @@ const SECRET_LEVELS = [
             }
             return;
         }
-        canvas.style.cursor = inMinimap(w) ? 'pointer' : hitPortalLine(selObj, w) ? 'ns-resize' : (activeTool === 'SELECT' ? 'default' : 'crosshair');
+        canvas.style.cursor = inMinimap(w) ? 'pointer' : tpPick ? 'cell' : hitTpExit(selObj, w) ? 'grab' : hitPortalLine(selObj, w) ? 'ns-resize' : (activeTool === 'SELECT' ? 'default' : 'crosshair');
         const nc = { x: Math.floor(w.x / GRID) * GRID, y: Math.floor(w.y / GRID) * GRID };
         const changed = !hoverCell || nc.x !== hoverCell.x || nc.y !== hoverCell.y;
         hoverCell = nc.x >= 0 && nc.y >= MIN_Y && !inMinimap(w) ? nc : null;
@@ -3332,7 +3483,7 @@ const SECRET_LEVELS = [
         delete b.dataset.armed; pushUndo(); editorLevel.objects = []; saveEditor(); setSelection([]); toast(tr('Карта очищена. Вернуть можно кнопкой «Отмена».', 'Map cleared. Undo brings it back.'));
     });
     $('btnExportLevel').addEventListener('click', () => {
-        const data = { format: 'geometry-ai', version: '2.4', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, objects: editorLevel.objects };
+        const data = { format: 'geometry-ai', version: '2.5', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, objects: editorLevel.objects };
         const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -3355,11 +3506,11 @@ const SECRET_LEVELS = [
         reader.readAsText(file);
     });
 
-    function toast(msg) {
+    function toast(msg, sec) {
         let t = $('toastBox');
         if (!t) { t = document.createElement('div'); t.id = 'toastBox'; t.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-white text-black font-bold text-sm shadow-2xl'; document.body.appendChild(t); }
         t.textContent = msg; t.hidden = false;
-        clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 2200);
+        clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, sec ? sec * 1000 : 2200);
     }
 
     // ---------- Мои уровни, подсказка, переключатели ----------
@@ -3417,6 +3568,8 @@ const SECRET_LEVELS = [
         ['Ctrl + Z / Ctrl + Y', 'отмена / повтор', 'undo / redo'], ['H', 'показать хитбоксы', 'show hitboxes'], ['Esc', 'снять выделение', 'clear selection'],
         ['Мини-карта внизу', 'клик — прыжок в это место уровня', 'click to jump there'],
         ['⚡ Быстро', 'выдели объекты → «Двигать / Растворить / Спрятать» — группа и триггер появятся сами', 'select objects → Move / Fade / Hide — group and trigger are made for you'],
+        ['🌀 Телепорт', 'переносит игрока в клетку выхода (оранжевый круг): перетащи круг или нажми «🎯 Указать выход» и кликни по блоку — игрок встанет на него сверху', 'moves the player to the exit cell (orange circle): drag it or press "🎯 Pick the exit" and click a block'],
+        ['👤 За игроком', 'в 🚚 «Движение группы» — режим «следовать за игроком» по X, по Y или по X и Y; кнопка «👤 За игроком» в ⚡ Быстро делает это в один клик', 'the 🚚 Move trigger can follow the player on X, Y or both; the "👤 Follow player" quick button does it in one click'],
         ['🔲 Хитбоксы', 'невидимые в игре стены и зоны смерти любого размера (квадрат или круг)', 'invisible walls and death zones of any size'],
         ['📏 Масштаб', 'увеличить или уменьшить любой объект от ×0,25 до ×4', 'make any object ×0.25 … ×4'],
         ['🔷 Фигуры', '31 фигура-декор: цвет, прозрачность, свечение и слой', '31 decor shapes: color, opacity, glow, layer'],
@@ -3863,7 +4016,7 @@ const SECRET_LEVELS = [
             if (ctrl && e.code === 'KeyV') { e.preventDefault(); const c = hoverCell || { x: Math.max(0, Math.round((G.edCamX + VIEW_W / G.edZoom / 2) / GRID) * GRID), y: 0 }; pasteAt(c.x, c.y); }
             if (ctrl && e.code === 'KeyD') { e.preventDefault(); duplicateSelection(); }
             if (ctrl && e.code === 'KeyA') { e.preventDefault(); activeTool = 'SELECT'; activeTab = 'SELECT'; renderTabs(); renderToolBar(); refreshSelectBtn(); setSelection(editorLevel.objects.slice()); }
-            if (e.code === 'Escape') { setSelection([]); ['libModal', 'helpModal', 'musicModal'].forEach(id => $(id).classList.add('hidden')); }
+            if (e.code === 'Escape') { tpPick = null; setSelection([]); ['libModal', 'helpModal', 'musicModal'].forEach(id => $(id).classList.add('hidden')); }
             if ((e.code === 'Equal' || e.code === 'NumpadAdd') && !ctrl) setZoom(G.edZoom * 1.25);
             if ((e.code === 'Minus' || e.code === 'NumpadSubtract') && !ctrl) setZoom(G.edZoom / 1.25);
             if ((e.code === 'Delete' || e.code === 'Backspace') && selSet.length) { e.preventDefault(); deleteSelection(); }
