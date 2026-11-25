@@ -550,7 +550,7 @@ function normalizeLevel(data) {
             if (o.type === 'WEATHER_TRIGGER') r.weather = WEATHER_KINDS.includes(o.weather) ? o.weather : 'snow';
             if (o.type === 'RAINBOW_TRIGGER') { r.on = o.on !== false; r.speed = num(o.speed, 1, 0.1, 5); }
             if (o.type === 'SOUND_TRIGGER') {
-                r.snd = SOUND_KINDS.includes(o.snd) || /^c:[\w-]{1,40}$/.test(o.snd) ? o.snd : 'boom'; // c:… — свой записанный звук
+                r.snd = SOUND_KINDS.includes(o.snd) || /^(c:[\w-]{1,40}|u:music\/[\w.-]{1,80})$/.test(o.snd) ? o.snd : 'boom'; // c:… — своя запись, u:music/… — звук на сайте
                 if (String(r.snd).startsWith('c:')) r.fb = SOUND_KINDS.includes(o.fb) ? o.fb : 'jump'; // запасной, если записи у игрока нет
             }
             if (o.group != null && Number(o.group) >= 1) r.group = Math.round(num(o.group, 0, 1, 99));
@@ -1876,7 +1876,7 @@ const SECRET_LEVELS = [
         // 🔔 звуки для триггера «Звук»
         play(kind, fb) {
             // 🎤 свой записанный звук: играет поверх музыки, не перебивая её
-            if (typeof kind === 'string' && kind.startsWith('c:')) {
+            if (typeof kind === 'string' && (kind.startsWith('c:') || kind.startsWith('u:'))) {
                 if (!this.enabled) return;
                 trackUrl(kind).then(url => { if (!url) { this.play(fb || 'jump'); return; } try { const a = new Audio(url); a.volume = 0.9; a.play().catch(() => {}); } catch (e) {} });
                 return;
@@ -4930,8 +4930,19 @@ const SECRET_LEVELS = [
             row.innerHTML = `<button data-k="play" class="w-9 h-9 rounded-lg bg-zinc-800 font-black">${previewId === t.id ? '⏹' : '▶'}</button>
                 <span class="font-bold flex-1 min-w-[120px] truncate"></span><span class="font-mono text-xs text-zinc-400">${fmtTime(t.duration)}</span>
                 ${inLevel ? `<span class="text-xs font-black text-pink-300">✓ ${tr('играет в уровне', 'used in level')}</span>` : `<button data-k="use" class="px-3 py-1.5 rounded-lg bg-pink-500 text-black font-black text-xs">${tr('Поставить на уровень', 'Use in level')}</button>`}
+                <button data-k="copytxt" title="${tr('Скопировать звук как текст — вставь его в чат Claude (Ctrl+V), и он положит звук на сайт', 'Copy the sound as text to paste into a chat')}" class="px-2.5 py-1.5 rounded-lg bg-zinc-800 text-xs font-bold">📋 ${tr('Копировать для Claude', 'Copy as text')}</button>
                 <button data-k="del" class="px-2.5 py-1.5 rounded-lg bg-zinc-800 text-xs">🗑</button>`;
             row.querySelector('span').textContent = '🎤 ' + t.name;
+            // 📋 звук как текст: без файлов — через буфер обмена
+            row.querySelector('[data-k="copytxt"]').addEventListener('click', async () => {
+                try {
+                    const rec = await trackDB.get(t.id); if (!rec || !rec.blob) throw 0;
+                    if (rec.blob.size > 1500000) { toast(tr('Запись слишком длинная — для звука хватит 1–5 секунд', 'The recording is too long — 1–5 seconds is enough for a sound')); return; }
+                    const url = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(rec.blob); });
+                    await navigator.clipboard.writeText('GAI-SOUND|' + t.name + '|' + url);
+                    toast(tr('📋 Скопировано! Вставь в чат с Claude: Ctrl+V', '📋 Copied! Paste it into the chat: Ctrl+V'), 4);
+                } catch (e) { toast(tr('Не получилось скопировать', 'Could not copy')); }
+            });
             row.querySelector('[data-k="play"]').addEventListener('click', async () => {
                 if (previewId === t.id) { previewAudio.pause(); previewId = null; renderTrackList(); return; }
                 music.stop(); previewAudio.src = await trackUrl('c:' + t.id); previewAudio.currentTime = 0; previewAudio.play().catch(() => {}); previewId = t.id; renderTrackList();
