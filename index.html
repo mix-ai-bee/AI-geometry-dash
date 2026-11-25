@@ -905,11 +905,12 @@ function fireTrigger(s, L, ti, depth) {
             break;
         }
         case 'PRESS_TRIGGER':
-            s.lis = s.lis.concat([[ti, t.dur > 0 ? s.frame + Math.round(t.dur * 60) : 1e9, t.max || 0]]);
+            // повторный запуск того же триггера не размножает его, а начинает заново
+            s.lis = s.lis.filter(l => l[0] !== ti).concat([[ti, t.dur > 0 ? s.frame + Math.round(t.dur * 60) : 1e9, t.max || 0]]);
             break;
         case 'IF_TRIGGER':
-            // с этого момента ждём событие; когда оно случится — запускаем группу
-            s.ifs = (s.ifs || []).concat([[ti, t.dur > 0 ? s.frame + Math.round(t.dur * 60) : 1e9, t.max || 0]]);
+            // с этого момента ждём событие; когда оно случится — запускаем группу (повторный запуск — заново, без копий)
+            s.ifs = (s.ifs || []).filter(l => l[0] !== ti).concat([[ti, t.dur > 0 ? s.frame + Math.round(t.dur * 60) : 1e9, t.max || 0]]);
             break;
         case 'GRAVITY_TRIGGER': {
             const ng = t.gmode === 'up' ? -1 : t.gmode === 'down' ? 1 : -s.g;
