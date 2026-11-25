@@ -48,7 +48,7 @@
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
                     <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.9</span>
                 </div>
-                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Монстрики: кусака, колючий, куст и новые шипы" data-en="Monsters: chomper, spiky, thorn bush and new spikes">Монстрики: кусака, колючий, куст и новые шипы</p>
+                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Монстрики: кусака, шипастый, колючий малыш и новые шипы" data-en="Monsters: chomper, spiky, thorn bush and new spikes">Монстрики: кусака, шипастый, колючий малыш и новые шипы</p>
             </div>
         </button>
         <div class="flex items-center gap-2 flex-wrap">
@@ -365,6 +365,7 @@ const OBJ = {
     MONSTER_CHOMP: { cat: 'hazard', rect: [7, 2, 33, 32] },
     MONSTER_SPIKY: { cat: 'hazard', rect: [9, 9, 31, 31] },
     THORN_BUSH: { cat: 'hazard', rect: [3, 0, 37, 20] },
+    MONSTER_SPIKEROW: { cat: 'hazard', rect: [3, 0, 37, 15] },
     TALL_SPIKE: { cat: 'hazard', rect: [16, 2, 24, 36] },
     CRYSTAL_SPIKE: { cat: 'hazard', rect: [8, 0, 32, 24] },
     ORB: { cat: 'orb', kind: 'yellow', rect: ORB_R, fixed: 1 },
@@ -419,7 +420,7 @@ const WEATHER_KINDS = ['none', 'snow', 'rain', 'confetti', 'stars', 'hearts', 'e
 const SOUND_KINDS = ['boom', 'laser', 'coin', 'bell', 'alarm', 'power', 'drum', 'whoosh', 'win', 'fail', 'jump', 'magic'];
 const SHAPE_IDS = ['circle', 'ring', 'square', 'triangle', 'diamond', 'hexagon', 'star', 'heart', 'plus', 'xmark', 'cloud', 'bush', 'tree', 'flower',
     'mushroom', 'moon', 'sun', 'bolt', 'crystal', 'flame', 'waves', 'gear', 'pillar', 'spiral', 'dots', 'rays', 'grass', 'eye', 'note', 'frame', 'stripe'];
-const TINTABLE = { BLOCK: 1, SLAB: 1, SPIKE: 1, SMALL_SPIKE: 1, GROUND_SPIKES: 1, SAW: 1, PLATFORM: 1, MONSTER_CHOMP: 1, MONSTER_SPIKY: 1, THORN_BUSH: 1, TALL_SPIKE: 1, CRYSTAL_SPIKE: 1 };
+const TINTABLE = { BLOCK: 1, SLAB: 1, SPIKE: 1, SMALL_SPIKE: 1, GROUND_SPIKES: 1, SAW: 1, PLATFORM: 1, MONSTER_CHOMP: 1, MONSTER_SPIKY: 1, MONSTER_SPIKEROW: 1, THORN_BUSH: 1, TALL_SPIKE: 1, CRYSTAL_SPIKE: 1 };
 // Радиус круглого хитбокса объекта (пила, круглый хитбокс) с учётом масштаба
 function circleOf(o) {
     const d = OBJ[o.type];
@@ -2582,16 +2583,27 @@ const SECRET_LEVELS = [
                 break;
             }
             case 'GROUND_SPIKES': {
-                // редизайн: полоска колючек с глазками
-                ctx.beginPath(); ctx.moveTo(-19, 20); ctx.lineTo(-19, 14);
-                for (let i = 0; i < 5; i++) { ctx.lineTo(-19 + i * 7.6 + 3.8, 4 + (i % 2) * 2); ctx.lineTo(-19 + (i + 1) * 7.6, 13); }
+                // редизайн: низкие чёрные колючки-клубки
+                ctx.fillStyle = o.color || '#000'; ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1;
+                [[-13, 15, 5.5], [-4, 14, 6.5], [6, 15, 5.5], [14, 16, 4.5]].forEach(([cx, cy, r], j) => {
+                    ctx.beginPath();
+                    for (let i = 0; i <= 14; i++) { const a = i / 14 * Math.PI * 2 + j * 0.7, rr = i % 2 ? r * 0.55 : r + 3; ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+                    ctx.closePath(); ctx.fill(); ctx.stroke();
+                });
+                ctx.fillRect(-19, 16, 38, 4);
+                break;
+            }
+            case 'MONSTER_SPIKEROW': {
+                // колючий малыш: полоска шипов с глазками
+                ctx.beginPath(); ctx.moveTo(-19, 20); ctx.lineTo(-19, 10);
+                for (let i = 0; i < 5; i++) { ctx.lineTo(-19 + i * 7.6 + 3.8, -2 + (i % 2) * 3); ctx.lineTo(-19 + (i + 1) * 7.6, 9); }
                 ctx.lineTo(19, 20); ctx.closePath();
                 ctx.fillStyle = o.color || '#111'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
-                drawEyes(o, t, [[-9, 16.5], [9, 16.5]], 2.6);
+                drawEyes(o, t, [[-8, 14], [8, 14]], 3);
                 break;
             }
             case 'MONSTER_CHOMP': {
-                // кусака-растение: две челюсти с зубами щёлкают, на каждой — глаз
+                // кусака: две челюсти с зубами щёлкают, на каждой — глаз
                 const open = 0.15 + 0.4 * Math.abs(Math.sin(t * 3.2 + o.x * 0.01));
                 const body = o.color || '#1f2937';
                 for (const side of [-1, 1]) {
@@ -2633,7 +2645,6 @@ const SECRET_LEVELS = [
                     ctx.closePath(); ctx.fill(); ctx.stroke();
                 });
                 ctx.fillStyle = body; ctx.fillRect(-18, 14, 36, 6);
-                drawEyes(o, t, [[-5, 6], [5, 6]], 2.4);
                 break;
             }
             case 'TALL_SPIKE': {
@@ -3492,7 +3503,7 @@ const SECRET_LEVELS = [
         SPIKES: { icon: '🔺', ru: 'Шипы, пилы, монстрики', en: 'Hazards & monsters', tools: [
             ['SPIKE', '🔺', 'Шип', 'Spike'], ['SMALL_SPIKE', '▴', 'Маленький шип', 'Small spike'], ['GROUND_SPIKES', '〰️', 'Колючки', 'Ground spikes'], ['SAW', '⚙️', 'Пила', 'Saw'],
             ['TALL_SPIKE', '📍', 'Тонкий шип', 'Tall spike'], ['CRYSTAL_SPIKE', '💎', 'Кристаллы', 'Crystals'],
-            ['MONSTER_CHOMP', '🌱', 'Кусака-растение', 'Chomper plant'], ['MONSTER_SPIKY', '🦔', 'Колючий монстрик', 'Spiky monster'], ['THORN_BUSH', '🌿', 'Колючий куст', 'Thorn bush']] },
+            ['MONSTER_CHOMP', '😬', 'Кусака', 'Chomper'], ['MONSTER_SPIKY', '✴️', 'Шипастый монстрик', 'Spiky monster'], ['MONSTER_SPIKEROW', '🦔', 'Колючий малыш', 'Spiky little one'], ['THORN_BUSH', '🌿', 'Колючий куст', 'Thorn bush']] },
         BLOCKS: { icon: '⬛', ru: 'Блоки', en: 'Blocks', tools: [['BLOCK', '⬛', 'Блок', 'Block'], ['SLAB', '▬', 'Полублок', 'Slab'], ['PLATFORM', '➖', 'Платформа (снизу насквозь)', 'One-way platform']] },
         HITBOX: { icon: '🔲', ru: 'Хитбоксы', en: 'Hitboxes', tools: [['HB_SOLID', '🟦', 'Твёрдый хитбокс', 'Solid hitbox'], ['HB_HAZARD', '🟥', 'Опасный хитбокс', 'Hazard hitbox'], ['HB_CIRCLE', '🔴', 'Круглый хитбокс', 'Circle hitbox']] },
         OTHER: { icon: '🏁', ru: 'Старт, монеты, финиш', en: 'Start, coins, goal', tools: [['START_POS', '🚩', 'Стартовая позиция', 'Start position'], ['COIN', '🪙', 'Монета', 'Coin'], ['GOAL', '🏁', 'Финиш', 'Goal']] },
