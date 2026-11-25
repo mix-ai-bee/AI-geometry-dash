@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Geometry AI v2.8</title>
-    <!-- 2.8: импорт из Geometry Dash -->
+    <title>Geometry AI v2.9</title>
+    <!-- 2.9: монстрики -->
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
@@ -46,9 +46,9 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.8</span>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.9</span>
                 </div>
-                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Уровни из Geometry Dash и 35 мелодий" data-en="Levels from Geometry Dash and 35 songs">Уровни из Geometry Dash и 35 мелодий</p>
+                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Монстрики: кусака, колючий, куст и новые шипы" data-en="Monsters: chomper, spiky, thorn bush and new spikes">Монстрики: кусака, колючий, куст и новые шипы</p>
             </div>
         </button>
         <div class="flex items-center gap-2 flex-wrap">
@@ -361,6 +361,12 @@ const OBJ = {
     SMALL_SPIKE: { cat: 'hazard', rect: [15, 0, 25, 11] },
     GROUND_SPIKES: { cat: 'hazard', rect: [6, 0, 34, 8] },
     SAW: { cat: 'hazard', circle: 22, rect: [-2, -2, 42, 42] },
+    // 2.9: монстрики и новые шипы (по рисункам автора)
+    MONSTER_CHOMP: { cat: 'hazard', rect: [7, 2, 33, 32] },
+    MONSTER_SPIKY: { cat: 'hazard', rect: [9, 9, 31, 31] },
+    THORN_BUSH: { cat: 'hazard', rect: [3, 0, 37, 20] },
+    TALL_SPIKE: { cat: 'hazard', rect: [16, 2, 24, 36] },
+    CRYSTAL_SPIKE: { cat: 'hazard', rect: [8, 0, 32, 24] },
     ORB: { cat: 'orb', kind: 'yellow', rect: ORB_R, fixed: 1 },
     PINK_ORB: { cat: 'orb', kind: 'pink', rect: ORB_R, fixed: 1 },
     RED_ORB: { cat: 'orb', kind: 'red', rect: ORB_R, fixed: 1 },
@@ -413,7 +419,7 @@ const WEATHER_KINDS = ['none', 'snow', 'rain', 'confetti', 'stars', 'hearts', 'e
 const SOUND_KINDS = ['boom', 'laser', 'coin', 'bell', 'alarm', 'power', 'drum', 'whoosh', 'win', 'fail', 'jump', 'magic'];
 const SHAPE_IDS = ['circle', 'ring', 'square', 'triangle', 'diamond', 'hexagon', 'star', 'heart', 'plus', 'xmark', 'cloud', 'bush', 'tree', 'flower',
     'mushroom', 'moon', 'sun', 'bolt', 'crystal', 'flame', 'waves', 'gear', 'pillar', 'spiral', 'dots', 'rays', 'grass', 'eye', 'note', 'frame', 'stripe'];
-const TINTABLE = { BLOCK: 1, SLAB: 1, SPIKE: 1, SMALL_SPIKE: 1, GROUND_SPIKES: 1, SAW: 1, PLATFORM: 1 };
+const TINTABLE = { BLOCK: 1, SLAB: 1, SPIKE: 1, SMALL_SPIKE: 1, GROUND_SPIKES: 1, SAW: 1, PLATFORM: 1, MONSTER_CHOMP: 1, MONSTER_SPIKY: 1, THORN_BUSH: 1, TALL_SPIKE: 1, CRYSTAL_SPIKE: 1 };
 // Радиус круглого хитбокса объекта (пила, круглый хитбокс) с учётом масштаба
 function circleOf(o) {
     const d = OBJ[o.type];
@@ -2490,6 +2496,17 @@ const SECRET_LEVELS = [
     }
 
     function levelWall() { return (G.mode === 'EDITOR' ? editorLevel.wall : G.L && G.L.wall) || 'classic'; }
+    // 👀 глаза монстриков: зрачки смотрят на игрока, иногда моргают
+    function drawEyes(o, t, eyes, r) {
+        let dx = 1, dy = 0;
+        if (G.S && G.mode !== 'EDITOR') { dx = G.S.x + 17 - (o.x + 20); dy = -(G.S.y + 17 - (o.y + 20)); const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l; }
+        const blink = ((t + o.x * 0.013 + o.y * 0.007) % 3.2) < 0.13;
+        for (const [ex, ey] of eyes) {
+            if (blink) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(ex - r, ey); ctx.lineTo(ex + r, ey); ctx.stroke(); continue; }
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex, ey, r, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(ex + dx * r * 0.45, ey + dy * r * 0.45, r * 0.5, 0, Math.PI * 2); ctx.fill();
+        }
+    }
     // Значок триггера в редакторе: линия, зона касания или кружок «запускается другим триггером»
     function drawTriggerIcon(o) {
         const info = TRIG[o.type];
@@ -2565,9 +2582,72 @@ const SECRET_LEVELS = [
                 break;
             }
             case 'GROUND_SPIKES': {
-                ctx.beginPath(); ctx.moveTo(-18, 20);
-                for (let i = 0; i < 4; i++) { ctx.lineTo(-18 + i * 9 + 4.5, 9); ctx.lineTo(-18 + (i + 1) * 9, 20); }
-                ctx.closePath(); ctx.fillStyle = o.color || '#000'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+                // редизайн: полоска колючек с глазками
+                ctx.beginPath(); ctx.moveTo(-19, 20); ctx.lineTo(-19, 14);
+                for (let i = 0; i < 5; i++) { ctx.lineTo(-19 + i * 7.6 + 3.8, 4 + (i % 2) * 2); ctx.lineTo(-19 + (i + 1) * 7.6, 13); }
+                ctx.lineTo(19, 20); ctx.closePath();
+                ctx.fillStyle = o.color || '#111'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+                drawEyes(o, t, [[-9, 16.5], [9, 16.5]], 2.6);
+                break;
+            }
+            case 'MONSTER_CHOMP': {
+                // кусака-растение: две челюсти с зубами щёлкают, на каждой — глаз
+                const open = 0.15 + 0.4 * Math.abs(Math.sin(t * 3.2 + o.x * 0.01));
+                const body = o.color || '#1f2937';
+                for (const side of [-1, 1]) {
+                    ctx.save(); ctx.translate(0, 18); ctx.rotate(side * open);
+                    ctx.beginPath(); ctx.moveTo(0, 0);
+                    ctx.quadraticCurveTo(side * 24, -6, side * 10, -38);
+                    // внутренний край с зубами
+                    for (let i = 1; i <= 4; i++) { const yy = -38 + i * 8.5; ctx.lineTo(side * (i % 2 ? -3 : 3.5), yy - 4); ctx.lineTo(side * 3.5, yy); }
+                    ctx.closePath();
+                    ctx.fillStyle = body; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+                    ctx.restore();
+                }
+                const ex = 6 + open * 14;
+                drawEyes(o, t, [[-ex, -6], [ex, -6]], 3.4);
+                break;
+            }
+            case 'MONSTER_SPIKY': {
+                // колючий монстрик: тело с 4 шипами, покачивается
+                const k = 1 + Math.sin(t * 4 + o.x * 0.02) * 0.06;
+                ctx.scale(k, 2 - k);
+                const body = o.color || '#1f2937';
+                ctx.beginPath();
+                ctx.moveTo(-3, -12); ctx.lineTo(0, -21); ctx.lineTo(4, -12);          // верх
+                ctx.lineTo(12, -11); ctx.lineTo(12, -3); ctx.lineTo(21, 0); ctx.lineTo(12, 3); // право
+                ctx.lineTo(12, 11); ctx.lineTo(4, 12); ctx.lineTo(0, 21); ctx.lineTo(-4, 12);  // низ
+                ctx.lineTo(-12, 11); ctx.lineTo(-12, 3); ctx.lineTo(-21, 0); ctx.lineTo(-12, -3); // лево
+                ctx.lineTo(-12, -11); ctx.closePath();
+                ctx.fillStyle = body; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+                drawEyes(o, t, [[-5.5, -2], [5.5, -2]], 3.6);
+                break;
+            }
+            case 'THORN_BUSH': {
+                // колючий куст из клубков колючек
+                const body = o.color || '#111';
+                ctx.fillStyle = body; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2;
+                [[-12, 10, 9], [0, 6, 11], [12, 10, 9], [-6, 14, 8], [7, 14, 8]].forEach(([cx, cy, r], j) => {
+                    ctx.beginPath();
+                    for (let i = 0; i <= 16; i++) { const a = i / 16 * Math.PI * 2 + j + t * 0.6 * (j % 2 ? 1 : -1), rr = i % 2 ? r : r + 4; ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+                    ctx.closePath(); ctx.fill(); ctx.stroke();
+                });
+                ctx.fillStyle = body; ctx.fillRect(-18, 14, 36, 6);
+                drawEyes(o, t, [[-5, 6], [5, 6]], 2.4);
+                break;
+            }
+            case 'TALL_SPIKE': {
+                ctx.beginPath(); ctx.moveTo(-6, 20); ctx.lineTo(0, -18); ctx.lineTo(6, 20); ctx.closePath();
+                const gr = ctx.createLinearGradient(0, -18, 0, 20); gr.addColorStop(0, o.color || '#2a2a2a'); gr.addColorStop(1, '#000');
+                ctx.fillStyle = gr; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+                break;
+            }
+            case 'CRYSTAL_SPIKE': {
+                const c = o.color || '#67e8f9';
+                [[-9, 20, -12, -2, 5], [0, 20, 0, -6, 6], [9, 20, 11, 0, 5]].forEach(([bx, by, tx, ty, w]) => {
+                    ctx.beginPath(); ctx.moveTo(bx - w, by); ctx.lineTo(tx, ty); ctx.lineTo(bx + w, by); ctx.closePath();
+                    ctx.fillStyle = c; ctx.globalAlpha *= 0.85; ctx.fill(); ctx.globalAlpha /= 0.85; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+                });
                 break;
             }
             case 'SAW': {
@@ -3409,8 +3489,10 @@ const SECRET_LEVELS = [
             ['SPIDER_ORB', '🟣', 'Паучий орб (переброс)', 'Spider orb (teleport)']] },
         PADS: { icon: '🟨', ru: 'Батуты', en: 'Pads', tools: [
             ['PAD', '🟨', 'Жёлтый батут', 'Yellow pad'], ['PINK_PAD', '🟪', 'Розовый батут', 'Pink pad'], ['RED_PAD', '🟥', 'Красный батут', 'Red pad'], ['BLUE_PAD', '🟦', 'Синий (гравитация)', 'Blue (gravity)'], ['SPIDER_PAD', '🕸', 'Паучий батут (переброс)', 'Spider pad (teleport)']] },
-        SPIKES: { icon: '🔺', ru: 'Шипы и пилы', en: 'Hazards', tools: [
-            ['SPIKE', '🔺', 'Шип', 'Spike'], ['SMALL_SPIKE', '▴', 'Маленький шип', 'Small spike'], ['GROUND_SPIKES', '〰️', 'Колючки', 'Ground spikes'], ['SAW', '⚙️', 'Пила', 'Saw']] },
+        SPIKES: { icon: '🔺', ru: 'Шипы, пилы, монстрики', en: 'Hazards & monsters', tools: [
+            ['SPIKE', '🔺', 'Шип', 'Spike'], ['SMALL_SPIKE', '▴', 'Маленький шип', 'Small spike'], ['GROUND_SPIKES', '〰️', 'Колючки', 'Ground spikes'], ['SAW', '⚙️', 'Пила', 'Saw'],
+            ['TALL_SPIKE', '📍', 'Тонкий шип', 'Tall spike'], ['CRYSTAL_SPIKE', '💎', 'Кристаллы', 'Crystals'],
+            ['MONSTER_CHOMP', '🌱', 'Кусака-растение', 'Chomper plant'], ['MONSTER_SPIKY', '🦔', 'Колючий монстрик', 'Spiky monster'], ['THORN_BUSH', '🌿', 'Колючий куст', 'Thorn bush']] },
         BLOCKS: { icon: '⬛', ru: 'Блоки', en: 'Blocks', tools: [['BLOCK', '⬛', 'Блок', 'Block'], ['SLAB', '▬', 'Полублок', 'Slab'], ['PLATFORM', '➖', 'Платформа (снизу насквозь)', 'One-way platform']] },
         HITBOX: { icon: '🔲', ru: 'Хитбоксы', en: 'Hitboxes', tools: [['HB_SOLID', '🟦', 'Твёрдый хитбокс', 'Solid hitbox'], ['HB_HAZARD', '🟥', 'Опасный хитбокс', 'Hazard hitbox'], ['HB_CIRCLE', '🔴', 'Круглый хитбокс', 'Circle hitbox']] },
         OTHER: { icon: '🏁', ru: 'Старт, монеты, финиш', en: 'Start, coins, goal', tools: [['START_POS', '🚩', 'Стартовая позиция', 'Start position'], ['COIN', '🪙', 'Монета', 'Coin'], ['GOAL', '🏁', 'Финиш', 'Goal']] },
@@ -4302,7 +4384,7 @@ const SECRET_LEVELS = [
         delete b.dataset.armed; pushUndo(); editorLevel.objects = []; saveEditor(); setSelection([]); toast(tr('Карта очищена. Вернуть можно кнопкой «Отмена».', 'Map cleared. Undo brings it back.'));
     });
     $('btnExportLevel').addEventListener('click', () => {
-        const data = { format: 'geometry-ai', version: '2.8', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, phys: editorLevel.phys, objects: editorLevel.objects };
+        const data = { format: 'geometry-ai', version: '2.9', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, phys: editorLevel.phys, objects: editorLevel.objects };
         const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -4444,10 +4526,7 @@ const SECRET_LEVELS = [
                 r = { type: 'HB_HAZARD', w: 1, h: 1, rotation: 0 }; counts.hazard++;
             }
             // монстр-кусака: убивает при касании
-            else if (id === 918) {
-                objs.push(Object.assign({}, base, { type: 'EMOJI', emoji: '👾', size: 2, rotation: 0 }));
-                r = { type: 'HB_CIRCLE', r: 0.55, rotation: 0 }; counts.hazard++;
-            }
+            else if (id === 918) { r = { type: 'MONSTER_CHOMP', rotation: 0 }; counts.hazard++; }
             // надпись (текст в GD хранится в base64)
             else if (id === 914) {
                 let txt = '';
