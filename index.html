@@ -549,7 +549,7 @@ function normalizeLevel(data) {
             if (o.type === 'DARK_TRIGGER') { r.power = Math.round(num(o.power, 80, 0, 100)); r.radius = num(o.radius, 5, 1, 20); r.dur = num(o.dur, 1, 0, 10); }
             if (o.type === 'WEATHER_TRIGGER') r.weather = WEATHER_KINDS.includes(o.weather) ? o.weather : 'snow';
             if (o.type === 'RAINBOW_TRIGGER') { r.on = o.on !== false; r.speed = num(o.speed, 1, 0.1, 5); }
-            if (o.type === 'SOUND_TRIGGER') r.snd = SOUND_KINDS.includes(o.snd) ? o.snd : 'boom';
+            if (o.type === 'SOUND_TRIGGER') r.snd = SOUND_KINDS.includes(o.snd) || /^c:[\w-]{1,40}$/.test(o.snd) ? o.snd : 'boom'; // c:… — свой записанный звук
             if (o.group != null && Number(o.group) >= 1) r.group = Math.round(num(o.group, 0, 1, 99));
             if (o.type === 'START_POS') {
                 r.sMode = MODE_NAMES_CORE.includes(o.sMode) ? o.sMode : 'cube';
@@ -1867,6 +1867,12 @@ const SECRET_LEVELS = [
         win() { [440, 554.37, 659.25, 880, 1108.7].forEach((f, i) => setTimeout(() => this.tone(f, 0.3, 'sine', 0.1), i * 110)); }
         // 🔔 звуки для триггера «Звук»
         play(kind) {
+            // 🎤 свой записанный звук: играет поверх музыки, не перебивая её
+            if (typeof kind === 'string' && kind.startsWith('c:')) {
+                if (!this.enabled) return;
+                trackUrl(kind).then(url => { if (!url) return; try { const a = new Audio(url); a.volume = 0.9; a.play().catch(() => {}); } catch (e) {} });
+                return;
+            }
             const seq = (notes, gap, dur, type, vol) => notes.forEach((f, i) => setTimeout(() => this.tone(f, dur, type, vol), i * gap));
             switch (kind) {
                 case 'boom': this.tone(140, 0.6, 'sawtooth', 0.22, 30); this.tone(70, 0.7, 'square', 0.12, 25); break;
@@ -3487,8 +3493,8 @@ const SECRET_LEVELS = [
             label: o => o.on ? tr('вкл', 'on') : tr('выкл', 'off') },
         // ---- 2.6: звук ----
         SOUND_TRIGGER: { icon: '🔔', bg: '#9d174d', ru: 'Звук', en: 'Sound',
-            what: ['Проигрывает звук: взрыв, лазер, монетка, колокол, сирена, сила, барабан, свист, победа, провал, прыжок, волшебство.', 'Plays a sound: boom, laser, coin, bell, alarm, power-up, drum, whoosh, win, fail, jump, magic.'],
-            label: o => (SOUND_NAMES[o.snd] || [''])[0] }
+            what: ['Проигрывает звук: взрыв, лазер, монетка, колокол, сирена, сила, барабан, свист, победа, провал, прыжок, волшебство — или твой записанный звук 🎤 (запиши его в «🎤 Своя музыка»). Звук играет поверх музыки.', 'Plays a sound: boom, laser, coin, bell, alarm, power-up, drum, whoosh, win, fail, jump, magic — or your own recording 🎤 (record it in "🎤 Your music"). It plays over the music.'],
+            label: o => String(o.snd).startsWith('c:') ? '🎤' : (SOUND_NAMES[o.snd] || [''])[0] }
     };
     const WEATHER_NAMES = { none: ['🚫', 'выключить', 'off'], snow: ['❄️', 'снег', 'snow'], rain: ['🌧', 'дождь', 'rain'], confetti: ['🎊', 'конфетти', 'confetti'], stars: ['✨', 'звёзды', 'stars'],
         hearts: ['💗', 'сердечки', 'hearts'], embers: ['🔥', 'искры', 'embers'], leaves: ['🍂', 'листья', 'leaves'], bubbles: ['🫧', 'пузыри', 'bubbles'], fireworks: ['🎆', 'салют (один раз)', 'fireworks (once)'] };
@@ -3568,7 +3574,8 @@ const SECRET_LEVELS = [
         DARK_TRIGGER: [['power', 'num', 'Темнота, % (0 — выключить)', 'Darkness, % (0 = off)', 0, 100, 5], ['radius', 'num', 'Круг света, блоков', 'Light circle, blocks', 1, 20, 0.5], ['dur', 'num', 'Плавность, сек', 'Smoothness, s', 0, 10, 0.1]],
         WEATHER_TRIGGER: [['weather', 'sel', 'Что', 'What', () => WEATHER_KINDS.map(k => [k, WEATHER_NAMES[k][0] + ' ' + WEATHER_NAMES[k][1], WEATHER_NAMES[k][0] + ' ' + WEATHER_NAMES[k][2]])]],
         RAINBOW_TRIGGER: [['on', 'sel', 'Радуга', 'Rainbow', [[true, '🌈 включить', '🌈 on'], [false, 'выключить', 'off']]], ['speed', 'num', 'Скорость переливания', 'Cycle speed', 0.1, 5, 0.1, o => o.on]],
-        SOUND_TRIGGER: [['snd', 'sel', 'Звук', 'Sound', () => SOUND_KINDS.map(k => [k, SOUND_NAMES[k][0] + ' ' + SOUND_NAMES[k][1], SOUND_NAMES[k][0] + ' ' + SOUND_NAMES[k][2]])]]
+        SOUND_TRIGGER: [['snd', 'sel', 'Звук (свои записи — с 🎤)', 'Sound (your recordings have 🎤)', () => SOUND_KINDS.map(k => [k, SOUND_NAMES[k][0] + ' ' + SOUND_NAMES[k][1], SOUND_NAMES[k][0] + ' ' + SOUND_NAMES[k][2]])
+            .concat(trackCache.map(t => ['c:' + t.id, '🎤 ' + t.name, '🎤 ' + t.name]))]]
     };
     const EMOJI_PICKS = ['💀', '😀', '🙂', '😐', '😢', '😭', '😡', '😎', '😱', '😈', '👻', '🤖', '🤡', '😴', '🥳', '🔥', '⭐', '❤️', '💔', '💥'];
     function groupCount(g) { return editorLevel.objects.filter(o => o.group === g && !OBJ[o.type].cat.includes('trigger')).length; }
