@@ -300,6 +300,8 @@
                 <label class="flex items-center gap-1.5 text-xs font-bold text-zinc-300"><span data-ru="Цвет фона" data-en="BG color">Цвет фона</span> <input id="edLevelColor" type="color" value="#2563eb" class="w-8 h-8 bg-transparent"></label>
                 <label class="flex items-center gap-1.5 text-xs font-bold text-zinc-300">🧱 <span data-ru="Блоки" data-en="Blocks">Блоки</span>
                     <select id="edLevelWall" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1"></select></label>
+                <label class="flex items-center gap-1.5 text-xs font-bold text-zinc-300"><span data-ru="Физика" data-en="Physics">Физика</span>
+                    <select id="edLevelPhys" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1"><option value="normal" data-ru="наша" data-en="ours">наша</option><option value="gd" data-ru="как в Geometry Dash" data-en="like Geometry Dash">как в Geometry Dash</option></select></label>
                 <label class="flex items-center gap-1.5 text-xs font-bold text-zinc-300"><span data-ru="Музыка" data-en="Song">Музыка</span>
                     <select id="edLevelSong" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1"></select></label>
                 <div class="flex-1"></div>
@@ -466,6 +468,8 @@ function normalizeLevel(data) {
         color: data.color || '#2563eb',
         song: songKey(data.song),
         wall: WALL_STYLES.includes(data.wall) ? data.wall : 'classic',
+        // физика: обычная или «как в Geometry Dash» (у перенесённых уровней)
+        phys: data.phys === 'gd' ? 'gd' : 'normal',
         objects: (data.objects || []).filter(o => o && OBJ[o.type]).map(o => {
             // позиция с точностью до 1/4 пикселя (можно двигать не на целую клетку), угол — любой
             const rot = Number(o.rotation) || 0;
@@ -581,7 +585,7 @@ function prepareLevel(data) {
     let startY = 0;
     objs.forEach(o => { if (o.cat === 'solid' && o.rect.x0 <= 3 && o.rect.x1 >= 20) startY = Math.max(startY, o.rect.y1); });
     return {
-        name: lv.name, color: lv.color, song: lv.song, wall: lv.wall, objs,
+        name: lv.name, color: lv.color, song: lv.song, wall: lv.wall, objs, gd: lv.phys === 'gd',
         goalX: goal ? goal.x : maxX + 320,
         coinTotal: objs.filter(o => o.cat === 'coin').length,
         colorTriggers: objs.filter(o => o.type === 'COLOR_TRIGGER').map(o => ({ x: o.x + 20, color: o.color })).sort((a, b) => a.x - b.x),
@@ -835,12 +839,13 @@ function launchGroup(s, L, g, depth) {
     for (const ti of list) { if (s.dead || s.won) return; fireTrigger(s, L, ti, depth); }
 }
 // вход в режим (портал режима или триггер режима)
-function enterMode(s, o) {
+function enterMode(s, o, gd) {
     const nm = MODE_PORTALS[o.type];
     if (nm !== s.mode) {
         setSizeKeepCenter(s, () => { s.mode = nm; });
         s.robotT = 0; s.lane = 0; s.rot = 0;
-        if (nm !== 'cube' && nm !== 'robot') s.vy *= 0.5;
+        // в GD портал шара не гасит скорость (прыжок с батута через портал шара летит дальше)
+        if (nm !== 'cube' && nm !== 'robot' && !(gd && nm === 'ball')) s.vy *= 0.5;
     }
     const b = portalBounds(o);
     s.floor = b.floor; s.ceil = b.ceil;
@@ -901,7 +906,7 @@ function fireTrigger(s, L, ti, depth) {
         case 'MODE_TRIGGER': {
             const pt = Object.keys(MODE_PORTALS).find(k => MODE_PORTALS[k] === t.mode);
             // коридор строится вокруг игрока или вокруг значка триггера
-            if (pt) enterMode(s, { type: pt, y: t.where === 'here' ? t.y : s.y + pSize(s) / 2 - 20 });
+            if (pt) enterMode(s, { type: pt, y: t.where === 'here' ? t.y : s.y + pSize(s) / 2 - 20 }, L.gd);
             break;
         }
         case 'WIN_TRIGGER': s.won = true; break;
@@ -989,8 +994,9 @@ function applyOrb(s, kind) {
     s.grounded = false; s.robotT = 0;
     if (s.mode === 'ship' || s.mode === 'swing' || s.mode === 'ufo') s.vy *= 0.6;
 }
-function applyPad(s, kind) {
-    const m = s.mini ? 0.8 : 1;
+function applyPad(s, kind, gd) {
+    // в физике Geometry Dash батуты подбрасывают выше
+    const m = (s.mini ? 0.8 : 1) * (gd && kind !== 'blue' ? 1.095 : 1);
     const G = s.g;
     if (kind === 'blue') { s.g = -s.g; s.vy = -s.g * 8; }
     else if (s.mode === 'ship' || s.mode === 'wave') return false;
@@ -1055,7 +1061,7 @@ function step(p, held, L) {
         }
         case 'ball': {
             if (press && s.grounded && !acted) { s.g = -s.g; s.vy = -s.g * 4; s.grounded = false; s.fx = { t: 'flip' }; }
-            s.vy -= s.g * 0.85;
+            s.vy -= s.g * (L.gd ? 0.51 : 0.85); // в GD шар легче
             s.vy = Math.max(-12, Math.min(12, s.vy));
             break;
         }
@@ -1147,14 +1153,14 @@ function step(p, held, L) {
         } else if (o.cat === 'pad') {
             if (s.mode !== 'airplane' && overlaps(o.rect, s.x, s.y, s.x + size, s.y + size)) {
                 if (o.kind === 'spider') { teleportFlip(s, near, size); s.used = s.used.concat(o.id); s.fx = { t: 'pad', kind: o.kind, x: o.x + 20, y: o.y + 5 }; }
-                else if (applyPad(s, o.kind)) { s.used = s.used.concat(o.id); s.fx = { t: 'pad', kind: o.kind, x: o.x + 20, y: o.y + 5 }; }
+                else if (applyPad(s, o.kind, L.gd)) { s.used = s.used.concat(o.id); s.fx = { t: 'pad', kind: o.kind, x: o.x + 20, y: o.y + 5 }; }
             }
         } else if (o.cat === 'portal') {
             if (!overlaps(o.rect, s.x, s.y, s.x + size, s.y + size)) continue;
             s.used = s.used.concat(o.id);
             const t = o.type;
             if (MODE_PORTALS[t]) {
-                enterMode(s, o);
+                enterMode(s, o, L.gd);
             } else if (t === 'GRAV_DOWN_PORTAL' || t === 'GRAV_UP_PORTAL') {
                 const ng = t === 'GRAV_UP_PORTAL' ? -1 : 1;
                 if (ng !== s.g) { s.g = ng; s.vy *= 0.5; s.grounded = false; }
@@ -3478,8 +3484,10 @@ const SECRET_LEVELS = [
         const sel = $('edLevelWall'); sel.innerHTML = '';
         WALL_STYLES.forEach(w => { const o = document.createElement('option'); o.value = w; o.textContent = tr(WALL_NAMES[w][0], WALL_NAMES[w][1]); sel.appendChild(o); });
         sel.value = editorLevel.wall || 'classic';
+        $('edLevelPhys').value = editorLevel.phys === 'gd' ? 'gd' : 'normal';
     }
     fillWallSelect();
+    $('edLevelPhys').addEventListener('change', e => { editorLevel.phys = e.target.value; saveEditor(); toast(e.target.value === 'gd' ? tr('Физика как в Geometry Dash: батуты выше, шар легче и не гасит прыжок', 'Geometry Dash physics: higher pads, lighter ball') : tr('Обычная физика нашей игры', 'Our normal physics')); });
     $('edLevelWall').addEventListener('change', e => { editorLevel.wall = e.target.value; saveEditor(); });
 
     function openEditor() {
@@ -3494,7 +3502,7 @@ const SECRET_LEVELS = [
         $('edLevelName').value = editorLevel.name;
         $('edLevelColor').value = editorLevel.color;
         fillSongSelect();
-        $('edLevelWall').value = editorLevel.wall || 'classic';
+        $('edLevelWall').value = editorLevel.wall || 'classic'; $('edLevelPhys').value = editorLevel.phys === 'gd' ? 'gd' : 'normal';
         $('zoomText').innerText = Math.round(G.edZoom * 100) + '%';
         renderProps();
         music.restart(editorLevel.song);
@@ -4271,7 +4279,7 @@ const SECRET_LEVELS = [
         delete b.dataset.armed; pushUndo(); editorLevel.objects = []; saveEditor(); setSelection([]); toast(tr('Карта очищена. Вернуть можно кнопкой «Отмена».', 'Map cleared. Undo brings it back.'));
     });
     $('btnExportLevel').addEventListener('click', () => {
-        const data = { format: 'geometry-ai', version: '2.7', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, objects: editorLevel.objects };
+        const data = { format: 'geometry-ai', version: '2.7', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, phys: editorLevel.phys, objects: editorLevel.objects };
         const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -4442,7 +4450,7 @@ const SECRET_LEVELS = [
                 if (m[6] === '1000') { color = rgb({ 7: m[1], 8: m[2], 9: m[3] }); break; }
             }
         }
-        const lv = normalizeLevel({ name: name || 'Из Geometry Dash', color, objects: objs });
+        const lv = normalizeLevel({ name: name || 'Из Geometry Dash', color, phys: 'gd', objects: objs });
         const top = Object.entries(skipped).sort((a, b) => b[1] - a[1]);
         return { lv, counts, skippedTotal: top.reduce((a, b) => a + b[1], 0), skippedTop: top.slice(0, 8), groups: gnext - 1, total: list.length };
     }
@@ -4737,7 +4745,7 @@ const SECRET_LEVELS = [
     }
     async function encodeLevelCode(lv) {
         const compact = {
-            n: lv.name, c: lv.color, s: lv.song, w: lv.wall,
+            n: lv.name, c: lv.color, s: lv.song, w: lv.wall, p: lv.phys === 'gd' ? 'gd' : undefined,
             o: lv.objects.map(o => {
                 const a = [o.type, o.x / GRID, o.y / GRID, o.rotation || 0];
                 const extra = {};
@@ -4765,7 +4773,7 @@ const SECRET_LEVELS = [
         }
         const d = JSON.parse(new TextDecoder().decode(bytes));
         const lv = normalizeLevel({
-            name: d.n, color: d.c, song: d.s, wall: d.w,
+            name: d.n, color: d.c, song: d.s, wall: d.w, phys: d.p,
             objects: (d.o || []).map(a => Object.assign({ type: a[0], x: a[1] * GRID, y: a[2] * GRID, rotation: a[3] || 0 },
                 a[4] ? ('f' in a[4] || 'l' in a[4] || ('c' in a[4] && !('floor' in a[4])) ? { floor: a[4].f, ceil: a[4].c, lanes: a[4].l } : a[4]) : {}))
         });
