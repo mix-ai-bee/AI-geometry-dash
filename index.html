@@ -1028,7 +1028,21 @@ function applyPad(s, kind, gd) {
 }
 
 // ОДИН КАДР ФИЗИКИ. Чистая функция: (состояние, зажата ли кнопка, уровень) -> новое состояние
+// ❓ «ЕСЛИ разбился — ТО…»: запущенная группа срабатывает в момент смерти; 🏆 Победа там спасает игрока
 function step(p, held, L) {
+    const s = stepCore(p, held, L);
+    if (s.dead && !p.dead && s.ifs && s.ifs.length) {
+        const die = s.ifs.filter(l => L.triggers[l[0]].ev === 'die' && s.frame <= l[1] && !(L.triggers[l[0]].group && s.hid.includes(L.triggers[l[0]].group)));
+        if (die.length) {
+            s.dead = false; TRIG_BUDGET = 300;
+            s.ifs = s.ifs.filter(l => !(die.includes(l) && l[2] === 1)).map(l => die.includes(l) && l[2] > 1 ? [l[0], l[1], l[2] - 1] : l);
+            for (const l of die) { launchGroup(s, L, L.triggers[l[0]].target, 1); if (s.won) break; }
+            if (!s.won) s.dead = true;
+        }
+    }
+    return s;
+}
+function stepCore(p, held, L) {
     const s = Object.assign({}, p);
     if (s.dead || s.won) return s;
     s.frame++;
@@ -2302,8 +2316,6 @@ const SECRET_LEVELS = [
         if (S.mode !== prev.mode && G.mode === 'AI') aiLog(tr(`Новый режим: ${MODE_NAMES[S.mode][0]}. Перестраиваю модель физики.`, `New mode: ${MODE_NAMES[S.mode][1]}. Rebuilding physics model.`));
         if (G.fromEditor && S.frame % 3 === 0) G.curPath.push([S.x + pSize(S) / 2, S.y + pSize(S) / 2]);
         if (S.dead) {
-            // ❓ «Если игрок разбился — то…»: эффекты запущенной группы (звук, сообщение, вспышка…) успевают показаться
-            (S.ifs || []).forEach(l => { const it = G.L.triggers[l[0]]; if (it.ev === 'die' && S.frame <= l[1]) (G.L.trigByGroup[it.target] || []).forEach(ti => fireTriggerFx(G.L.triggers[ti], S)); });
             if (G.fromEditor) { G.testDeaths.push([S.x + pSize(S) / 2, S.y + pSize(S) / 2]); if (G.testDeaths.length > 40) G.testDeaths.shift(); G.lastPath = G.curPath.slice(); }
             onDeath(); return;
         }
