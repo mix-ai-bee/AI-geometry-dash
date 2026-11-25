@@ -255,8 +255,8 @@
                     <button data-close class="px-3 py-2 rounded-xl bg-zinc-800 border border-zinc-600 font-black text-xs">✕</button></div>
                 <div class="text-zinc-300 leading-relaxed" data-ru="Перенеси свой уровень из настоящей Geometry Dash. Блоки, шипы, пилы, орбы, батуты, порталы, скорости, монеты, группы и главные триггеры (движение, показать/скрыть, прозрачность, вращение, запуск, стоп, случайность, счётчик, пульс, цвет, тряска, зум) перенесутся. Декор и наклонные блоки пока пропускаются." data-en="Bring your level over from the real Geometry Dash. Blocks, spikes, saws, orbs, pads, portals, speeds, coins, groups and the main triggers come over. Decoration and slopes are skipped for now.">Перенеси свой уровень из настоящей Geometry Dash. Блоки, шипы, пилы, орбы, батуты, порталы, скорости, монеты, группы и главные триггеры (движение, показать/скрыть, прозрачность, вращение, запуск, стоп, случайность, счётчик, пульс, цвет, тряска, зум) перенесутся. Декор и наклонные блоки пока пропускаются.</div>
                 <div class="grid md:grid-cols-2 gap-3">
-                    <div class="rounded-2xl border border-zinc-700 bg-zinc-900 p-3 flex flex-col gap-2">
-                        <div class="font-black">📁 <span data-ru="Файл" data-en="File">Файл</span></div>
+                    <div class="rounded-2xl border-2 border-dashed border-amber-400/70 bg-zinc-900 p-3 flex flex-col gap-2">
+                        <div class="font-black">📁 <span data-ru="Файл — просто перетащи его сюда мышкой из папки!" data-en="File — just drag it here from the folder!">Файл — просто перетащи его сюда мышкой из папки!</span></div>
                         <div class="text-zinc-400 text-xs leading-relaxed" data-ru="На компьютере все твои уровни лежат в файле CCLocalLevels.dat: нажми Win+R, впиши %localappdata%\GeometryDash и выбери этот файл. Ещё подойдёт файл .gmd (его делает программа GDShare)." data-en="On a PC all your levels are in CCLocalLevels.dat: press Win+R, type %localappdata%\GeometryDash and pick that file. A .gmd file (from GDShare) works too.">На компьютере все твои уровни лежат в файле CCLocalLevels.dat: нажми Win+R, впиши %localappdata%\GeometryDash и выбери этот файл. Ещё подойдёт файл .gmd (его делает программа GDShare).</div>
                         <label class="self-start px-4 py-2 rounded-xl bg-white text-black font-black cursor-pointer"><span data-ru="Выбрать файл" data-en="Choose file">Выбрать файл</span><input id="gdFile" type="file" accept=".dat,.gmd,.txt,.xml" class="hidden"></label>
                         <div id="gdPick"></div>
@@ -334,6 +334,8 @@
 <!-- =====================================================================
      ЯДРО ИГРЫ: физика всех режимов + ИИ. Без DOM — можно тестировать в Node.
      ===================================================================== -->
+<div id="gdDropHint" class="hidden fixed inset-0 z-50 pointer-events-none flex items-center justify-center bg-black/70 border-4 border-dashed border-amber-400">
+                <div class="text-3xl font-black text-amber-300 text-center px-6" data-ru="Отпусти файл — загружу уровень! 🎮" data-en="Drop the file — I'll load the level! 🎮">Отпусти файл — загружу уровень! 🎮</div></div>
 <script id="gameCore">
 const GRID = 40;
 const BASE_SPEED = 6.9;           // пикселей за кадр при скорости 1x (60 кадров/сек)
@@ -4459,9 +4461,32 @@ const SECRET_LEVELS = [
     $('btnGdImport').addEventListener('click', openGdModal);
     $('gdModal').querySelector('[data-close]').addEventListener('click', () => $('gdModal').classList.add('hidden'));
     $('gdGo').addEventListener('click', () => { const v = $('gdText').value; if (v.trim()) gdImportText(v, ''); });
-    $('gdFile').addEventListener('change', async e => {
-        const file = e.target.files[0]; e.target.value = '';
+    $('gdFile').addEventListener('change', e => { const file = e.target.files[0]; e.target.value = ''; if (file) gdHandleFile(file); });
+    // 🖱 файл можно просто перетащить из папки на сайт
+    const isDropFile = e => e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files');
+    window.addEventListener('dragover', e => {
+        if (!isDropFile(e) || !$('musicModal').classList.contains('hidden')) return;
+        e.preventDefault();
+        $('gdDropHint').classList.remove('hidden');
+    });
+    window.addEventListener('dragleave', e => { if (!e.relatedTarget) $('gdDropHint').classList.add('hidden'); });
+    window.addEventListener('drop', e => {
+        $('gdDropHint').classList.add('hidden');
+        if (!isDropFile(e) || !$('musicModal').classList.contains('hidden')) return;
+        e.preventDefault();
+        const file = e.dataTransfer.files[0];
         if (!file) return;
+        if (/\.json$/i.test(file.name)) {
+            const reader = new FileReader();
+            reader.onload = ev => { try { pushUndo(); editorLevel = normalizeLevel(JSON.parse(ev.target.result)); saveEditor(); openEditor(); toast(tr('Уровень загружен!', 'Level loaded!')); } catch (err) { toast(tr('Ошибка: это не файл уровня JSON', 'Error: not a level JSON file')); } };
+            reader.readAsText(file);
+            return;
+        }
+        if (G.screen !== 'GAME' || G.mode !== 'EDITOR') openEditor();
+        openGdModal();
+        gdHandleFile(file);
+    });
+    async function gdHandleFile(file) {
         const pick = $('gdPick'); pick.innerHTML = tr('Читаю файл…', 'Reading the file…');
         try {
             gdFound = await gdLevelsFromFile(file);
@@ -4471,7 +4496,7 @@ const SECRET_LEVELS = [
                 gdFound.map((l, i) => `<button data-gd="${i}" class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 font-bold text-xs">${escAttr(l.name)}</button>`).join('') + '</div>';
             pick.querySelectorAll('[data-gd]').forEach(b => b.addEventListener('click', () => { const l = gdFound[+b.dataset.gd]; gdImportText(l.data, l.name); }));
         } catch (err) { pick.innerHTML = `<div class="text-red-400">${tr('Не получилось прочитать файл.', 'Could not read the file.')}</div>`; }
-    });
+    }
 
     function toast(msg, sec) {
         let t = $('toastBox');
