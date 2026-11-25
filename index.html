@@ -1364,6 +1364,11 @@ const OFFICIAL_LEVELS = [
         // 🎲 Победа или проигрыш решает кубик: 50 на 50
         name: 'Рандом', nameEn: 'Random', difficulty: 3, color: '#283eff', song: 20, wall: 'classic', author: 'mix-ai-bee',
         objects: [{"type":"BLOCK","x":360,"y":80,"rotation":0,"group":1},{"type":"BLOCK","x":360,"y":40,"rotation":0,"group":1},{"type":"BLOCK","x":360,"y":0,"rotation":0,"group":1},{"type":"SHIP_PORTAL","x":560,"y":40,"rotation":0,"floor":0,"ceil":120},{"type":"THORN_BUSH","x":680,"y":0,"rotation":0},{"type":"THORN_BUSH","x":720,"y":0,"rotation":0},{"type":"THORN_BUSH","x":760,"y":0,"rotation":0},{"type":"THORN_BUSH","x":800,"y":0,"rotation":0},{"type":"THORN_BUSH","x":840,"y":0,"rotation":0},{"type":"THORN_BUSH","x":880,"y":0,"rotation":0},{"type":"THORN_BUSH","x":920,"y":0,"rotation":0},{"type":"THORN_BUSH","x":960,"y":0,"rotation":0},{"type":"THORN_BUSH","x":1000,"y":0,"rotation":0},{"type":"THORN_BUSH","x":1040,"y":0,"rotation":0},{"type":"THORN_BUSH","x":1080,"y":0,"rotation":0},{"type":"THORN_BUSH","x":1120,"y":0,"rotation":0},{"type":"THORN_BUSH","x":720,"y":80,"rotation":180},{"type":"THORN_BUSH","x":680,"y":80,"rotation":180},{"type":"THORN_BUSH","x":760,"y":80,"rotation":180},{"type":"THORN_BUSH","x":800,"y":80,"rotation":180},{"type":"THORN_BUSH","x":840,"y":80,"rotation":180},{"type":"THORN_BUSH","x":880,"y":80,"rotation":180},{"type":"THORN_BUSH","x":920,"y":80,"rotation":180},{"type":"THORN_BUSH","x":960,"y":80,"rotation":180},{"type":"THORN_BUSH","x":1040,"y":80,"rotation":180},{"type":"THORN_BUSH","x":1000,"y":80,"rotation":180},{"type":"THORN_BUSH","x":1080,"y":80,"rotation":180},{"type":"THORN_BUSH","x":1120,"y":80,"rotation":180},{"type":"MOVE_TRIGGER","x":160,"y":120,"rotation":0,"follow":"none","fk":1,"target":1,"dx":0,"dy":2,"dur":0,"loops":1,"pingpong":false},{"type":"CUBE_PORTAL","x":1160,"y":40,"rotation":180},{"type":"RANDOM_TRIGGER","x":1520,"y":160,"rotation":0,"rnd":"chance","ga":2,"gb":3,"gc":0,"gd":0,"chance":50},{"type":"WIN_TRIGGER","x":1560,"y":160,"rotation":180,"group":2,"act":"spawn"},{"type":"KILL_TRIGGER","x":1520,"y":200,"rotation":180,"group":3,"act":"spawn"},{"type":"GOAL","x":1800,"y":40,"rotation":180}]
+    },
+    {
+        // 🤖 Автоуровень: разбился — значит, победил (❓ «ЕСЛИ разбился → 🏆»)
+        name: 'Невозможно разбиться', nameEn: 'Impossible to Crash', difficulty: 8, color: '#ff2929', song: 14, wall: 'classic', author: 'mix-ai-bee',
+        objects: [{"type":"SPIKE","x":240,"y":0,"rotation":0},{"type":"SPIKE","x":480,"y":0,"rotation":0},{"type":"SAW","x":680,"y":0,"rotation":0},{"type":"SAW","x":680,"y":80,"rotation":0},{"type":"SAW","x":680,"y":40,"rotation":0},{"type":"SAW","x":680,"y":120,"rotation":0},{"type":"SAW","x":680,"y":160,"rotation":0},{"type":"SAW","x":680,"y":200,"rotation":0},{"type":"SAW","x":680,"y":240,"rotation":0},{"type":"SAW","x":680,"y":280,"rotation":0},{"type":"SAW","x":680,"y":320,"rotation":0},{"type":"IF_TRIGGER","x":40,"y":160,"rotation":0,"ev":"die","grp":1,"target":2,"dur":0,"max":2},{"type":"WIN_TRIGGER","x":600,"y":80,"rotation":0,"act":"spawn","group":2}]
     }
 ];
 // Секретный уровень: появляется с шансом 15%, когда пройдены все официальные уровни
@@ -1397,7 +1402,8 @@ const SECRET_LEVELS = [
         { ru: 'Безумно', en: 'Insane', face: '😡', color: '#f472b6' },
         { ru: 'Экстрим', en: 'Extreme', face: '👿', color: '#ef4444' },
         { ru: 'Лёгкий демон', en: 'Easy Demon', face: '😈', color: '#a855f7' },
-        { ru: 'Экстремальный демон', en: 'Extreme Demon', face: '👹', color: '#dc2626' }];
+        { ru: 'Экстремальный демон', en: 'Extreme Demon', face: '👹', color: '#dc2626' },
+        { ru: 'Авто', en: 'Auto', face: '🤖', color: '#fbbf24' }];
     const ICON_COLORS = ['#ffffff', '#ffe600', '#3dff6e', '#33ccff', '#ff5fd2', '#ff8c1a', '#b266ff'];
 
     // ---------- Гараж: внешний вид и достижения ----------
@@ -2009,7 +2015,7 @@ const SECRET_LEVELS = [
             card.innerHTML = `
                 <div class="flex justify-between items-center"><span class="font-mono text-xs text-white/70">#${i + 1}</span><span class="text-3xl">${d.face}</span></div>
                 <div class="text-xl font-black italic leading-tight">${currentLang === 'ru' ? lv.name : (lv.nameEn || lv.name)}</div>
-                <div class="text-xs font-black uppercase" style="color:${d.color}">${tr(d.ru, d.en)} ${'★'.repeat(lv.difficulty)}</div>
+                <div class="text-xs font-black uppercase" style="color:${d.color}">${tr(d.ru, d.en)} ${'★'.repeat(lv.difficulty === 8 ? 1 : lv.difficulty)}</div>
                 ${lv.aiProof ? `<div class="self-start px-2 py-0.5 rounded-lg bg-red-600 text-white text-[10px] font-black uppercase">🧠 ${tr('ИИ не может пройти', 'AI can\'t beat it')}</div>` : ''}
                 <div class="text-[11px] font-mono text-zinc-300">${tr('Обычный', 'Normal')}: ${prog.best}%</div>
                 <div class="w-full h-2 bg-black/60 rounded-full overflow-hidden"><div class="h-full bg-white" style="width:${prog.best}%"></div></div>
@@ -2019,21 +2025,12 @@ const SECRET_LEVELS = [
                 <div class="flex gap-2 mt-auto">
                     <button data-play="${i}" class="flex-1 py-2 rounded-xl bg-white text-black font-black text-sm">▶ ${tr('Играть', 'Play')}</button>
                     <button data-ai="${i}" title="AI" class="px-3 py-2 rounded-xl bg-black/50 border border-white/30 font-black text-sm">🤖</button>
-                    <button data-copy="${i}" title="${tr('Копия в редактор — посмотреть, как сделан', 'Copy to the editor — see how it is made')}" class="px-3 py-2 rounded-xl bg-black/50 border border-white/30 font-black text-sm">📋</button>
                     <button data-copy="${i}" title="${tr('Копировать в редактор — посмотреть, как он сделан', 'Copy to the editor — see how it is made')}" class="px-3 py-2 rounded-xl bg-black/50 border border-white/30 font-black text-sm">📝</button>
                 </div>`;
             box.appendChild(card);
         });
         box.querySelectorAll('[data-play]').forEach(b => b.addEventListener('click', () => startLevel({ kind: 'official', index: +b.dataset.play }, 'PLAY')));
         box.querySelectorAll('[data-ai]').forEach(b => b.addEventListener('click', () => startLevel({ kind: 'official', index: +b.dataset.ai }, 'AI')));
-        box.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => {
-            const src = OFFICIAL_LEVELS[+b.dataset.copy];
-            editorLevel = normalizeLevel(JSON.parse(JSON.stringify(src)));
-            editorLevel.name = (currentLang === 'ru' ? src.name : (src.nameEn || src.name)) + tr(' (копия)', ' (copy)');
-            editorLevel.id = newLevelId(); undoStack = []; redoStack = [];
-            saveEditor(); openEditor();
-            toast(tr('📋 Копия в редакторе: меняй, разбирай, как сделано. Официальный уровень не изменится.', '📋 A copy is in the editor: change it and see how it is made. The official level stays the same.'), 4);
-        }));
         // 📝 копия официального уровня — новым уровнем в «Мои уровни» (твой текущий уровень не трогается)
         box.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => {
             const src = OFFICIAL_LEVELS[+b.dataset.copy];
@@ -4843,7 +4840,7 @@ const SECRET_LEVELS = [
         ['⚡ Быстро', 'выдели объекты → «Двигать / Растворить / Спрятать» — группа и триггер появятся сами', 'select objects → Move / Fade / Hide — group and trigger are made for you'],
         ['❓ Если — то', 'ЕСЛИ игрок прыгнул, приземлился, коснулся группы, разбился, взял орб/монету/портал… — ТО запускается группа триггеров', 'IF the player jumps, lands, touches a group, dies, uses an orb/coin/portal… THEN a trigger group fires'],
         ['🔗 Подключить', 'у логического триггера нажми «🔗 Подключить» и кликай по триггерам на поле — номера поставятся сами', 'press "🔗 Link" on a logic trigger and click triggers on the field'],
-        ['📋 Копия', 'на карточке официального уровня кнопка 📋 открывает его копию в редакторе — смотри, как он сделан', 'the 📋 button on an official level opens a copy in the editor'],
+        ['📝 Копия', 'на карточке официального уровня кнопка 📝 открывает его копию в редакторе — смотри, как он сделан', 'the 📝 button on an official level opens a copy in the editor'],
         ['⛔ Стоп', 'впиши триггеру «🏷 номер», поставь ⛔ Стоп с этим номером — движение, вращение, повторы и эффекты замрут', 'give a trigger a "🏷 number", place ⛔ Stop with it — movement, rotation, repeats and effects freeze'],
         ['🎲 Случайность', 'с шансом запускает группу триггеров A или B, или одну из нескольких; каждую попытку по-новому', 'fires trigger group A or B by chance, or one of several; new every attempt'],
         ['🧨 Запуск', 'запускает группу триггеров где угодно, с задержкой и повтором («каждую секунду, бесконечно»)', 'fires a trigger group anywhere, with delay and repeat'],
