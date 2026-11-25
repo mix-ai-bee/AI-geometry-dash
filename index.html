@@ -549,7 +549,10 @@ function normalizeLevel(data) {
             if (o.type === 'DARK_TRIGGER') { r.power = Math.round(num(o.power, 80, 0, 100)); r.radius = num(o.radius, 5, 1, 20); r.dur = num(o.dur, 1, 0, 10); }
             if (o.type === 'WEATHER_TRIGGER') r.weather = WEATHER_KINDS.includes(o.weather) ? o.weather : 'snow';
             if (o.type === 'RAINBOW_TRIGGER') { r.on = o.on !== false; r.speed = num(o.speed, 1, 0.1, 5); }
-            if (o.type === 'SOUND_TRIGGER') r.snd = SOUND_KINDS.includes(o.snd) || /^c:[\w-]{1,40}$/.test(o.snd) ? o.snd : 'boom'; // c:… — свой записанный звук
+            if (o.type === 'SOUND_TRIGGER') {
+                r.snd = SOUND_KINDS.includes(o.snd) || /^c:[\w-]{1,40}$/.test(o.snd) ? o.snd : 'boom'; // c:… — свой записанный звук
+                if (String(r.snd).startsWith('c:')) r.fb = SOUND_KINDS.includes(o.fb) ? o.fb : 'jump'; // запасной, если записи у игрока нет
+            }
             if (o.group != null && Number(o.group) >= 1) r.group = Math.round(num(o.group, 0, 1, 99));
             if (o.type === 'START_POS') {
                 r.sMode = MODE_NAMES_CORE.includes(o.sMode) ? o.sMode : 'cube';
@@ -1370,6 +1373,11 @@ const OFFICIAL_LEVELS = [
         // 🤖 Автоуровень: разбился — значит, победил (❓ «ЕСЛИ разбился → 🏆»)
         name: 'Невозможно разбиться', nameEn: 'Impossible to Crash', difficulty: 8, color: '#ff2929', song: 14, wall: 'classic', author: 'mix-ai-bee',
         objects: [{"type":"SPIKE","x":240,"y":0,"rotation":0},{"type":"SPIKE","x":480,"y":0,"rotation":0},{"type":"SAW","x":680,"y":0,"rotation":0},{"type":"SAW","x":680,"y":80,"rotation":0},{"type":"SAW","x":680,"y":40,"rotation":0},{"type":"SAW","x":680,"y":120,"rotation":0},{"type":"SAW","x":680,"y":160,"rotation":0},{"type":"SAW","x":680,"y":200,"rotation":0},{"type":"SAW","x":680,"y":240,"rotation":0},{"type":"SAW","x":680,"y":280,"rotation":0},{"type":"SAW","x":680,"y":320,"rotation":0},{"type":"IF_TRIGGER","x":40,"y":160,"rotation":0,"ev":"die","grp":1,"target":2,"dur":0,"max":2},{"type":"WIN_TRIGGER","x":600,"y":80,"rotation":0,"act":"spawn","group":2}]
+    },
+    {
+        // 🔔 Каждый прыжок — звук автора (у кого записи нет — сирена)
+        name: 'Раздражающий звук', nameEn: 'Annoying Sound', difficulty: 1, color: '#37ff29', song: 18, wall: 'classic', author: 'mix-ai-bee',
+        objects: [{"type":"SPIKE","x":280,"y":0,"rotation":0},{"type":"SPIKE","x":480,"y":0,"rotation":0},{"type":"SPIKE","x":680,"y":0,"rotation":0},{"type":"SPIKE","x":720,"y":0,"rotation":0},{"type":"SPIKE","x":920,"y":0,"rotation":0},{"type":"SPIKE","x":960,"y":0,"rotation":0},{"type":"SPIDER_PORTAL","x":1050,"y":40,"rotation":0,"floor":0,"ceil":120},{"type":"SPIKE","x":1120,"y":0,"rotation":0},{"type":"SPIKE","x":1160,"y":0,"rotation":0},{"type":"SPIKE","x":1200,"y":0,"rotation":0},{"type":"SPIKE","x":1240,"y":0,"rotation":0},{"type":"SPIKE","x":1280,"y":0,"rotation":0},{"type":"SPIKE","x":1320,"y":0,"rotation":0},{"type":"SPIKE","x":1360,"y":0,"rotation":0},{"type":"SPIKE","x":1400,"y":0,"rotation":0},{"type":"SPIKE","x":1440,"y":0,"rotation":0},{"type":"SPIKE","x":1480,"y":0,"rotation":0},{"type":"SPIKE","x":1560,"y":0,"rotation":0},{"type":"SPIKE","x":1520,"y":0,"rotation":0},{"type":"SPIKE","x":1600,"y":0,"rotation":0},{"type":"SPIKE","x":1640,"y":0,"rotation":0},{"type":"SPIKE","x":1680,"y":0,"rotation":0},{"type":"SPIKE","x":1720,"y":0,"rotation":0},{"type":"SPIKE","x":1760,"y":0,"rotation":0},{"type":"CUBE_PORTAL","x":1840,"y":40,"rotation":0},{"type":"IF_TRIGGER","x":0,"y":160,"rotation":0,"ev":"jump","grp":1,"target":1,"dur":0,"max":0,"group":1},{"type":"SOUND_TRIGGER","x":0,"y":80,"rotation":0,"act":"spawn","snd":"c:tmwwna38pz9k","group":1,"fb":"alarm"}]
     }
 ];
 // Секретный уровень: появляется с шансом 15%, когда пройдены все официальные уровни
@@ -1866,11 +1874,11 @@ const SECRET_LEVELS = [
         explode() { this.tone(160, 0.4, 'sawtooth', 0.15, 40); }
         win() { [440, 554.37, 659.25, 880, 1108.7].forEach((f, i) => setTimeout(() => this.tone(f, 0.3, 'sine', 0.1), i * 110)); }
         // 🔔 звуки для триггера «Звук»
-        play(kind) {
+        play(kind, fb) {
             // 🎤 свой записанный звук: играет поверх музыки, не перебивая её
             if (typeof kind === 'string' && kind.startsWith('c:')) {
                 if (!this.enabled) return;
-                trackUrl(kind).then(url => { if (!url) return; try { const a = new Audio(url); a.volume = 0.9; a.play().catch(() => {}); } catch (e) {} });
+                trackUrl(kind).then(url => { if (!url) { this.play(fb || 'jump'); return; } try { const a = new Audio(url); a.volume = 0.9; a.play().catch(() => {}); } catch (e) {} });
                 return;
             }
             const seq = (notes, gap, dur, type, vol) => notes.forEach((f, i) => setTimeout(() => this.tone(f, dur, type, vol), i * gap));
@@ -2375,7 +2383,7 @@ const SECRET_LEVELS = [
         if (tg.type === 'SHAKE_TRIGGER') G.shake = { power: tg.power, dur: tg.dur, until: G.frameT + tg.dur, src };
         else if (tg.type === 'FLASH_TRIGGER') G.flash = { color: tg.color, t0, dur: tg.dur, src };
         else if (tg.type === 'MESSAGE_TRIGGER') G.msg = { text: tg.text, t0, until: G.frameT + tg.dur, src };
-        else if (tg.type === 'SOUND_TRIGGER') sound.play(tg.snd);
+        else if (tg.type === 'SOUND_TRIGGER') sound.play(tg.snd, tg.fb);
         else if (tg.type === 'COUNTER_TRIGGER' && tg.show) G.cntPop = { cid: tg.cid, t0 };
         else if (tg.type === 'EMOJI_TRIGGER') {
             const offs = groupState(G.L, S).off[tg.target] || [0, 0];
@@ -3575,7 +3583,8 @@ const SECRET_LEVELS = [
         WEATHER_TRIGGER: [['weather', 'sel', 'Что', 'What', () => WEATHER_KINDS.map(k => [k, WEATHER_NAMES[k][0] + ' ' + WEATHER_NAMES[k][1], WEATHER_NAMES[k][0] + ' ' + WEATHER_NAMES[k][2]])]],
         RAINBOW_TRIGGER: [['on', 'sel', 'Радуга', 'Rainbow', [[true, '🌈 включить', '🌈 on'], [false, 'выключить', 'off']]], ['speed', 'num', 'Скорость переливания', 'Cycle speed', 0.1, 5, 0.1, o => o.on]],
         SOUND_TRIGGER: [['snd', 'sel', 'Звук (свои записи — с 🎤)', 'Sound (your recordings have 🎤)', () => SOUND_KINDS.map(k => [k, SOUND_NAMES[k][0] + ' ' + SOUND_NAMES[k][1], SOUND_NAMES[k][0] + ' ' + SOUND_NAMES[k][2]])
-            .concat(trackCache.map(t => ['c:' + t.id, '🎤 ' + t.name, '🎤 ' + t.name]))]]
+            .concat(trackCache.map(t => ['c:' + t.id, '🎤 ' + t.name, '🎤 ' + t.name]))],
+            ['fb', 'sel', 'Если у игрока нет твоей записи — играть', 'If a player lacks your recording, play', () => SOUND_KINDS.map(k => [k, SOUND_NAMES[k][0] + ' ' + SOUND_NAMES[k][1], SOUND_NAMES[k][0] + ' ' + SOUND_NAMES[k][2]]), null, null, o => String(o.snd).startsWith('c:')]]
     };
     const EMOJI_PICKS = ['💀', '😀', '🙂', '😐', '😢', '😭', '😡', '😎', '😱', '😈', '👻', '🤖', '🤡', '😴', '🥳', '🔥', '⭐', '❤️', '💔', '💥'];
     function groupCount(g) { return editorLevel.objects.filter(o => o.group === g && !OBJ[o.type].cat.includes('trigger')).length; }
@@ -4305,7 +4314,7 @@ const SECRET_LEVELS = [
         if (a.startsWith('q:')) { quickTrigger(a.slice(2)); return; }
         if (a === 'tpPick') { tpPick = tpPick === selObj ? null : selObj; renderProps(); return; }
         if (a === 'link') { linkPick = linkPick === selObj ? null : selObj; renderProps(); if (linkPick) toast(tr('🔗 Кликай по триггерам на поле — они подключатся. ПКМ или Esc — закончить.', '🔗 Click triggers on the field to link them. Right click or Esc to finish.'), 4); return; }
-        if (a === 'sndtest' && selObj) { music.ensure(); sound.play(selObj.snd); return; }
+        if (a === 'sndtest' && selObj) { music.ensure(); sound.play(selObj.snd, selObj.fb); return; }
         if (a.startsWith('fixspawn:')) { pushUndo(); const g = +a.slice(9); editorLevel.objects.forEach(x => { if (x.group === g && OBJ[x.type].cat === 'trigger' && x !== selObj && !x.act) x.act = 'spawn'; }); saveEditor(); renderProps(); toast(tr('Готово: эти триггеры срабатывают только от другого триггера', 'Done: they fire only from another trigger')); return; }
         if (a.startsWith('tq:') && selObj && OBJ[selObj.type].cat === 'trigger') { triggerQuick(selObj, a.slice(3)); return; }
         if (a.startsWith('scale')) { setSelectionScale(parseFloat(a.slice(5))); return; }
