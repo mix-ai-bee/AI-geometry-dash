@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Geometry AI v2.6</title>
+    <title>Geometry AI v2.7</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
@@ -45,9 +45,9 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.6</span>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.7</span>
                 </div>
-                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Триггерное обновление: стоп, случайность и ещё 20 триггеров" data-en="Trigger update: stop, random and 20 more triggers">Триггерное обновление: стоп, случайность и ещё 20 триггеров</p>
+                <p class="text-[11px] text-zinc-400 font-mono" data-ru="35 мелодий и уровни из Geometry Dash" data-en="35 songs and levels from Geometry Dash">35 мелодий и уровни из Geometry Dash</p>
             </div>
         </button>
         <div class="flex items-center gap-2 flex-wrap">
@@ -249,6 +249,25 @@
                 <div id="trackList" class="flex flex-col gap-2"></div>
                 <div class="text-xs text-zinc-400" data-ru="Свои треки хранятся в этом браузере. В код уровня они не попадают — друг услышит обычную музыку. Чтобы трек звучал в официальном уровне у всех, пришли mp3 автору сайта." data-en="Your tracks are stored in this browser. They are not part of the level code — friends hear a built-in song. To have a track in an official level for everyone, send the mp3 to the site author.">Свои треки хранятся в этом браузере. В код уровня они не попадают — друг услышит обычную музыку. Чтобы трек звучал в официальном уровне у всех, пришли mp3 автору сайта.</div>
             </div>
+            <div id="gdModal" class="hidden absolute inset-0 bg-black/90 backdrop-blur-md z-30 p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar text-sm">
+                <div class="flex items-center justify-between gap-2"><div class="text-xl font-black">🎮 <span data-ru="Уровень из Geometry Dash" data-en="Level from Geometry Dash">Уровень из Geometry Dash</span></div>
+                    <button data-close class="px-3 py-2 rounded-xl bg-zinc-800 border border-zinc-600 font-black text-xs">✕</button></div>
+                <div class="text-zinc-300 leading-relaxed" data-ru="Перенеси свой уровень из настоящей Geometry Dash. Блоки, шипы, пилы, орбы, батуты, порталы, скорости, монеты, группы и главные триггеры (движение, показать/скрыть, прозрачность, вращение, запуск, стоп, случайность, счётчик, пульс, цвет, тряска, зум) перенесутся. Декор и наклонные блоки пока пропускаются." data-en="Bring your level over from the real Geometry Dash. Blocks, spikes, saws, orbs, pads, portals, speeds, coins, groups and the main triggers come over. Decoration and slopes are skipped for now.">Перенеси свой уровень из настоящей Geometry Dash. Блоки, шипы, пилы, орбы, батуты, порталы, скорости, монеты, группы и главные триггеры (движение, показать/скрыть, прозрачность, вращение, запуск, стоп, случайность, счётчик, пульс, цвет, тряска, зум) перенесутся. Декор и наклонные блоки пока пропускаются.</div>
+                <div class="grid md:grid-cols-2 gap-3">
+                    <div class="rounded-2xl border border-zinc-700 bg-zinc-900 p-3 flex flex-col gap-2">
+                        <div class="font-black">📁 <span data-ru="Файл" data-en="File">Файл</span></div>
+                        <div class="text-zinc-400 text-xs leading-relaxed" data-ru="На компьютере все твои уровни лежат в файле CCLocalLevels.dat: нажми Win+R, впиши %localappdata%\GeometryDash и выбери этот файл. Ещё подойдёт файл .gmd (его делает программа GDShare)." data-en="On a PC all your levels are in CCLocalLevels.dat: press Win+R, type %localappdata%\GeometryDash and pick that file. A .gmd file (from GDShare) works too.">На компьютере все твои уровни лежат в файле CCLocalLevels.dat: нажми Win+R, впиши %localappdata%\GeometryDash и выбери этот файл. Ещё подойдёт файл .gmd (его делает программа GDShare).</div>
+                        <label class="self-start px-4 py-2 rounded-xl bg-white text-black font-black cursor-pointer"><span data-ru="Выбрать файл" data-en="Choose file">Выбрать файл</span><input id="gdFile" type="file" accept=".dat,.gmd,.txt,.xml" class="hidden"></label>
+                        <div id="gdPick"></div>
+                    </div>
+                    <div class="rounded-2xl border border-zinc-700 bg-zinc-900 p-3 flex flex-col gap-2">
+                        <div class="font-black">📋 <span data-ru="Строка уровня" data-en="Level string">Строка уровня</span></div>
+                        <textarea id="gdText" rows="5" class="w-full px-2 py-1.5 rounded-lg bg-zinc-950 border border-zinc-700 font-mono text-xs" placeholder="H4sIAAAAAAAAC…"></textarea>
+                        <button id="gdGo" class="self-start px-4 py-2 rounded-xl bg-amber-400 text-black font-black">⬇ <span data-ru="Загрузить" data-en="Load">Загрузить</span></button>
+                    </div>
+                </div>
+                <div id="gdResult" class="flex flex-col gap-1"></div>
+            </div>
             <div id="helpModal" class="hidden absolute inset-0 bg-black/85 backdrop-blur-md z-30 p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
                 <div class="flex items-center justify-between"><div class="text-xl font-black">❓ <span data-ru="Клавиши редактора" data-en="Editor keys">Клавиши редактора</span></div>
                     <button data-close class="px-3 py-2 rounded-xl bg-zinc-800 border border-zinc-600 font-black text-xs">✕</button></div>
@@ -291,6 +310,7 @@
                 <button id="btnEdShare" class="px-3 py-2 rounded-xl bg-sky-500 text-black text-xs font-black">📤 <span data-ru="Поделиться" data-en="Share">Поделиться</span></button>
                 <button id="btnExportLevel" class="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold">💾 <span data-ru="Сохранить JSON" data-en="Save JSON">Сохранить JSON</span></button>
                 <label class="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold cursor-pointer">📂 <span data-ru="Загрузить JSON" data-en="Load JSON">Загрузить JSON</span><input type="file" id="btnImportLevel" accept=".json" class="hidden"></label>
+                <button id="btnGdImport" class="px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black">🎮 <span data-ru="Из Geometry Dash" data-en="From Geometry Dash">Из Geometry Dash</span></button>
             </div>
             <div id="propsPanel" class="hidden rounded-xl border border-sky-500/60 bg-sky-500/10 p-2.5 flex flex-col gap-2 text-xs"></div>
             <div id="tabsRow" class="flex flex-wrap items-center gap-1.5 border-b border-zinc-800 pb-2"></div>
@@ -427,9 +447,10 @@ function objRect(o) {
 }
 
 // Песня уровня: 0–4 — встроенные мелодии, 'c:ID' — свой трек из браузера, 'u:music/файл.mp3' — файл на сайте
+const SONG_COUNT = 35; // встроенных мелодий
 function songKey(v) {
     if (typeof v === 'string' && /^(c:[\w-]{1,40}|u:music\/[\w.-]{1,80})$/.test(v)) return v;
-    return Math.max(0, Math.min(4, Math.round(Number(v)) || 0));
+    return Math.max(0, Math.min(SONG_COUNT - 1, Math.round(Number(v)) || 0));
 }
 const WALL_STYLES = ['classic', 'neon', 'brick', 'glass', 'pixel', 'gold', 'stone', 'ice', 'wood', 'lava'];
 const MODE_NAMES_CORE = ['cube', 'ship', 'ball', 'ufo', 'wave', 'robot', 'spider', 'swing', 'airplane'];
@@ -1550,8 +1571,50 @@ const SECRET_LEVELS = [
         { name: 'Night Drive', bpm: 150, notes: [220, 0, 261.63, 220, 329.63, 0, 293.66, 261.63, 196, 0, 246.94, 196, 293.66, 0, 261.63, 246.94] },
         { name: 'Green Wave', bpm: 175, notes: [329.63, 392, 493.88, 392, 587.33, 493.88, 392, 329.63, 369.99, 440, 554.37, 440, 659.25, 554.37, 440, 369.99] },
         { name: 'Machinery', bpm: 180, notes: [146.83, 146.83, 293.66, 146.83, 174.61, 174.61, 349.23, 174.61, 130.81, 130.81, 261.63, 130.81, 196, 196, 392, 233.08] },
-        { name: 'Final Rush', bpm: 200, notes: [440, 523.25, 659.25, 880, 783.99, 659.25, 523.25, 587.33, 698.46, 880, 1046.5, 880, 698.46, 587.33, 523.25, 493.88] }
+        { name: 'Final Rush', bpm: 200, notes: [440, 523.25, 659.25, 880, 783.99, 659.25, 523.25, 587.33, 698.46, 880, 1046.5, 880, 698.46, 587.33, 523.25, 493.88] },
+        // ---- 2.7: новые мелодии (ноты по восьмым, «-» — пауза; бас и барабаны: k — бочка, s — малый, h — тарелочка) ----
+        { name: '🌫 Растворяющийся мир', bpm: 170, wave: 'sawtooth', notes: 'A4 C5 E5 A5 G5 E5 C5 E5 F4 A4 C5 F5 E5 C5 A4 C5 D4 F4 A4 D5 C5 A4 F4 A4 E4 G#4 B4 E5 D5 B4 G#4 B4', bass: 'A2 - A2 - A2 - A3 - F2 - F2 - F2 - F3 - D2 - D2 - D2 - D3 - E2 - E2 - E2 - E3 -', drum: 'k-h-s-h-k-k-s-h-' },
+        { name: '⚡ Неон', bpm: 160, wave: 'square', notes: 'E5 - E5 D5 E5 - B4 - C5 - C5 B4 C5 - G4 - A4 - A4 G4 A4 - E4 - F4 G4 A4 B4 C5 D5 E5 -', bass: 'E2 E3 E2 E3 C2 C3 C2 C3 A1 A2 A1 A2 F2 F3 G2 G3', drum: 'k-hhs-hhk-hhs-hh' },
+        { name: '🌌 Космос', bpm: 120, wave: 'triangle', notes: 'C5 - G4 - E5 - D5 - C5 - G4 - B4 - A4 - F4 - C5 - B4 - G4 - D5 - C5 - B4 -', bass: 'C2 - - - G2 - - - A2 - - - F2 - - - F2 - - - G2 - - - C2 - - - G2 - - -', drum: 'k---h---s---h---' },
+        { name: '🔥 Лава', bpm: 190, wave: 'sawtooth', notes: 'D5 D5 F5 D5 G5 D5 F5 E5 D5 D5 A5 D5 G5 F5 E5 C5 D5 D5 F5 D5 G5 D5 A5 G5 F5 E5 D5 C5 A4 C5 D5 -', bass: 'D2 D2 D3 D2 D2 D2 D3 D2 A#1 A#1 A#2 A#1 C2 C2 C3 C2', drum: 'k-skk-s-k-skk-ss' },
+        { name: '🧊 Ледяная пещера', bpm: 140, wave: 'sine', notes: 'B5 F#5 D5 B4 F#5 D5 B4 F#4 A5 E5 C#5 A4 E5 C#5 A4 E4 G5 D5 B4 G4 D5 B4 G4 D4 F#5 C#5 A#4 F#4 C#5 A#4 F#4 C#4', bass: 'B1 - - - - - - - A1 - - - - - - - G1 - - - - - - - F#1 - - - - - - -', drum: 'k-h-h-h-s-h-h-h-' },
+        { name: '🤖 Робо-бит', bpm: 150, wave: 'square', notes: 'C4 C4 - C5 - C4 D#4 - C4 C4 - G4 - F4 D#4 - C4 C4 - C5 - C4 D#4 - G4 - F4 - D#4 - D4 -', bass: 'C2 - C2 - C2 - C2 - G#1 - G#1 - A#1 - A#1 -', drum: 'k-s-kks-k-s-kkss' },
+        { name: '🌈 Радужная дорога', bpm: 165, wave: 'square', notes: 'C5 E5 G5 C6 B5 G5 E5 G5 A4 C5 E5 A5 G5 E5 C5 E5 F4 A4 C5 F5 E5 C5 A4 C5 G4 B4 D5 G5 F5 D5 B4 D5', bass: 'C2 C3 C2 C3 A1 A2 A1 A2 F1 F2 F1 F2 G1 G2 G1 G2', drum: 'k-h-s-h-k-h-s-hh' },
+        { name: '👻 Призрачный замок', bpm: 130, wave: 'triangle', notes: 'E4 - G4 - B4 - D#5 - E5 - B4 - G4 - F#4 - A4 - C5 - E5 - D#5 - B4 - F#4 -', bass: 'E2 - - - E2 - - - C2 - - - B1 - - -', drum: 'k-----h-s-----h-' },
+        { name: '🏎 Турбо', bpm: 210, wave: 'sawtooth', notes: 'G4 A#4 D5 G5 F5 D5 A#4 D5 F4 A4 C5 F5 D#5 C5 A4 C5 D#4 G4 A#4 D#5 D5 A#4 G4 A#4 D4 F#4 A4 D5 C5 A4 F#4 A4', bass: 'G1 G2 G1 G2 F1 F2 F1 F2 D#1 D#2 D#1 D#2 D1 D2 D1 D2', drum: 'khshkhshkhshkkss' },
+        { name: '🍬 Конфетка', bpm: 155, wave: 'square', notes: 'G5 E5 C5 E5 G5 - G5 - A5 F5 C5 F5 A5 - A5 - G5 E5 C5 E5 G5 A5 G5 E5 F5 D5 B4 D5 C5 - - -', bass: 'C3 - G2 - C3 - G2 - F2 - C3 - F2 - C3 - G2 - C3 - G2 - G2 - D3 - C3 - - -', drum: 'k-h-s-h-' },
+        { name: '⚔ Битва с боссом', bpm: 180, wave: 'sawtooth', notes: 'A4 A4 A5 A4 G5 A4 F5 A4 E5 A4 D5 A4 E5 F5 E5 D5 A4 A4 A5 A4 G5 A4 F5 A4 E5 F5 G5 A5 G5 F5 E5 D5', bass: 'A1 A1 A2 A1 A1 A1 A2 A1 F1 F1 F2 F1 G1 G1 G2 G1', drum: 'kks-kks-kks-kkss' },
+        { name: '🌙 Ночной город', bpm: 110, wave: 'triangle', notes: 'D5 - F5 - A5 - G5 F5 E5 - C5 - D5 - - - A#4 - D5 - F5 - E5 D5 C5 - A4 - D5 - - -', bass: 'D2 - D2 - D2 - D2 - C2 - C2 - D2 - D2 - A#1 - A#1 - A#1 - A#1 - A1 - A1 - D2 - D2 -', drum: 'k---s--hk-k-s---' },
+        { name: '🎮 8 бит', bpm: 170, wave: 'square', notes: 'E5 E5 - E5 - C5 E5 - G5 - - - G4 - - - C5 - - G4 - - E4 - - A4 - B4 - A#4 A4 -', bass: 'C3 - - G2 - - E2 - - A2 - B2 - A#2 A2 -', drum: 'k-h-s-h-' },
+        { name: '🌊 Океан', bpm: 125, wave: 'sine', notes: 'F#5 - E5 - C#5 - A4 - B4 - C#5 - E5 - - - D5 - C#5 - A4 - F#4 - G#4 - A4 - B4 - - -', bass: 'F#2 - - - C#3 - - - A2 - - - E2 - - - D2 - - - A2 - - - E2 - - - B1 - - -', drum: 'k---h-h-s---h-h-' },
+        { name: '💎 Кристаллы', bpm: 145, wave: 'triangle', notes: 'C6 G5 E5 G5 C6 G5 E5 G5 B5 G5 D5 G5 B5 G5 D5 G5 A5 F5 C5 F5 A5 F5 C5 F5 G5 E5 C5 E5 G5 E5 D5 B4', bass: 'C2 - C3 - C2 - C3 - G1 - G2 - G1 - G2 - F1 - F2 - F1 - F2 - C2 - C3 - G1 - G2 -', drum: 'k-h-s-hhk-h-s-hh' },
+        { name: '🐉 Дракон', bpm: 175, wave: 'sawtooth', notes: 'E4 F4 G#4 A4 B4 C5 B4 A4 G#4 F4 E4 - E4 - - - D5 C5 B4 A4 G#4 A4 B4 C5 B4 G#4 E4 - E4 - - -', bass: 'E1 E2 E1 E2 E1 E2 E1 E2 D1 D2 D1 D2 E1 E2 E1 E2', drum: 'k-s-kks-k-s-k-ss' },
+        { name: '☀ Солнечный день', bpm: 135, wave: 'square', notes: 'G4 - B4 - D5 - G5 - F#5 - D5 - B4 - D5 - C5 - E5 - G5 - E5 - C5 - A4 - D5 - - -', bass: 'G2 - D3 - G2 - D3 - G2 - D3 - G2 - D3 - C2 - G2 - C2 - G2 - D2 - A2 - D2 - A2 -', drum: 'k-h-s-h-' },
+        { name: '🕹 Аркада', bpm: 185, wave: 'square', notes: 'A4 C5 E5 C5 A4 C5 E5 C5 G4 B4 D5 B4 G4 B4 D5 B4 F4 A4 C5 A4 F4 A4 C5 A4 E4 G#4 B4 G#4 E5 D5 C5 B4', bass: 'A1 - A2 - G1 - G2 - F1 - F2 - E1 - E2 -', drum: 'khsh' },
+        { name: '🌪 Ураган', bpm: 200, wave: 'sawtooth', notes: 'F#5 E5 D5 C#5 D5 E5 F#5 A5 G5 F#5 E5 D5 E5 F#5 G5 B5 A5 G5 F#5 E5 F#5 G5 A5 C#6 B5 A5 G5 F#5 E5 D5 C#5 A4', bass: 'D2 D3 D2 D3 E2 E3 E2 E3 F#2 F#3 F#2 F#3 G2 G3 A2 A3', drum: 'kkskkksskkskkkss' },
+        { name: '🎪 Цирк', bpm: 165, wave: 'square', notes: 'C5 B4 C5 - G4 - E4 - F4 E4 F4 - C5 - A4 - G4 F#4 G4 - D5 - B4 - C5 - E5 - C5 - - -', bass: 'C2 G2 C2 G2 F2 C3 F2 C3 G2 D3 G2 D3 C2 G2 C2 -', drum: 'k-h-k-h-' },
+        { name: '🧪 Лаборатория', bpm: 140, wave: 'triangle', notes: 'C5 D#5 G5 D#5 C5 D#5 G5 A#5 G#5 G5 D#5 C5 D5 - - - C5 D#5 G5 D#5 C5 D#5 G5 C6 A#5 G#5 G5 D#5 G5 - - -', bass: 'C2 - - C2 - - G#1 - G#1 - - A#1 - - A#1 -', drum: 'k--hs--hk-khs-hh' },
+        { name: '🚀 Взлёт', bpm: 175, wave: 'square', notes: 'C4 E4 G4 C5 E5 G5 C6 - B5 G5 D5 B4 G4 D4 B3 - A3 C4 E4 A4 C5 E5 A5 - G5 E5 C5 G4 E4 C4 G3 -', bass: 'C2 C2 C3 C2 G1 G1 G2 G1 A1 A1 A2 A1 F1 F1 G1 G1', drum: 'k-hhs-hhk-hhs-sh' },
+        { name: '🌿 Лес', bpm: 115, wave: 'sine', notes: 'G5 - E5 - D5 - E5 - G5 - A5 - G5 - - - E5 - D5 - C5 - D5 - E5 - D5 - - - -', bass: 'C2 - - - G2 - - - A1 - - - E2 - - - F1 - - - C2 - - - G1 - - - G2 - - -', drum: 'k---h---k-k-h---' },
+        { name: '💥 Хардкор', bpm: 220, wave: 'sawtooth', notes: 'A5 A4 A5 A4 G5 A4 F5 A4 A5 A4 A5 A4 C6 A4 B5 A4 G5 G4 G5 G4 F5 G4 E5 G4 F5 E5 D5 C5 B4 C5 D5 E5', bass: 'A1 A2 A1 A2 A1 A2 A1 A2 G1 G2 G1 G2 F1 F2 E1 E2', drum: 'kkkskkks' },
+        { name: '🎹 Пианино', bpm: 100, wave: 'triangle', notes: 'E5 D#5 E5 D#5 E5 B4 D5 C5 A4 - C4 E4 A4 B4 - E4 G#4 B4 C5 - E4 E5 D#5 E5 D#5 E5 B4 D5 C5 A4 - - -', bass: 'A2 - E3 - A3 - - - E2 - E3 - G#3 - - - A2 - E3 - A3 - - - - - - - - - - -', drum: '' },
+        { name: '🛸 Пришельцы', bpm: 135, wave: 'sine', notes: 'C5 - C#5 - D5 - D#5 - E5 - - - G5 F#5 F5 E5 D#5 - - - A#4 - B4 - C5 - - - - - - -', bass: 'C2 - - C2 - - C2 - F#1 - - F#1 - - G1 -', drum: 'k-s-h-s-' },
+        { name: '🏁 Финишная прямая', bpm: 195, wave: 'square', notes: 'E5 G5 A5 B5 A5 G5 E5 D5 E5 G5 A5 B5 D6 B5 A5 G5 C5 E5 G5 A5 G5 E5 C5 B4 D5 F#5 A5 B5 A5 F#5 D5 -', bass: 'E2 E3 E2 E3 E2 E3 E2 E3 C2 C3 C2 C3 D2 D3 D2 D3', drum: 'k-hsk-hsk-hsk-ss' },
+        { name: '🕸 Паутина', bpm: 125, wave: 'triangle', notes: 'D5 - A4 - F5 - E5 - D5 - C5 - A4 - - - D5 - A4 - F5 - G5 - A5 - G5 - F5 - E5 -', bass: 'D2 D2 - D2 - - D2 - A#1 A#1 - A#1 - - C2 -', drum: 'k--sk-s-' },
+        { name: '🎉 Праздник', bpm: 160, wave: 'square', notes: 'C5 C5 G4 C5 E5 - C5 - F5 F5 E5 D5 C5 - - - D5 D5 B4 D5 F5 - D5 - E5 D5 C5 B4 C5 - - -', bass: 'C2 C3 C2 C3 F2 F3 F2 F3 G2 G3 G2 G3 C2 C3 C2 -', drum: 'k-hsk-hs' },
+        { name: '🖤 Экстремальный демон', bpm: 230, wave: 'sawtooth', notes: 'C5 C#5 C5 G4 C5 C#5 D#5 C#5 C5 C#5 C5 G4 F5 D#5 C#5 C5 A#4 C5 A#4 F4 A#4 C5 C#5 C5 A#4 C5 C#5 D#5 F5 G5 G#5 G5', bass: 'C1 C2 C1 C2 C1 C2 C1 C2 A#0 A#1 A#0 A#1 G#0 G#1 G0 G1', drum: 'kkskkkskkskkkkss' }
     ];
+    // ноты словами («A4», «C#5», «-») → частоты
+    function noteFreq(n) {
+        const m = /^([A-G])(#?)(-?\d)$/.exec(n);
+        if (!m) return 0;
+        const midi = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[m[1]] + (m[2] ? 1 : 0) + (Number(m[3]) + 1) * 12;
+        return 440 * Math.pow(2, (midi - 69) / 12);
+    }
+    SONGS.forEach(sg => {
+        if (typeof sg.notes === 'string') sg.notes = sg.notes.split(/\s+/).map(noteFreq);
+        if (typeof sg.bass === 'string') sg.bass = sg.bass.split(/\s+/).map(noteFreq);
+    });
     // ---------- Свои треки: хранятся в браузере (IndexedDB) ----------
     const trackDB = {
         db: null,
@@ -1613,15 +1676,18 @@ const SECRET_LEVELS = [
             this.step = 0;
             this.timer = setInterval(() => {
                 if (!this.enabled || !this.ctx) return;
-                const f = sng.notes[this.step % sng.notes.length]; this.step++;
-                if (!f) return;
+                const st = this.step, f = sng.notes[st % sng.notes.length]; this.step++;
                 try {
-                    const t = this.ctx.currentTime;
-                    const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
-                    osc.type = 'square'; osc.frequency.setValueAtTime(f, t);
-                    gain.gain.setValueAtTime(0.03, t); gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
-                    osc.connect(gain); gain.connect(this.ctx.destination); osc.start(t); osc.stop(t + 0.18);
-                    if (this.step % 4 === 1) {
+                    const t = this.ctx.currentTime, len = 60 / sng.bpm / 2;
+                    if (sng.bass) { const bf = sng.bass[st % sng.bass.length]; if (bf) this.note(bf, t, len * 0.95, 'triangle', 0.07); }
+                    if (sng.drum !== undefined) {
+                        const d = sng.drum ? sng.drum[st % sng.drum.length] : '-';
+                        if (d === 'k') this.kick(t); else if (d === 's') this.noise(t, 0.12, 0.09, 1200); else if (d === 'h') this.noise(t, 0.04, 0.035, 7000);
+                    }
+                    if (!f) return;
+                    const wv = sng.wave || 'square', vol = wv === 'sawtooth' ? 0.022 : wv === 'sine' || wv === 'triangle' ? 0.06 : 0.03;
+                    this.note(f, t, 0.18, wv, vol);
+                    if (sng.drum === undefined && this.step % 4 === 1) {
                         const k = this.ctx.createOscillator(), kg = this.ctx.createGain();
                         k.type = 'sine'; k.frequency.setValueAtTime(120, t); k.frequency.exponentialRampToValueAtTime(40, t + 0.12);
                         kg.gain.setValueAtTime(0.12, t); kg.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
@@ -1629,6 +1695,25 @@ const SECRET_LEVELS = [
                     }
                 } catch (e) {}
             }, 60000 / sng.bpm / 2);
+        }
+        note(f, t, dur, type, vol) {
+            const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+            osc.type = type; osc.frequency.setValueAtTime(f, t);
+            gain.gain.setValueAtTime(vol, t); gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            osc.connect(gain); gain.connect(this.ctx.destination); osc.start(t); osc.stop(t + dur);
+        }
+        kick(t) {
+            const k = this.ctx.createOscillator(), kg = this.ctx.createGain();
+            k.type = 'sine'; k.frequency.setValueAtTime(130, t); k.frequency.exponentialRampToValueAtTime(40, t + 0.12);
+            kg.gain.setValueAtTime(0.14, t); kg.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+            k.connect(kg); kg.connect(this.ctx.destination); k.start(t); k.stop(t + 0.16);
+        }
+        noise(t, dur, vol, hp) {
+            if (!this.noiseBuf) { const n = this.ctx.sampleRate * 0.3; this.noiseBuf = this.ctx.createBuffer(1, n, this.ctx.sampleRate); const d = this.noiseBuf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; }
+            const src = this.ctx.createBufferSource(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
+            src.buffer = this.noiseBuf; f.type = 'highpass'; f.frequency.value = hp;
+            g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            src.connect(f); f.connect(g); g.connect(this.ctx.destination); src.start(t); src.stop(t + dur + 0.01);
         }
         // свой трек: файл из браузера или с сайта; с начала — при новой попытке, с места — после паузы
         async playCustom() {
@@ -4183,7 +4268,7 @@ const SECRET_LEVELS = [
         delete b.dataset.armed; pushUndo(); editorLevel.objects = []; saveEditor(); setSelection([]); toast(tr('Карта очищена. Вернуть можно кнопкой «Отмена».', 'Map cleared. Undo brings it back.'));
     });
     $('btnExportLevel').addEventListener('click', () => {
-        const data = { format: 'geometry-ai', version: '2.6', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, objects: editorLevel.objects };
+        const data = { format: 'geometry-ai', version: '2.7', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, objects: editorLevel.objects };
         const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -4204,6 +4289,187 @@ const SECRET_LEVELS = [
             e.target.value = '';
         };
         reader.readAsText(file);
+    });
+
+    // ---------- 🎮 Импорт уровня из оригинального Geometry Dash ----------
+    // Понимает: строку уровня (сжатую «H4sI…» или обычную «1,1,2,15,3,15;…»), файл .gmd (GDShare)
+    // и файл сохранения CCLocalLevels.dat (все твои уровни с компьютера).
+    const GD_SOLID = new Set([1, 2, 3, 4, 5, 6, 7, 62, 63, 64, 65, 66, 68, 69, 70, 71, 72, 74, 75, 76, 77, 78, 81, 82, 83, 90, 91, 92, 93, 94, 95, 96,
+        116, 117, 118, 119, 120, 121, 122, 146, 147, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 192, 194, 195, 196, 197,
+        206, 207, 208, 209, 210, 211, 212, 213, 215, 219, 220, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 260, 261, 263, 264, 265, 267, 268,
+        269, 270, 271, 272, 274, 275, 467, 468, 469, 470, 471, 472, 473, 474, 475, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494,
+        641, 642, 643, 644, 645, 646, 647, 648, 649, 650, 651, 652, 653, 654, 655, 656, 657, 658, 659, 661, 662, 663, 664, 665, 666, 667, 668, 669, 670, 671, 672,
+        673, 674, 675, 676, 677, 1155, 1156, 1157, 1202, 1203, 1204, 1205, 1206, 1207, 1208, 1209, 1210, 1220, 1221, 1222, 1226, 1227, 1813, 1903, 1904, 1905, 1906, 1910, 1911]);
+    const GD_SLAB = new Set([40, 169, 195, 196, 197, 1903, 1904]);
+    const GD_SPIKE = new Set([8, 39, 103, 144, 145, 177, 178, 179, 205, 216, 217, 218, 363, 364, 365, 392, 421, 422, 446, 447, 458, 459, 989, 991, 720, 1715, 1716, 1717, 1718, 1719, 1720, 1721, 1722, 1723]);
+    const GD_SMALL = new Set([39, 103, 145, 205, 392, 422, 459, 1716, 1717, 1720, 1722]);
+    const GD_GROUND = new Set([9, 61, 243, 244, 366, 367, 368, 919]);
+    const GD_SAW = { 88: 1.9, 89: 1.3, 98: 0.75, 397: 1.9, 398: 1.3, 399: 0.75, 678: 1.9, 679: 1.3, 680: 0.75, 740: 1.9, 741: 1.3, 742: 0.75, 1705: 1.9, 1706: 1.3, 1707: 0.75, 1708: 1.9, 1709: 1.3, 1710: 0.75, 1734: 1.9, 1735: 1.3, 1736: 0.75, 186: 1.6, 187: 1.2, 188: 0.8 };
+    const GD_PLAIN = {
+        35: 'PAD', 67: 'BLUE_PAD', 140: 'PINK_PAD', 1332: 'RED_PAD', 3005: 'SPIDER_PAD',
+        36: 'ORB', 84: 'GRAVITY_ORB', 141: 'PINK_ORB', 1022: 'GREEN_ORB', 1330: 'BLACK_ORB', 1333: 'RED_ORB', 3004: 'SPIDER_ORB', 1594: 'GRAVITY_ORB', 1704: 'GREEN_ORB', 1751: 'PINK_ORB',
+        10: 'GRAV_DOWN_PORTAL', 11: 'GRAV_UP_PORTAL', 12: 'CUBE_PORTAL', 13: 'SHIP_PORTAL', 47: 'BALL_PORTAL', 111: 'UFO_PORTAL', 660: 'WAVE_PORTAL', 745: 'ROBOT_PORTAL',
+        1331: 'SPIDER_PORTAL', 1933: 'SWING_PORTAL', 99: 'BIG_PORTAL', 101: 'MINI_PORTAL', 200: 'SPEED_05', 201: 'SPEED_1', 202: 'SPEED_2', 203: 'SPEED_3', 1334: 'SPEED_4',
+        142: 'COIN', 1329: 'COIN', 3600: 'GOAL'
+    };
+    const GD_MODES = ['CUBE_PORTAL', 'SHIP_PORTAL', 'BALL_PORTAL', 'UFO_PORTAL', 'WAVE_PORTAL', 'ROBOT_PORTAL', 'SPIDER_PORTAL', 'SWING_PORTAL'];
+    function b64bytes(str) {
+        let b = str.trim().replace(/-/g, '+').replace(/_/g, '/').replace(/[^A-Za-z0-9+/=]/g, '');
+        while (b.length % 4) b += '=';
+        const bin = atob(b), out = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+        return out;
+    }
+    async function inflateBytes(bytes) {
+        for (const fmt of ['gzip', 'deflate', 'deflate-raw']) {
+            try { return await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream(fmt))).text(); } catch (e) {}
+        }
+        throw new Error('decompress');
+    }
+    // строка уровня → «сырой» текст «kS38,…;1,1,2,15,3,15;…»
+    async function gdRawLevel(str) {
+        str = str.trim();
+        if (/^(kS|kA|1,\d)/.test(str) || /;1,\d+,2,/.test(str)) return str;
+        return inflateBytes(b64bytes(str));
+    }
+    // из файла: .gmd (xml) или CCLocalLevels.dat (зашифрованный) → список { name, data }
+    async function gdLevelsFromFile(file) {
+        const buf = new Uint8Array(await file.arrayBuffer());
+        let text = new TextDecoder().decode(buf);
+        if (!text.includes('<k>k4</k>') && !text.includes('<plist')) {
+            // CCLocalLevels.dat: каждый байт XOR 11, потом base64 и gzip
+            try {
+                const x = new Uint8Array(buf.length); for (let i = 0; i < buf.length; i++) x[i] = buf[i] ^ 11;
+                text = await inflateBytes(b64bytes(new TextDecoder().decode(x)));
+            } catch (e) {
+                // может быть просто строка уровня в .txt
+                return [{ name: file.name.replace(/\.[a-z]+$/i, ''), data: text }];
+            }
+        }
+        const out = [];
+        const re = /<k>k2<\/k><s>([^<]*)<\/s>|<k>k4<\/k><s>([^<]*)<\/s>/g;
+        let name = null, m;
+        while ((m = re.exec(text))) {
+            if (m[1] !== undefined) name = m[1];
+            else { out.push({ name: (name || 'Уровень').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>'), data: m[2] }); name = null; }
+        }
+        return out;
+    }
+    // разбор объектов GD и перевод в объекты нашей игры
+    function gdConvert(raw, name) {
+        const parts = raw.split(';').filter(Boolean);
+        const kv = str => { const a = str.split(','), o = {}; for (let i = 0; i + 1 < a.length; i += 2) o[a[i]] = a[i + 1]; return o; };
+        let header = null;
+        if (parts.length && /^k[SA]/.test(parts[0])) header = kv(parts.shift());
+        const list = parts.map(kv).filter(o => o[1] && o[2] !== undefined && o[3] !== undefined);
+        // где пол: в строке уровня он обычно на 0, но бывает со сдвигом 90
+        const playY = list.filter(o => GD_SOLID.has(+o[1]) || GD_SPIKE.has(+o[1])).map(o => +o[3]);
+        const floorY = playY.length && Math.min(...playY) >= 105 && playY.includes(105) ? 90 : 0;
+        const gmap = {}; let gnext = 1;
+        const grp = v => { if (!v) return undefined; const g = String(v).split('.')[0]; if (!g || g === '0') return undefined; if (!(g in gmap)) { if (gnext > 99) return undefined; gmap[g] = gnext++; } return gmap[g]; };
+        const grpN = v => { if (v == null || v === '0') return 0; if (!(v in gmap)) { if (gnext > 99) return 0; gmap[v] = gnext++; } return gmap[v]; };
+        const objs = [], skipped = {}, counts = { solid: 0, hazard: 0, other: 0, trig: 0 };
+        const rgb = o => '#' + [o[7], o[8], o[9]].map(v => Math.max(0, Math.min(255, Math.round(+v || 0))).toString(16).padStart(2, '0')).join('');
+        const counters = {};
+        for (const o of list) {
+            const id = +o[1];
+            const X = Math.round(((+o[2]) / 30 - 0.5) * 40 * 4) / 4, Y = Math.round(((+o[3] - floorY) / 30 - 0.5) * 40 * 4) / 4;
+            if (X < -40) continue;
+            let rot = +o[6] || 0;
+            if (o[5] === '1') rot += 180;
+            const sc = o[32] ? +o[32] : (o[128] || o[129]) ? ((+o[128] || 1) + (+o[129] || 1)) / 2 : 1;
+            const base = { x: Math.max(0, X), y: Y, rotation: rot };
+            if (sc && sc !== 1) base.scale = sc;
+            const g = grp(o[57]);
+            if (g) base.group = g;
+            let r = null;
+            if (GD_SOLID.has(id)) { r = { type: GD_SLAB.has(id) ? 'SLAB' : 'BLOCK' }; counts.solid++; }
+            else if (GD_SPIKE.has(id)) { r = { type: GD_SMALL.has(id) ? 'SMALL_SPIKE' : 'SPIKE' }; counts.hazard++; }
+            else if (GD_GROUND.has(id)) { r = { type: 'GROUND_SPIKES' }; counts.hazard++; }
+            else if (GD_SAW[id]) { r = { type: 'SAW', scale: GD_SAW[id] * (sc || 1) }; counts.hazard++; }
+            else if (GD_PLAIN[id]) { r = { type: GD_PLAIN[id] }; counts.other++; }
+            else if (id === 747) { r = { type: 'TELEPORT', tx: 0, ty: (+o[54] || 120) / 30 }; counts.other++; }
+            else {
+                // триггеры
+                const tgt = grpN(o[51]), dur = +o[10] || 0;
+                switch (id) {
+                    case 901: r = (o[58] === '1' || o[59] === '1') ? { type: 'MOVE_TRIGGER', target: tgt, follow: o[58] === '1' && o[59] === '1' ? 'xy' : o[58] === '1' ? 'x' : 'y', fk: 1 }
+                        : { type: 'MOVE_TRIGGER', target: tgt, dx: (+o[28] || 0) / 30, dy: (+o[29] || 0) / 30, dur }; break;
+                    case 1049: r = { type: 'TOGGLE_TRIGGER', target: tgt, show: o[56] === '1' }; break;
+                    case 1007: r = { type: 'FADE_TRIGGER', target: tgt, opacity: Math.round((o[35] == null ? 1 : +o[35]) * 100), dur }; break;
+                    case 1346: r = { type: 'ROTATE_TRIGGER', target: tgt, deg: (+o[68] || 0) + 360 * (+o[69] || 0), dur, rmode: o[71] && o[71] !== '0' ? 'group' : 'self' }; break;
+                    case 1268: r = { type: 'SPAWN_TRIGGER', target: tgt, delay: +o[63] || 0 }; break;
+                    case 1616: r = { type: 'STOP_TRIGGER', target: tgt }; break;
+                    case 1912: r = { type: 'RANDOM_TRIGGER', ga: tgt, gb: grpN(o[71]), chance: o[10] == null ? 50 : +o[10] }; break;
+                    case 1006: if (o[52] === '1') r = { type: 'PULSE_TRIGGER', target: tgt, color: rgb(o), dur: (+o[45] || 0) + (+o[46] || 0) + (+o[47] || 0) || 0.5 }; break;
+                    case 899: { const ch = +o[23] || 1; if (ch === 1000) r = { type: 'COLOR_TRIGGER', color: rgb(o), dur }; else if (ch === 1001 || ch === 1009) r = { type: 'GROUND_TRIGGER', color: rgb(o), dur }; break; }
+                    case 1520: r = { type: 'SHAKE_TRIGGER', power: Math.max(1, Math.min(10, Math.round(+o[75] || 3))), dur: dur || 0.5 }; break;
+                    case 1913: r = { type: 'ZOOM_TRIGGER', zoom: +o[371] || 1, dur }; break;
+                    case 1935: r = { type: 'TIME_TRIGGER', tk: +o[120] || 1 }; break;
+                    case 1817: { const item = +o[80] || 1; r = { type: 'COUNTER_TRIGGER', cid: ((item - 1) % 9) + 1, val: +o[77] || 1, need: 99999, target: 0, show: false }; (counters[r.cid] || (counters[r.cid] = { pick: [], need: null, target: 0 })).pick.push(r); break; }
+                    case 1611: { const item = +o[80] || 1, cid = ((item - 1) % 9) + 1; const c = counters[cid] || (counters[cid] = { pick: [], need: null, target: 0 }); c.need = +o[77] || 0; c.target = tgt; break; }
+                }
+                if (r) { counts.trig++; if (o[62] === '1') r.act = 'spawn'; else if (o[11] === '1') r.act = 'touch'; }
+                else { skipped[id] = (skipped[id] || 0) + 1; continue; }
+            }
+            objs.push(Object.assign(base, r));
+        }
+        // «счётчик» GD: подбор предмета + проверка числа → наш 🔢
+        for (const c of Object.values(counters)) c.pick.forEach(r => { if (c.need != null) { r.need = c.need; r.target = c.target; } });
+        // начало уровня: режим, скорость, мини, гравитация и цвет фона из настроек GD
+        let color = '#2563eb';
+        if (header) {
+            const mode = +header.kA2 || 0, spd = +header.kA4 || 0;
+            if (mode > 0 && GD_MODES[mode]) objs.push({ type: GD_MODES[mode], x: 0, y: 0, rotation: 0 });
+            if (spd) objs.push({ type: ['SPEED_1', 'SPEED_05', 'SPEED_2', 'SPEED_3', 'SPEED_4'][spd] || 'SPEED_1', x: 0, y: 0, rotation: 0 });
+            if (header.kA3 === '1') objs.push({ type: 'MINI_PORTAL', x: 0, y: 0, rotation: 0 });
+            if (header.kA11 === '1') objs.push({ type: 'GRAV_UP_PORTAL', x: 0, y: 0, rotation: 0 });
+            if (header.kS38) for (const ch of header.kS38.split('|')) {
+                const a = ch.split('_'), m = {}; for (let i = 0; i + 1 < a.length; i += 2) m[a[i]] = a[i + 1];
+                if (m[6] === '1000') { color = rgb({ 7: m[1], 8: m[2], 9: m[3] }); break; }
+            }
+        }
+        const lv = normalizeLevel({ name: name || 'Из Geometry Dash', color, objects: objs });
+        const top = Object.entries(skipped).sort((a, b) => b[1] - a[1]);
+        return { lv, counts, skippedTotal: top.reduce((a, b) => a + b[1], 0), skippedTop: top.slice(0, 8), groups: gnext - 1, total: list.length };
+    }
+    let gdFound = [];
+    function openGdModal() { $('gdModal').classList.remove('hidden'); $('gdResult').innerHTML = ''; $('gdPick').innerHTML = ''; }
+    async function gdImportText(str, name) {
+        const res = $('gdResult');
+        try {
+            const raw = await gdRawLevel(str);
+            const r = gdConvert(raw, name);
+            if (!r.lv.objects.length) throw new Error('empty');
+            pushUndo();
+            editorLevel = r.lv; editorLevel.id = newLevelId();
+            saveEditor();
+            res.innerHTML = `<div class="text-emerald-300 font-bold">✓ ${tr('Загружено', 'Loaded')}: «${escAttr(r.lv.name)}» — ${tr('объектов', 'objects')} ${r.lv.objects.length} ${tr('из', 'of')} ${r.total}</div>
+                <div class="text-zinc-300">${tr('Блоков', 'Blocks')}: ${r.counts.solid} • ${tr('шипов и пил', 'spikes & saws')}: ${r.counts.hazard} • ${tr('орбов, батутов, порталов, монет', 'orbs, pads, portals, coins')}: ${r.counts.other} • ${tr('триггеров', 'triggers')}: ${r.counts.trig} • ${tr('групп', 'groups')}: ${r.groups}</div>` +
+                (r.skippedTotal ? `<div class="text-amber-300">⚠ ${tr(`Пропущено ${r.skippedTotal} объектов (в основном декор, наклонные блоки и триггеры, которых у нас нет). Самые частые номера объектов: `, `Skipped ${r.skippedTotal} objects (mostly decoration, slopes and triggers we don't have). Most common object IDs: `)}${r.skippedTop.map(([id, n]) => id + ' ×' + n).join(', ')}</div>` : '') +
+                `<div class="text-zinc-400">${tr('Уровень открыт в редакторе. Проверь его кнопкой «▶ Тест».', 'The level is open in the editor. Check it with "▶ Test".')}</div>`;
+            openEditor();
+            $('gdModal').classList.remove('hidden');
+            toast(tr('Уровень из Geometry Dash загружен!', 'Geometry Dash level loaded!'));
+        } catch (e) {
+            res.innerHTML = `<div class="text-red-400 font-bold">✕ ${tr('Не получилось прочитать уровень. Нужна строка уровня (обычно начинается с H4sI), файл .gmd или CCLocalLevels.dat.', 'Could not read the level. Paste a level string (usually starts with H4sI), or load a .gmd or CCLocalLevels.dat file.')}</div>`;
+        }
+    }
+    $('btnGdImport').addEventListener('click', openGdModal);
+    $('gdModal').querySelector('[data-close]').addEventListener('click', () => $('gdModal').classList.add('hidden'));
+    $('gdGo').addEventListener('click', () => { const v = $('gdText').value; if (v.trim()) gdImportText(v, ''); });
+    $('gdFile').addEventListener('change', async e => {
+        const file = e.target.files[0]; e.target.value = '';
+        if (!file) return;
+        const pick = $('gdPick'); pick.innerHTML = tr('Читаю файл…', 'Reading the file…');
+        try {
+            gdFound = await gdLevelsFromFile(file);
+            if (!gdFound.length) { pick.innerHTML = `<div class="text-red-400">${tr('В файле не нашлось уровней.', 'No levels found in the file.')}</div>`; return; }
+            if (gdFound.length === 1) { pick.innerHTML = ''; gdImportText(gdFound[0].data, gdFound[0].name); return; }
+            pick.innerHTML = `<div class="font-bold">${tr('Уровней в файле', 'Levels in the file')}: ${gdFound.length}. ${tr('Выбери нужный:', 'Pick one:')}</div><div class="flex flex-wrap gap-1.5 mt-1">` +
+                gdFound.map((l, i) => `<button data-gd="${i}" class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 font-bold text-xs">${escAttr(l.name)}</button>`).join('') + '</div>';
+            pick.querySelectorAll('[data-gd]').forEach(b => b.addEventListener('click', () => { const l = gdFound[+b.dataset.gd]; gdImportText(l.data, l.name); }));
+        } catch (err) { pick.innerHTML = `<div class="text-red-400">${tr('Не получилось прочитать файл.', 'Could not read the file.')}</div>`; }
     });
 
     function toast(msg, sec) {
@@ -4724,7 +4990,7 @@ const SECRET_LEVELS = [
             if (ctrl && e.code === 'KeyV') { e.preventDefault(); const c = hoverCell || { x: Math.max(0, Math.round((G.edCamX + VIEW_W / G.edZoom / 2) / GRID) * GRID), y: 0 }; pasteAt(c.x, c.y); }
             if (ctrl && e.code === 'KeyD') { e.preventDefault(); duplicateSelection(); }
             if (ctrl && e.code === 'KeyA') { e.preventDefault(); activeTool = 'SELECT'; activeTab = 'SELECT'; renderTabs(); renderToolBar(); refreshSelectBtn(); setSelection(editorLevel.objects.slice()); }
-            if (e.code === 'Escape') { tpPick = null; setSelection([]); ['libModal', 'helpModal', 'musicModal'].forEach(id => $(id).classList.add('hidden')); }
+            if (e.code === 'Escape') { tpPick = null; setSelection([]); ['libModal', 'helpModal', 'musicModal', 'gdModal'].forEach(id => $(id).classList.add('hidden')); }
             if ((e.code === 'Equal' || e.code === 'NumpadAdd') && !ctrl) setZoom(G.edZoom * 1.25);
             if ((e.code === 'Minus' || e.code === 'NumpadSubtract') && !ctrl) setZoom(G.edZoom / 1.25);
             if ((e.code === 'Delete' || e.code === 'Backspace') && selSet.length) { e.preventDefault(); deleteSelection(); }
