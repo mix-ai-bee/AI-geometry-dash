@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Geometry AI v2.9</title>
-    <!-- 2.9: монстрики -->
+    <title>Geometry AI v3.0</title>
+    <!-- 3.0: если — то -->
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <script>
@@ -46,9 +46,9 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl font-black italic tracking-wide text-white" data-ru="Геометрия ИИ" data-en="GEOMETRY AI">Геометрия ИИ</h1>
-                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v2.9</span>
+                    <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px] font-bold">v3.0</span>
                 </div>
-                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Монстрики: кусака, шипастый, колючий малыш и новые шипы" data-en="Monsters: chomper, spiky, thorn bush and new spikes">Монстрики: кусака, шипастый, колючий малыш и новые шипы</p>
+                <p class="text-[11px] text-zinc-400 font-mono" data-ru="Триггер «Если — то», подключение триггеров и копии уровней" data-en="If-then trigger, linking triggers and level copies">Триггер «Если — то», подключение триггеров и копии уровней</p>
             </div>
         </button>
         <div class="flex items-center gap-2 flex-wrap">
@@ -411,12 +411,14 @@ const OBJ = {
     ROTATE_TRIGGER: { cat: 'trigger', rect: [0, 0, 40, 40], fixed: 1 }
 };
 // 2.6: триггерное обновление — логика, игрок, группы, экран и звук
-['STOP_TRIGGER', 'SPAWN_TRIGGER', 'RANDOM_TRIGGER', 'COUNTER_TRIGGER', 'PRESS_TRIGGER', 'WIN_TRIGGER', 'KILL_TRIGGER',
+['STOP_TRIGGER', 'SPAWN_TRIGGER', 'RANDOM_TRIGGER', 'COUNTER_TRIGGER', 'PRESS_TRIGGER', 'IF_TRIGGER', 'WIN_TRIGGER', 'KILL_TRIGGER',
  'GRAVITY_TRIGGER', 'SPEED_TRIGGER', 'SIZE_TRIGGER', 'MODE_TRIGGER', 'HIDEP_TRIGGER', 'PCOLOR_TRIGGER',
  'SCALE_TRIGGER', 'TINT_TRIGGER', 'PULSE_TRIGGER',
  'CAMERA_TRIGGER', 'CAMROT_TRIGGER', 'MIRROR_TRIGGER', 'TIME_TRIGGER', 'DARK_TRIGGER', 'WEATHER_TRIGGER', 'RAINBOW_TRIGGER', 'SOUND_TRIGGER']
     .forEach(t => OBJ[t] = { cat: 'trigger', rect: [0, 0, 40, 40], fixed: 1 });
 const WEATHER_KINDS = ['none', 'snow', 'rain', 'confetti', 'stars', 'hearts', 'embers', 'leaves', 'bubbles', 'fireworks'];
+// ❓ «Если — то»: события игрока
+const IF_EVENTS = ['jump', 'land', 'press', 'release', 'touch', 'die', 'orb', 'pad', 'portal', 'coin', 'gravity', 'mode'];
 const SOUND_KINDS = ['boom', 'laser', 'coin', 'bell', 'alarm', 'power', 'drum', 'whoosh', 'win', 'fail', 'jump', 'magic'];
 const SHAPE_IDS = ['circle', 'ring', 'square', 'triangle', 'diamond', 'hexagon', 'star', 'heart', 'plus', 'xmark', 'cloud', 'bush', 'tree', 'flower',
     'mushroom', 'moon', 'sun', 'bolt', 'crystal', 'flame', 'waves', 'gear', 'pillar', 'spiral', 'dots', 'rays', 'grass', 'eye', 'note', 'frame', 'stripe'];
@@ -529,6 +531,7 @@ function normalizeLevel(data) {
             if (o.type === 'SPAWN_TRIGGER') { r.target = tg(); r.delay = num(o.delay, 0, 0, 60); r.times = Math.round(num(o.times, 1, 0, 999)); r.every = num(o.every, 1, 0.05, 60); }
             if (o.type === 'RANDOM_TRIGGER') { r.rnd = o.rnd === 'one' ? 'one' : 'chance'; r.ga = g0(o.ga == null ? 1 : o.ga); r.gb = g0(o.gb); r.gc = g0(o.gc); r.gd = g0(o.gd); r.chance = num(o.chance, 50, 0, 100); }
             if (o.type === 'COUNTER_TRIGGER') { r.cid = Math.round(num(o.cid, 1, 1, 9)); r.op = o.op === 'set' ? 'set' : 'add'; r.val = Math.round(num(o.val, 1, -999, 999)); r.need = Math.round(num(o.need, 5, -9999, 9999)); r.target = g0(o.target); r.show = o.show !== false; }
+            if (o.type === 'IF_TRIGGER') { r.ev = IF_EVENTS.includes(o.ev) ? o.ev : 'jump'; r.grp = g0(o.grp == null ? 1 : o.grp); r.target = tg(); r.dur = num(o.dur, 0, 0, 600); r.max = Math.round(num(o.max, 0, 0, 999)); }
             if (o.type === 'PRESS_TRIGGER') { r.target = tg(); r.dur = num(o.dur, 0, 0, 600); r.max = Math.round(num(o.max, 0, 0, 999)); }
             if (o.type === 'GRAVITY_TRIGGER') r.gmode = ['up', 'down'].includes(o.gmode) ? o.gmode : 'flip';
             if (o.type === 'SPEED_TRIGGER') r.spd = SPEEDS[o.spd] ? o.spd : 'SPEED_2';
@@ -641,7 +644,7 @@ function initState(L) {
         grounded: true, prevHeld: false, buf: 0, robotT: 0, lane: 0, lanes: DEFAULT_LANES,
         floor: 0, ceil: null, used: [], coins: [], dead: false, won: false, rot: 0, frame: 0, fx: null, tn: 0, acts: [],
         // 2.6: случайность, отложенные запуски, счётчики, «нажатия», выключенные группы, зоны касания
-        rng: 12345, pend: [], cnt: {}, lis: [], hid: [], inz: []
+        rng: 12345, pend: [], cnt: {}, lis: [], hid: [], inz: [], ifs: []
     };
 }
 // Старт с позиции, которую поставили в редакторе (режим, гравитация, скорость, размер)
@@ -893,6 +896,7 @@ function fireTrigger(s, L, ti, depth) {
             // останавливаются и повторы/нажатия, которые сами из этой группы, и те, что запускают эту группу
             if (s.pend.length) s.pend = s.pend.filter(p => { const q = L.triggers[p[1]]; return q.group !== t.target && q.target !== t.target; });
             if (s.lis.length) s.lis = s.lis.filter(p => { const q = L.triggers[p[0]]; return q.group !== t.target && q.target !== t.target; });
+            if (s.ifs && s.ifs.length) s.ifs = s.ifs.filter(p => { const q = L.triggers[p[0]]; return q.group !== t.target && q.target !== t.target; });
             break;
         case 'COUNTER_TRIGGER': {
             const old = s.cnt[t.cid] || 0, v = t.op === 'set' ? t.val : old + t.val;
@@ -902,6 +906,10 @@ function fireTrigger(s, L, ti, depth) {
         }
         case 'PRESS_TRIGGER':
             s.lis = s.lis.concat([[ti, t.dur > 0 ? s.frame + Math.round(t.dur * 60) : 1e9, t.max || 0]]);
+            break;
+        case 'IF_TRIGGER':
+            // с этого момента ждём событие; когда оно случится — запускаем группу
+            s.ifs = (s.ifs || []).concat([[ti, t.dur > 0 ? s.frame + Math.round(t.dur * 60) : 1e9, t.max || 0]]);
             break;
         case 'GRAVITY_TRIGGER': {
             const ng = t.gmode === 'up' ? -1 : t.gmode === 'down' ? 1 : -s.g;
@@ -1213,7 +1221,47 @@ function step(p, held, L) {
     else if (s.mode === 'swing') s.rot = -s.vy * 3;
     else if (s.mode === 'airplane') s.rot = -s.vy * 2;
     else s.rot = 0;
+    if (s.ifs && s.ifs.length) checkIfs(s, p, L, press, held);
     return s;
+}
+// ❓ «Если — то»: что случилось с игроком за этот кадр
+function ifHappened(ev, t, s, p, L, press, held) {
+    const fx = s.fx && s.fx.t;
+    switch (ev) {
+        case 'jump': return fx === 'jump' || fx === 'flip' || fx === 'spider';
+        case 'land': return s.grounded && !p.grounded;
+        case 'press': return press;
+        case 'release': return !held && p.prevHeld;
+        case 'orb': return fx === 'orb';
+        case 'pad': return fx === 'pad';
+        case 'portal': return fx === 'portal';
+        case 'coin': return fx === 'coin';
+        case 'gravity': return s.g !== p.g;
+        case 'mode': return s.mode !== p.mode;
+        case 'touch': {
+            // коснулся любого объекта из группы grp (блока, шипа, орба…)
+            if (!t.grp) return false;
+            const sz = pSize(s), x0 = s.x - 1, y0 = s.y - 1, x1 = s.x + sz + 1, y1 = s.y + sz + 1;
+            const near = nearWithMovers(L, s, x0 - 40, x1 + 40);
+            return near.some(o => o.group === t.grp && o.cat !== 'trigger' && overlaps(o.rect, x0, y0, x1, y1));
+        }
+    }
+    return false;
+}
+function checkIfs(s, p, L, press, held) {
+    TRIG_BUDGET = 300;
+    const live = s.ifs.filter(l => s.frame <= l[1] && !(L.triggers[l[0]].group && s.hid.includes(L.triggers[l[0]].group)));
+    // касание считается один раз, когда игрок только что коснулся (а не каждый кадр, пока стоит)
+    const fire = live.filter(l => {
+        const it = L.triggers[l[0]];
+        if (it.ev !== 'touch') return ifHappened(it.ev, it, s, p, L, press, held);
+        const now = ifHappened('touch', it, s, p, L, press, held), was = (s.ift || []).includes(l[0]);
+        if (now && !was) s.ift = (s.ift || []).concat(l[0]); else if (!now && was) s.ift = s.ift.filter(v => v !== l[0]);
+        return now && !was;
+    });
+    if (!fire.length) { if (live.length !== s.ifs.length) s.ifs = live; return; }
+    s.ifs = live.filter(l => !(fire.includes(l) && l[2] === 1)).map(l => fire.includes(l) && l[2] > 1 ? [l[0], l[1], l[2] - 1] : l);
+    for (const l of fire) { launchGroup(s, L, L.triggers[l[0]].target, 1); if (s.dead) return; }
 }
 
 // ===== ИИ 3.0: просчитывает будущее и ищет последовательность нажатий, при которой не умрёт =====
@@ -1957,12 +2005,21 @@ const SECRET_LEVELS = [
                 <div class="flex gap-2 mt-auto">
                     <button data-play="${i}" class="flex-1 py-2 rounded-xl bg-white text-black font-black text-sm">▶ ${tr('Играть', 'Play')}</button>
                     <button data-ai="${i}" title="AI" class="px-3 py-2 rounded-xl bg-black/50 border border-white/30 font-black text-sm">🤖</button>
+                    <button data-copy="${i}" title="${tr('Копия в редактор — посмотреть, как сделан', 'Copy to the editor — see how it is made')}" class="px-3 py-2 rounded-xl bg-black/50 border border-white/30 font-black text-sm">📋</button>
                     <button data-copy="${i}" title="${tr('Копировать в редактор — посмотреть, как он сделан', 'Copy to the editor — see how it is made')}" class="px-3 py-2 rounded-xl bg-black/50 border border-white/30 font-black text-sm">📝</button>
                 </div>`;
             box.appendChild(card);
         });
         box.querySelectorAll('[data-play]').forEach(b => b.addEventListener('click', () => startLevel({ kind: 'official', index: +b.dataset.play }, 'PLAY')));
         box.querySelectorAll('[data-ai]').forEach(b => b.addEventListener('click', () => startLevel({ kind: 'official', index: +b.dataset.ai }, 'AI')));
+        box.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => {
+            const src = OFFICIAL_LEVELS[+b.dataset.copy];
+            editorLevel = normalizeLevel(JSON.parse(JSON.stringify(src)));
+            editorLevel.name = (currentLang === 'ru' ? src.name : (src.nameEn || src.name)) + tr(' (копия)', ' (copy)');
+            editorLevel.id = newLevelId(); undoStack = []; redoStack = [];
+            saveEditor(); openEditor();
+            toast(tr('📋 Копия в редакторе: меняй, разбирай, как сделано. Официальный уровень не изменится.', '📋 A copy is in the editor: change it and see how it is made. The official level stays the same.'), 4);
+        }));
         // 📝 копия официального уровня — новым уровнем в «Мои уровни» (твой текущий уровень не трогается)
         box.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => {
             const src = OFFICIAL_LEVELS[+b.dataset.copy];
@@ -2245,6 +2302,8 @@ const SECRET_LEVELS = [
         if (S.mode !== prev.mode && G.mode === 'AI') aiLog(tr(`Новый режим: ${MODE_NAMES[S.mode][0]}. Перестраиваю модель физики.`, `New mode: ${MODE_NAMES[S.mode][1]}. Rebuilding physics model.`));
         if (G.fromEditor && S.frame % 3 === 0) G.curPath.push([S.x + pSize(S) / 2, S.y + pSize(S) / 2]);
         if (S.dead) {
+            // ❓ «Если игрок разбился — то…»: эффекты запущенной группы (звук, сообщение, вспышка…) успевают показаться
+            (S.ifs || []).forEach(l => { const it = G.L.triggers[l[0]]; if (it.ev === 'die' && S.frame <= l[1]) (G.L.trigByGroup[it.target] || []).forEach(ti => fireTriggerFx(G.L.triggers[ti], S)); });
             if (G.fromEditor) { G.testDeaths.push([S.x + pSize(S) / 2, S.y + pSize(S) / 2]); if (G.testDeaths.length > 40) G.testDeaths.shift(); G.lastPath = G.curPath.slice(); }
             onDeath(); return;
         }
@@ -3357,6 +3416,9 @@ const SECRET_LEVELS = [
         COUNTER_TRIGGER: { icon: '🔢', bg: '#0d9488', ru: 'Счётчик', en: 'Counter',
             what: ['Прибавляет число к счётчику (их 9). Когда счётчик дойдёт до нужного числа — запускает группу. Пример для босса: 10 зон касания по +1, на 10 — босс становится 💀. Счёт можно показать на экране.', 'Adds a number to a counter (there are 9). When it reaches the goal it fires a group. Boss example: 10 touch zones with +1, at 10 the boss turns 💀. The count can be shown on screen.'],
             label: o => `#${o.cid} ${o.op === 'set' ? '=' : o.val >= 0 ? '+' : ''}${o.val}` },
+        IF_TRIGGER: { icon: '❓', bg: '#0f766e', ru: 'Если — то', en: 'If — then',
+            what: ['Ждёт события и запускает группу триггеров: ЕСЛИ игрок прыгнул / приземлился / нажал / отпустил / коснулся объекта из группы / разбился / взял орб, батут, портал, монету / сменил гравитацию или режим — ТО запускается группа. Работает с момента, когда игрок пересёк линию.', 'Waits for an event and fires a trigger group: IF the player jumps / lands / presses / releases / touches an object of a group / dies / uses an orb, pad, portal, coin / changes gravity or mode — THEN the group fires. Works from the moment the player crosses the line.'],
+            label: o => (IF_NAMES[o.ev] || [''])[0] + '→' + tr('Г', 'G') + o.target },
         PRESS_TRIGGER: { icon: '👆', bg: '#7c3aed', ru: 'Нажатие', en: 'Press',
             what: ['После срабатывания каждое нажатие (прыжок) запускает группу: например, каждое нажатие — 🔔 выстрел или 💓 вспышка. Можно ограничить время или число нажатий.', 'After it fires, every press (jump) fires a group: e.g. every press plays 🔔 a shot or 💓 a pulse. You can limit the time or the number of presses.'],
             label: o => `${tr('Г', 'G')}${o.target}` },
@@ -3425,14 +3487,17 @@ const SECRET_LEVELS = [
     // триггеры по вкладкам редактора
     const TRIG_CAT = {
         group: ['MOVE_TRIGGER', 'TOGGLE_TRIGGER', 'FADE_TRIGGER', 'ROTATE_TRIGGER', 'SCALE_TRIGGER', 'TINT_TRIGGER', 'PULSE_TRIGGER', 'EMOJI_TRIGGER'],
-        logic: ['SPAWN_TRIGGER', 'RANDOM_TRIGGER', 'STOP_TRIGGER', 'COUNTER_TRIGGER', 'PRESS_TRIGGER', 'WIN_TRIGGER', 'KILL_TRIGGER'],
+        logic: ['IF_TRIGGER', 'SPAWN_TRIGGER', 'RANDOM_TRIGGER', 'STOP_TRIGGER', 'COUNTER_TRIGGER', 'PRESS_TRIGGER', 'WIN_TRIGGER', 'KILL_TRIGGER'],
         player: ['GRAVITY_TRIGGER', 'SPEED_TRIGGER', 'SIZE_TRIGGER', 'MODE_TRIGGER', 'HIDEP_TRIGGER', 'PCOLOR_TRIGGER'],
         screen: ['COLOR_TRIGGER', 'GROUND_TRIGGER', 'ZOOM_TRIGGER', 'CAMERA_TRIGGER', 'CAMROT_TRIGGER', 'MIRROR_TRIGGER', 'SHAKE_TRIGGER', 'FLASH_TRIGGER', 'DARK_TRIGGER', 'RAINBOW_TRIGGER', 'WEATHER_TRIGGER', 'TIME_TRIGGER', 'MESSAGE_TRIGGER'],
         sound: ['MUSIC_TRIGGER', 'SOUND_TRIGGER']
     };
     const trigTools = c => TRIG_CAT[c].map(k => [k, TRIG[k].icon, TRIG[k].ru, TRIG[k].en]);
     // триггеры, которые управляют другими триггерами (их «группа» — это номера триггеров)
-    const LOGIC_T = { STOP_TRIGGER: 1, SPAWN_TRIGGER: 1, RANDOM_TRIGGER: 1, COUNTER_TRIGGER: 1, PRESS_TRIGGER: 1 };
+    const LOGIC_T = { STOP_TRIGGER: 1, SPAWN_TRIGGER: 1, RANDOM_TRIGGER: 1, COUNTER_TRIGGER: 1, PRESS_TRIGGER: 1, IF_TRIGGER: 1 };
+    const IF_NAMES = { jump: ['⬆️', 'прыгнул', 'jumps'], land: ['⬇️', 'приземлился', 'lands'], press: ['👆', 'нажал', 'presses'], release: ['✋', 'отпустил', 'releases'],
+        touch: ['🤚', 'коснулся объекта из группы', 'touches an object of a group'], die: ['💥', 'разбился', 'dies'], orb: ['🟡', 'нажал орб', 'uses an orb'], pad: ['🟨', 'прыгнул на батуте', 'uses a pad'],
+        portal: ['🌀', 'прошёл портал', 'enters a portal'], coin: ['🪙', 'взял монету', 'takes a coin'], gravity: ['🙃', 'перевернул гравитацию', 'flips gravity'], mode: ['🧬', 'сменил режим', 'changes mode'] };
     // какие поля триггера движения показывать: обычное движение или «за игроком»
     const isFollowOn = o => ['x', 'y', 'xy'].includes(o.follow);
     const notFollow = o => !o.follow || o.follow === 'none';
@@ -3468,6 +3533,9 @@ const SECRET_LEVELS = [
         COUNTER_TRIGGER: [['cid', 'num', 'Номер счётчика (1–9)', 'Counter number (1–9)', 1, 9, 1], ['op', 'sel', 'Что сделать', 'Action', [['add', 'прибавить', 'add'], ['set', 'сделать равным', 'set to']]],
             ['val', 'num', 'Число (минус — отнять)', 'Number (minus = subtract)', -999, 999, 1], ['need', 'num', 'Когда счётчик станет', 'When the counter reaches', -9999, 9999, 1],
             ['target', 'num', '…запустить группу (0 — ничего)', '…fire group (0 = nothing)', 0, 99, 1], ['show', 'sel', 'Показывать счёт на экране', 'Show on screen', [[true, 'да', 'yes'], [false, 'нет', 'no']]]],
+        IF_TRIGGER: [['ev', 'sel', 'ЕСЛИ игрок…', 'IF the player…', () => IF_EVENTS.map(k => [k, IF_NAMES[k][0] + ' ' + IF_NAMES[k][1], IF_NAMES[k][0] + ' ' + IF_NAMES[k][2]])],
+            ['grp', 'num', '…объекта из группы', '…an object of group', 1, 99, 1, o => o.ev === 'touch'], ['target', 'num', 'ТО запустить группу триггеров', 'THEN fire trigger group', 1, 99, 1],
+            ['dur', 'num', 'Сколько секунд ждёт (0 — всегда, пока не остановят ⛔)', 'Waits for, s (0 = always, until ⛔ stopped)', 0, 600, 0.5], ['max', 'num', 'Сколько раз сработает (0 — каждый раз)', 'How many times (0 = every time)', 0, 999, 1]],
         PRESS_TRIGGER: [['target', 'num', 'Какую группу запускать при каждом нажатии', 'Group to fire on every press', 1, 99, 1], ['dur', 'num', 'Сколько секунд работает (0 — пока не остановят ⛔)', 'Works for, s (0 = until ⛔ stopped)', 0, 600, 0.5],
             ['max', 'num', 'Сколько нажатий (0 — сколько угодно)', 'Presses (0 = unlimited)', 0, 999, 1]],
         WIN_TRIGGER: [], KILL_TRIGGER: [],
@@ -3916,6 +3984,8 @@ const SECRET_LEVELS = [
                 }
                 if (o.type === 'SOUND_TRIGGER') html += `<div>${btn('sndtest', '▶ ' + tr('Послушать', 'Listen'))}</div>`;
                 // логические триггеры управляют триггерами: проверяем, есть ли кого запускать или останавливать
+                if (LOGIC_T[o.type]) html += `<div class="flex flex-wrap items-center gap-2">${btn('link', linkPick === o ? '✋ ' + tr('Закончить подключение', 'Finish linking') : '🔗 ' + tr('Подключить триггер', 'Link a trigger'), linkPick === o ? 'bg-zinc-600' : 'bg-sky-500 text-black')}
+                    <span class="text-zinc-400">${linkPick === o ? tr('Кликай по триггерам на поле — номера и «только от другого триггера» поставятся сами.', 'Click triggers on the field — numbers and "only from another trigger" are set for you.') : tr('Нажми и кликни по триггеру на поле — он подключится сам, без ручных номеров.', 'Press it, then click a trigger on the field — it links itself.')}</span></div>`;
                 if (LOGIC_T[o.type]) {
                     const gs = o.type === 'RANDOM_TRIGGER' ? [o.ga, o.gb, o.gc, o.gd].filter((g, i) => g > 0 && (o.rnd === 'one' || i < 2)) : o.target ? [o.target] : [];
                     gs.forEach(g => {
@@ -4148,6 +4218,30 @@ const SECRET_LEVELS = [
         else if (follow) toast(tr(`👤 Готово: группа ${g} идёт за игроком по X и держит то же расстояние. Триггер — на 6 блоков раньше; в нём можно выбрать «по X и Y».`, `👤 Done: group ${g} follows the player on X at the same distance. The trigger is 6 blocks earlier; you can pick "X and Y" there.`), 4);
         else toast(tr(`Готово: группа ${g}, триггер стоит на 6 блоков раньше. Его можно перетащить.`, `Done: group ${g}, the trigger is 6 blocks earlier. You can drag it.`));
     }
+    // 🔗 подключить триггер к логическому (запуск, кубик, стоп, счётчик, нажатие, «если — то»)
+    let linkPick = null;
+    function pickLink(w) {
+        const src = linkPick;
+        if (!editorLevel.objects.includes(src)) { linkPick = null; renderProps(); return; }
+        const t = objectsAtPoint(w).find(x => OBJ[x.type].cat === 'trigger' && x !== src);
+        if (!t) { toast(tr('Кликни прямо по значку триггера', 'Click right on a trigger icon')); return; }
+        pushUndo();
+        let g = t.group;
+        if (src.type === 'RANDOM_TRIGGER') {
+            if (!g) g = t.group = freeGroup();
+            if (![src.ga, src.gb, src.gc, src.gd].includes(g)) {
+                if (!src.ga) src.ga = g; else if (!src.gb) src.gb = g;
+                else { src.rnd = 'one'; if (!src.gc) src.gc = g; else if (!src.gd) src.gd = g; else src.gd = g; }
+            }
+        } else {
+            if (!g) g = t.group = src.target || freeGroup();
+            src.target = g;
+        }
+        if (src.type !== 'STOP_TRIGGER' && !t.act) t.act = 'spawn';
+        saveEditor(); renderProps();
+        toast(src.type === 'STOP_TRIGGER' ? tr(`🔗 Подключено: ⛔ остановит группу ${g}`, `🔗 Linked: ⛔ stops group ${g}`)
+            : tr(`🔗 Подключено: группа ${g}. Этот триггер теперь срабатывает только отсюда. Кликай ещё или ПКМ/Esc — закончить.`, `🔗 Linked: group ${g}. It now fires only from here. Click more or right click/Esc to finish.`), 4);
+    }
     // ⚡ быстрые кнопки для выбранного триггера: стоп, шанс 50%, повтор
     function triggerQuick(o, kind) {
         pushUndo();
@@ -4193,6 +4287,7 @@ const SECRET_LEVELS = [
         if (a === 'flip') { flipSelection(); return; }
         if (a.startsWith('q:')) { quickTrigger(a.slice(2)); return; }
         if (a === 'tpPick') { tpPick = tpPick === selObj ? null : selObj; renderProps(); return; }
+        if (a === 'link') { linkPick = linkPick === selObj ? null : selObj; renderProps(); if (linkPick) toast(tr('🔗 Кликай по триггерам на поле — они подключатся. ПКМ или Esc — закончить.', '🔗 Click triggers on the field to link them. Right click or Esc to finish.'), 4); return; }
         if (a === 'sndtest' && selObj) { music.ensure(); sound.play(selObj.snd); return; }
         if (a.startsWith('fixspawn:')) { pushUndo(); const g = +a.slice(9); editorLevel.objects.forEach(x => { if (x.group === g && OBJ[x.type].cat === 'trigger' && x !== selObj && !x.act) x.act = 'spawn'; }); saveEditor(); renderProps(); toast(tr('Готово: эти триггеры срабатывают только от другого триггера', 'Done: they fire only from another trigger')); return; }
         if (a.startsWith('tq:') && selObj && OBJ[selObj.type].cat === 'trigger') { triggerQuick(selObj, a.slice(3)); return; }
@@ -4298,9 +4393,11 @@ const SECRET_LEVELS = [
             const w = screenToWorld(e);
             if (e.button === 0 && inMinimap(w)) { edDrag = { type: 'minimap' }; minimapJump(w); return; }
             if (tpPick && (e.button === 2 || tpPick !== selObj)) { tpPick = null; renderProps(); if (e.button === 2) return; }
+            if (linkPick && e.button === 2) { linkPick = null; renderProps(); toast(tr('Подключение закончено', 'Linking finished')); return; }
             if (e.button === 2) { const i = objAtPoint(w); if (i >= 0) { pushUndo(); editorLevel.objects.splice(i, 1); saveEditor(); renderProps(); } return; }
             if (e.button !== 0) return;
             if (tpPick) { pickTpExit(w); return; }
+            if (linkPick) { pickLink(w); return; }
             if (activeTool !== 'ERASER' && hitTpExit(selObj, w)) { pushUndo(); edDrag = { type: 'tpExit', o: selObj }; return; }
             const hit = activeTool !== 'ERASER' ? hitPortalLine(selObj, w) : null;
             if (hit) { pushUndo(); edDrag = Object.assign({ type: 'line', o: selObj }, hit); return; }
@@ -4349,7 +4446,7 @@ const SECRET_LEVELS = [
             }
             return;
         }
-        canvas.style.cursor = inMinimap(w) ? 'pointer' : tpPick ? 'cell' : hitTpExit(selObj, w) ? 'grab' : hitPortalLine(selObj, w) ? 'ns-resize' : (activeTool === 'SELECT' ? 'default' : 'crosshair');
+        canvas.style.cursor = inMinimap(w) ? 'pointer' : tpPick ? 'cell' : linkPick ? 'alias' : hitTpExit(selObj, w) ? 'grab' : hitPortalLine(selObj, w) ? 'ns-resize' : (activeTool === 'SELECT' ? 'default' : 'crosshair');
         const nc = { x: Math.floor(w.x / GRID) * GRID, y: Math.floor(w.y / GRID) * GRID };
         const changed = !hoverCell || nc.x !== hoverCell.x || nc.y !== hoverCell.y;
         hoverCell = nc.x >= 0 && nc.y >= MIN_Y && !inMinimap(w) ? nc : null;
@@ -4411,7 +4508,7 @@ const SECRET_LEVELS = [
         delete b.dataset.armed; pushUndo(); editorLevel.objects = []; saveEditor(); setSelection([]); toast(tr('Карта очищена. Вернуть можно кнопкой «Отмена».', 'Map cleared. Undo brings it back.'));
     });
     $('btnExportLevel').addEventListener('click', () => {
-        const data = { format: 'geometry-ai', version: '2.9', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, phys: editorLevel.phys, objects: editorLevel.objects };
+        const data = { format: 'geometry-ai', version: '3.0', name: editorLevel.name || 'Мой уровень', color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, phys: editorLevel.phys, objects: editorLevel.objects };
         const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -4732,6 +4829,9 @@ const SECRET_LEVELS = [
         ['Ctrl + Z / Ctrl + Y', 'отмена / повтор', 'undo / redo'], ['H', 'показать хитбоксы', 'show hitboxes'], ['Esc', 'снять выделение', 'clear selection'],
         ['Мини-карта внизу', 'клик — прыжок в это место уровня', 'click to jump there'],
         ['⚡ Быстро', 'выдели объекты → «Двигать / Растворить / Спрятать» — группа и триггер появятся сами', 'select objects → Move / Fade / Hide — group and trigger are made for you'],
+        ['❓ Если — то', 'ЕСЛИ игрок прыгнул, приземлился, коснулся группы, разбился, взял орб/монету/портал… — ТО запускается группа триггеров', 'IF the player jumps, lands, touches a group, dies, uses an orb/coin/portal… THEN a trigger group fires'],
+        ['🔗 Подключить', 'у логического триггера нажми «🔗 Подключить» и кликай по триггерам на поле — номера поставятся сами', 'press "🔗 Link" on a logic trigger and click triggers on the field'],
+        ['📋 Копия', 'на карточке официального уровня кнопка 📋 открывает его копию в редакторе — смотри, как он сделан', 'the 📋 button on an official level opens a copy in the editor'],
         ['⛔ Стоп', 'впиши триггеру «🏷 номер», поставь ⛔ Стоп с этим номером — движение, вращение, повторы и эффекты замрут', 'give a trigger a "🏷 number", place ⛔ Stop with it — movement, rotation, repeats and effects freeze'],
         ['🎲 Случайность', 'с шансом запускает группу триггеров A или B, или одну из нескольких; каждую попытку по-новому', 'fires trigger group A or B by chance, or one of several; new every attempt'],
         ['🧨 Запуск', 'запускает группу триггеров где угодно, с задержкой и повтором («каждую секунду, бесконечно»)', 'fires a trigger group anywhere, with delay and repeat'],
@@ -5188,7 +5288,7 @@ const SECRET_LEVELS = [
             if (ctrl && e.code === 'KeyV') { e.preventDefault(); const c = hoverCell || { x: Math.max(0, Math.round((G.edCamX + VIEW_W / G.edZoom / 2) / GRID) * GRID), y: 0 }; pasteAt(c.x, c.y); }
             if (ctrl && e.code === 'KeyD') { e.preventDefault(); duplicateSelection(); }
             if (ctrl && e.code === 'KeyA') { e.preventDefault(); activeTool = 'SELECT'; activeTab = 'SELECT'; renderTabs(); renderToolBar(); refreshSelectBtn(); setSelection(editorLevel.objects.slice()); }
-            if (e.code === 'Escape') { tpPick = null; setSelection([]); ['libModal', 'helpModal', 'musicModal', 'gdModal'].forEach(id => $(id).classList.add('hidden')); }
+            if (e.code === 'Escape') { tpPick = null; linkPick = null; setSelection([]); ['libModal', 'helpModal', 'musicModal', 'gdModal'].forEach(id => $(id).classList.add('hidden')); }
             if ((e.code === 'Equal' || e.code === 'NumpadAdd') && !ctrl) setZoom(G.edZoom * 1.25);
             if ((e.code === 'Minus' || e.code === 'NumpadSubtract') && !ctrl) setZoom(G.edZoom / 1.25);
             if ((e.code === 'Delete' || e.code === 'Backspace') && selSet.length) { e.preventDefault(); deleteSelection(); }
