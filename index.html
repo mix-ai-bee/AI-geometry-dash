@@ -1858,7 +1858,7 @@ const SECRET_LEVELS = [
         if (!editorLevel.id) editorLevel.id = newLevelId();
         if (!editorLevel.objects.length && !editorLevel.name) return;
         const lib = store.get('myLevels', []);
-        const entry = { id: editorLevel.id, name: editorLevel.name, color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, objects: editorLevel.objects, t: Date.now() };
+        const entry = { id: editorLevel.id, name: editorLevel.name, color: editorLevel.color, song: editorLevel.song, wall: editorLevel.wall, phys: editorLevel.phys, objects: editorLevel.objects, t: Date.now() };
         const i = lib.findIndex(x => x.id === entry.id);
         if (i >= 0) lib[i] = entry; else lib.unshift(entry);
         store.set('myLevels', lib);
@@ -1957,11 +1957,22 @@ const SECRET_LEVELS = [
                 <div class="flex gap-2 mt-auto">
                     <button data-play="${i}" class="flex-1 py-2 rounded-xl bg-white text-black font-black text-sm">▶ ${tr('Играть', 'Play')}</button>
                     <button data-ai="${i}" title="AI" class="px-3 py-2 rounded-xl bg-black/50 border border-white/30 font-black text-sm">🤖</button>
+                    <button data-copy="${i}" title="${tr('Копировать в редактор — посмотреть, как он сделан', 'Copy to the editor — see how it is made')}" class="px-3 py-2 rounded-xl bg-black/50 border border-white/30 font-black text-sm">📝</button>
                 </div>`;
             box.appendChild(card);
         });
         box.querySelectorAll('[data-play]').forEach(b => b.addEventListener('click', () => startLevel({ kind: 'official', index: +b.dataset.play }, 'PLAY')));
         box.querySelectorAll('[data-ai]').forEach(b => b.addEventListener('click', () => startLevel({ kind: 'official', index: +b.dataset.ai }, 'AI')));
+        // 📝 копия официального уровня — новым уровнем в «Мои уровни» (твой текущий уровень не трогается)
+        box.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => {
+            const src = OFFICIAL_LEVELS[+b.dataset.copy];
+            saveToLibrary();
+            editorLevel = normalizeLevel(JSON.parse(JSON.stringify(src)));
+            editorLevel.name = tr('Копия: ', 'Copy: ') + (currentLang === 'ru' ? src.name : (src.nameEn || src.name));
+            editorLevel.id = newLevelId(); undoStack = []; redoStack = [];
+            saveEditor(); openEditor();
+            toast(tr('📝 Копия открыта в редакторе и сохранена в «Мои уровни». Нажми на любой триггер — увидишь, как он настроен.', '📝 The copy is open in the editor and saved to My levels. Click any trigger to see its settings.'), 5);
+        }));
         if (store.get('secretFound', false)) {
             SECRET_LEVELS.forEach((lv, i) => {
                 const prog = store.get('prog_s' + i, { best: 0, practice: 0, coins: [] });
